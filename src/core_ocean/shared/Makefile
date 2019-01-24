@@ -32,6 +32,7 @@ OBJS = mpas_ocn_init_routines.o \
 	   mpas_ocn_vmix_coefs_tanh.o \
 	   mpas_ocn_vmix_coefs_redi.o \
 	   mpas_ocn_vmix_cvmix.o \
+	   mpas_ocn_vmix_cvmix2_kokkos.o \
 	   mpas_ocn_tendency.o \
 	   mpas_ocn_tracer_hmix.o \
 	   mpas_ocn_tracer_hmix_del2.o \
@@ -137,7 +138,7 @@ mpas_ocn_tracer_short_wave_absorption_variable.o: mpas_ocn_constants.o mpas_ocn_
 
 mpas_ocn_tracer_short_wave_absorption_jerlov.o: mpas_ocn_constants.o
 
-mpas_ocn_vmix.o: mpas_ocn_vmix_coefs_const.o mpas_ocn_vmix_coefs_rich.o mpas_ocn_vmix_coefs_tanh.o mpas_ocn_vmix_cvmix.o mpas_ocn_vmix_coefs_redi.o mpas_ocn_constants.o
+mpas_ocn_vmix.o: mpas_ocn_vmix_coefs_const.o mpas_ocn_vmix_coefs_rich.o mpas_ocn_vmix_coefs_tanh.o mpas_ocn_vmix_cvmix.o mpas_ocn_vmix_cvmix2_kokkos.o mpas_ocn_vmix_coefs_redi.o mpas_ocn_constants.o
 
 mpas_ocn_vmix_coefs_const.o: mpas_ocn_constants.o
 
@@ -146,6 +147,8 @@ mpas_ocn_vmix_coefs_rich.o: mpas_ocn_equation_of_state.o mpas_ocn_constants.o
 mpas_ocn_vmix_coefs_tanh.o: mpas_ocn_constants.o
 
 mpas_ocn_vmix_cvmix.o:  mpas_ocn_constants.o
+
+mpas_ocn_vmix_cvmix2_kokkos.o: mpas_ocn_constants.o
 
 mpas_ocn_vmix_coefs_redi.o: mpas_ocn_constants.o
 

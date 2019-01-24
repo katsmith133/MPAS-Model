@@ -31,6 +31,7 @@ module ocn_vmix
    use ocn_vmix_coefs_tanh
    use ocn_vmix_coefs_rich
    use ocn_vmix_cvmix
+   use ocn_vmix_cvmix2_kokkos
    use ocn_vmix_coefs_redi
 
    implicit none
@@ -177,6 +178,7 @@ contains
       call ocn_vmix_coefs_tanh_build(meshPool, statePool, diagnosticsPool, err2, timeLevel)
       call ocn_vmix_coefs_rich_build(meshPool, statePool, diagnosticsPool, scratchPool, err3, timeLevel)
       call ocn_vmix_coefs_cvmix_build(meshPool, statePool, forcingPool, diagnosticsPool, err4, timeLevel)
+      call ocn_vmix_coefs_cvmix2_kokkos_build(meshPool, statePool, forcingPool, diagnosticsPool, err4, timeLevel)
       call ocn_vmix_coefs_redi_build(meshPool, statePool, diagnosticsPool, err5, timeLevel)
 
       err = ior(ior(ior(err1, ior(err2, err3)), err4), err5)
@@ -498,7 +500,7 @@ contains
       real (kind=RKIND), dimension(:,:,:), pointer :: activeTracerVertMixTendency
       integer, dimension(:), pointer :: maxLevelCell, maxLevelEdgeTop
       integer, dimension(:,:), pointer :: cellsOnEdge
-      logical, pointer :: config_use_cvmix,config_compute_active_tracer_budgets
+      logical, pointer :: config_use_cvmix,config_use_cvmix2,config_compute_active_tracer_budgets
       logical, pointer :: config_cvmix_kpp_nonlocal_with_implicit_mix
 
       type (mpas_pool_iterator_type) :: groupItr
@@ -519,6 +521,7 @@ contains
 
       call mpas_pool_get_subpool(forcingPool, 'tracersSurfaceFlux', tracersSurfaceFluxPool)
       call mpas_pool_get_config(ocnConfigs, 'config_use_cvmix', config_use_cvmix)
+      call mpas_pool_get_config(ocnConfigs, 'config_use_cvmix2', config_use_cvmix2)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix_kpp_nonlocal_with_implicit_mix', &
                                 config_cvmix_kpp_nonlocal_with_implicit_mix)
       call mpas_pool_get_config(ocnConfigs, 'config_compute_active_tracer_budgets',  &
@@ -549,7 +552,7 @@ contains
       nCells = nCellsArray(1)
       call mpas_pool_get_array(diagnosticsPool, 'vertNonLocalFlux', vertNonLocalFlux)
       ! if using CVMix, then viscosity has to be averaged from cell centers to cell edges
-      if ( config_use_cvmix ) then
+      if ( config_use_cvmix .or. config_use_cvmix2) then
 
          nEdges = nEdgesArray( 1 )
          call mpas_timer_start('CVMix avg', .false.)
@@ -690,6 +693,8 @@ contains
       call ocn_vmix_cvmix_init(domain,err_tmp)
       err = ior(err, err_tmp)
       call ocn_vmix_coefs_redi_init(err_tmp)
+      err = ior(err, err_tmp)
+      call ocn_vmix_cvmix2_kokkos_init(domain,err_tmp)
       err = ior(err, err_tmp)
 
    !--------------------------------------------------------------------
