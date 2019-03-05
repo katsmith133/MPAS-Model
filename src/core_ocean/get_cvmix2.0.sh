@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## CVMix Tag for build
-CVMIX_TAG=0a7f3c2
+CVMIX_TAG=v1.1
 ## Subdirectory in CVMix repo to use
 CVMIX_SUBDIR=lib
 
@@ -20,7 +20,7 @@ if [ -d cvmix2 ]; then
 
 	if [ -d .cvmix2_all/.git ]; then
 		cd .cvmix2_all
-		CURR_TAG=$(git rev-parse --short HEAD)
+		CURR_TAG=$(git describe --tags)
 		cd ../
 		if [ "${CURR_TAG}" == "${CVMIX_TAG}" ]; then
 			echo "CVmix2 version is current. Skip update"
