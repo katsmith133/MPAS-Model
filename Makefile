@@ -229,10 +229,9 @@ gfortran:
 	"LDFLAGS_DEBUG = -g -m64" \
 	"FFLAGS_OMP = -fopenmp" \
 	"CFLAGS_OMP = -fopenmp" \
-	"KOKKOS_DEVICES='Serial'" \
-	"KOKKOS_CXX = g++" \
 	"CORE = $(CORE)" \
 	"DEBUG = $(DEBUG)" \
+	"KOKKOS = $(KOKKOS)" \
 	"USE_PAPI = $(USE_PAPI)" \
 	"OPENMP = $(OPENMP)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI -DUNDERSCORE" )
@@ -561,12 +560,12 @@ ifeq "$(OPENMP)" "true"
 	LDFLAGS += $(FFLAGS_OMP)
 endif #OPENMP IF
 
-
 ifeq "$(KOKKOS)" "true"
 	KOKKOS_DEVICES=Cuda
 	KOKKOS_CXX="kokkos/bin/nvcc_wrapper"
 	KOKKOS_CUDA_OPTIONS = enable_lambda
 	KOKKOS_CPP_FLAGS = "-DGPU -lineinfo"
+	LIBS += -L$(CUDA)/lib64 -lcudart
 else
 	KOKKOS_DEVICES=Serial
 	KOKKOS_CXX = 'g++'
@@ -820,7 +819,11 @@ endif
                  CORE="$(CORE)"\
                  AUTOCLEAN="$(AUTOCLEAN)" \
                  GEN_F90="$(GEN_F90)" \
-                 NAMELIST_SUFFIX="$(NAMELIST_SUFFIX)" \
+		 KOKKOS_CXX="$(KOKKOS_CXX)" \
+                 KOKKOS_DEVICES="$(KOKKOS_DEVICES)" \
+		 KOKKOS_CUDA_OPTIONS="$(KOKKOS_CUDA_OPTIONS)" \
+		 KOKKOS_ARCH="$(KOKKOS_ARCH)" \
+		 NAMELIST_SUFFIX="$(NAMELIST_SUFFIX)" \
                  EXE_NAME="$(EXE_NAME)"
 
 	@echo "$(EXE_NAME)" > .mpas_core_$(CORE)
@@ -839,6 +842,7 @@ endif
 	@echo $(GEN_F90_MESSAGE)
 	@echo $(TIMER_MESSAGE)
 	@echo $(PIO_MESSAGE)
+	@echo $(KOKKOS)
 	@echo "*******************************************************************************"
 clean:
 	cd src; $(MAKE) clean RM="$(RM)" CORE="$(CORE)"
