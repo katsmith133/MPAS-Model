@@ -50,8 +50,8 @@ cvmix_source: get_cvmix.sh
 	(cd cvmix)
 
 cvmix2_source: get_cvmix2.0.sh
-	(/bin/bash ./get_cvmix2.0.sh)
-	(cd cvmix2)
+#	(/bin/bash ./get_cvmix2.0.sh)
+	(cd cvmix_kokkos)
 
 BGC_source: get_BGC.sh
 	(/bin/bash ./get_BGC.sh)
@@ -65,8 +65,8 @@ libcvmix: cvmix_source
 	fi
 
 libcvmix2: cvmix2_source
-	if [ -d cvmix2 ]; then \
-		(cd cvmix2; make libs CXX="$(CXX)" CXXFLAGS="$(CXXFLAGS)") \
+	if [ -d cvmix_kokkos ]; then \
+		(cd cvmix_kokkos; make libs CXX="$(KOKKOS_CXX)" CXXFLAGS="$(KOKKOS_CPPFLAGS) $(CXXFLAGS)" KOKKOS_CUDA_OPTIONS="$(KOKKOS_CUDA_OPTIONS)" KOKKOS_ARCH="$(KOKKOS_ARCH)" KOKKOS_DEVICES="$(KOKKOS_DEVICES)" ) \
 	else \
 		(exit 1) \
 	fi
@@ -88,8 +88,8 @@ clean:
 	if [ -d cvmix ]; then \
 		(cd cvmix; make clean) \
 	fi
-	if [ -d cvmix2 ]; then \
-		(cd cvmix2; make clean) \
+	if [ -d cvmix_kokkos ]; then \
+		(cd cvmix_kokkos; make clean) \
 	fi
 	if [ -d inc ]; then \
 		($(RM) -r inc) \

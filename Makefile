@@ -229,6 +229,8 @@ gfortran:
 	"LDFLAGS_DEBUG = -g -m64" \
 	"FFLAGS_OMP = -fopenmp" \
 	"CFLAGS_OMP = -fopenmp" \
+	"KOKKOS_DEVICES='Serial'" \
+	"KOKKOS_CXX = g++" \
 	"CORE = $(CORE)" \
 	"DEBUG = $(DEBUG)" \
 	"USE_PAPI = $(USE_PAPI)" \
@@ -558,6 +560,23 @@ ifeq "$(OPENMP)" "true"
 	override CPPFLAGS += "-DMPAS_OPENMP"
 	LDFLAGS += $(FFLAGS_OMP)
 endif #OPENMP IF
+
+
+ifeq "$(KOKKOS)" "true"
+	KOKKOS_DEVICES=Cuda
+	KOKKOS_CXX="kokkos/bin/nvcc_wrapper"
+	KOKKOS_CUDA_OPTIONS = enable_lambda
+	KOKKOS_CPP_FLAGS = "-DGPU -lineinfo"
+else
+	KOKKOS_DEVICES=Serial
+	KOKKOS_CXX = 'g++'
+endif
+
+ifneq "$(KOKKOSARCH)" ""
+	KOKKOS_ARCH = $(KOKKOSARCH)
+else
+	KOKKOS_ARCH = " "
+endif
 
 ifeq "$(PRECISION)" "single"
 	CFLAGS += "-DSINGLE_PRECISION"
