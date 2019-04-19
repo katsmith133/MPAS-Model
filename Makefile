@@ -68,6 +68,34 @@ titan-cray:
 	"OPENMP = $(OPENMP)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI -DUNDERSCORE" )
 
+pgi-p9:
+	( $(MAKE) all \
+  "FC_PARALLEL = mpif90" \
+  "CC_PARALLEL = mpicc" \
+  "CXX_PARALLEL = mpicxx" \
+  "FC_SERIAL = pgf90" \
+  "CC_SERIAL = pgcc" \
+  "CXX_SERIAL = pgc++" \
+  "FFLAGS_PROMOTION = -r8" \
+  "FFLAGS_OPT = -g -O3 -byteswapio -Mfree " \
+  "FFLAGS_ACC = -acc -Mcuda=cuda9.0 -ta=tesla:cc70 -DMPAS_GPTL_TIMERS=1 -I/usr/projects/icapt/libs-mpas/ompi-pg18/include" \
+  "CFLAGS_ACC = -acc -Mcuda=cuda9.0 -ta=tesla:cc70 -DMPAS_GPTL_TIMERS=1 -I/usr/projects/icapt/libs-mpas/ompi-pg18/include"  \
+  "OPENACC = $(OPENACC)" \
+  "CFLAGS_OPT = -g -O3 " \
+  "CXXFLAGS_OPT = -g -O3 " \
+  "LDFLAGS_OPT = -g -O3 -L/usr/projects/icapt/libs-mpas/ompi-pg18/lib" \
+  "FFLAGS_DEBUG = -O0 -g -Mbounds -Mchkptr -byteswapio -Mfree -Ktrap=divz,fp,inv,ovf " \
+  "CFLAGS_DEBUG = -O0 -g " \
+  "CXXFLAGS_DEBUG = -O0 -g " \
+  "LDFLAGS_DEBUG = -O0 -g -Mbounds -Mchkptr -Ktrap=divz,fp,inv,ovf  -L/usr/projects/icapt/libs-mpas/ompi-pg18/lib" \
+  "FFLAGS_OMP = -mp" \
+  "CFLAGS_OMP = -mp" \
+  "CORE = $(CORE)" \
+  "DEBUG = $(DEBUG)" \
+  "USE_PAPI = $(USE_PAPI)" \
+  "OPENMP = $(OPENMP)" \
+  "CPPFLAGS = -DpgiFortran -D_MPI -DUNDERSCORE" )
+
 pgi:
 	( $(MAKE) all \
 	"FC_PARALLEL = mpif90" \
@@ -81,12 +109,37 @@ pgi:
 	"CFLAGS_OPT = -O3" \
 	"CXXFLAGS_OPT = -O3" \
 	"LDFLAGS_OPT = -O3" \
-	"FFLAGS_DEBUG = -O0 -g -Mbounds -Mchkptr -byteswapio -Mfree -Ktrap=divz,fp,inv,ovf -traceback" \
-	"CFLAGS_DEBUG = -O0 -g -traceback" \
-	"CXXFLAGS_DEBUG = -O0 -g -traceback" \
-	"LDFLAGS_DEBUG = -O0 -g -Mbounds -Mchkptr -Ktrap=divz,fp,inv,ovf -traceback" \
+	"FFLAGS_DEBUG = -O0 -g -Mbounds -Mchkptr -byteswapio -Mfree -Ktrap=divz,fp,inv,ovf" \
+	"CFLAGS_DEBUG = -O0 -g" \
+	"CXXFLAGS_DEBUG = -O0 -g" \
+	"LDFLAGS_DEBUG = -O0 -g -Mbounds -Mchkptr -Ktrap=divz,fp,inv,ovf" \
 	"FFLAGS_OMP = -mp" \
 	"CFLAGS_OMP = -mp" \
+	"CORE = $(CORE)" \
+	"DEBUG = $(DEBUG)" \
+	"USE_PAPI = $(USE_PAPI)" \
+	"OPENMP = $(OPENMP)" \
+	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI -DUNDERSCORE" )
+
+titan-intel:
+	( $(MAKE) all \
+	"FC_PARALLEL = ftn" \
+	"CC_PARALLEL = cc" \
+	"CXX_PARALLEL = CC" \
+	"FC_SERIAL = ftn" \
+	"CC_SERIAL = cc" \
+	"CXX_SERIAL = CC" \
+	"FFLAGS_PROMOTION = -fdefault-real-8 -fdefault-double-8" \
+	"FFLAGS_OPT = -O3 -m64 -ffree-line-length-none -fconvert=big-endian -ffree-form" \
+	"CFLAGS_OPT = -O3 -m64" \
+	"CXXFLAGS_OPT = -O3 -m64" \
+	"LDFLAGS_OPT = -O3 -m64" \
+	"FFLAGS_DEBUG = -g -m64 -ffree-line-length-none -fconvert=big-endian -ffree-form -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow" \
+	"CFLAGS_DEBUG = -g -m64" \
+	"CXXFLAGS_DEBUG = -g -m64" \
+	"LDFLAGS_DEBUG = -g -m64" \
+	"FFLAGS_OMP = -fopenmp" \
+	"CFLAGS_OMP = -fopenmp" \
 	"CORE = $(CORE)" \
 	"DEBUG = $(DEBUG)" \
 	"USE_PAPI = $(USE_PAPI)" \

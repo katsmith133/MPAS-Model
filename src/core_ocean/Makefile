@@ -50,7 +50,7 @@ cvmix_source: get_cvmix.sh
 	(cd cvmix)
 
 cvmix2_source: get_cvmix2.0.sh
-#	(/bin/bash ./get_cvmix2.0.sh)
+	(/bin/bash ./get_cvmix2.0.sh)
 	(cd cvmix_kokkos)
 
 BGC_source: get_BGC.sh
