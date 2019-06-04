@@ -114,7 +114,7 @@ contains
       integer, dimension(:,:), pointer :: cellsOnEdge, edgesOnCell
       integer                          :: i, k, iEdge, cell1, cell2, iCell, N, iter
       real(kind=RKIND)                 :: h1, h2, areaEdge, c, BruntVaisalaFreqTopEdge, rtmp, stmp, maxSlopeK33
-      real(kind=RKIND)                 :: bottomAv, sumN2, countN2, maxN
+      real(kind=RKIND)                 :: bottomAv, sumN2, countN2, maxN, kappaSum
       
       ! Dimensions
       integer :: nCells, nEdges
@@ -582,7 +582,25 @@ contains
             enddo
          enddo
          !$omp end do
-      else
+
+         if (config_gm_kappa_lat_variable) then
+            do iEdge = 1, nEdges
+               cell1 = cellsOnEdge(1,iEdge)
+               cell2 = cellsOnEdge(2,iEdge)
+
+               kappaSum = 0.0_RKIND
+               do k=1,maxLevelEdgeTop(iEdge)
+                  kappaSum = kappaSum + kappaGM3D(k,iEdge)
+               enddo
+
+               kappaGM2D(iEdge) = kappaSum / real(maxLevelEdgeTop(iEdge), kind=RKIND)
+               !over write the kappa 3d variable
+               kappaGM3D(:,iEdge) = kappaGM2D(iEdge)
+
+            enddo
+            !$omp end do
+         endif
+    else
          !$omp do schedule(runtime)
          do iEdge=1,nEdges
             kappaGM3D(:,iEdge) = gmBolusKappa(iEdge)
