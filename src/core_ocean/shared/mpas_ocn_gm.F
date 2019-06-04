@@ -114,7 +114,7 @@ contains
       integer, dimension(:,:), pointer :: cellsOnEdge, edgesOnCell
       integer                          :: i, k, iEdge, cell1, cell2, iCell, N, iter
       real(kind=RKIND)                 :: h1, h2, areaEdge, c, BruntVaisalaFreqTopEdge, rtmp, stmp, maxSlopeK33
-      real(kind=RKIND)                 :: bottomAv, sumN2, countN2, maxN, kappaSum
+      real(kind=RKIND)                 :: bottomAv, sumN2, countN2, maxN, kappaSum, ltSum
       
       ! Dimensions
       integer :: nCells, nEdges
@@ -589,11 +589,13 @@ contains
                cell2 = cellsOnEdge(2,iEdge)
 
                kappaSum = 0.0_RKIND
+               ltSum = 0.0_RKIND
                do k=1,maxLevelEdgeTop(iEdge)
-                  kappaSum = kappaSum + kappaGM3D(k,iEdge)
+                  kappaSum = kappaSum + layerThicknessEdge(k,iEdge)*kappaGM3D(k,iEdge)
+                  ltSum = ltSum + layerThicknessEdge(k,iEdge)
                enddo
 
-               kappaGM2D(iEdge) = kappaSum / real(maxLevelEdgeTop(iEdge), kind=RKIND)
+               kappaGM2D(iEdge) = kappaSum / ltSum 
                !over write the kappa 3d variable
                kappaGM3D(:,iEdge) = kappaGM2D(iEdge)
 
