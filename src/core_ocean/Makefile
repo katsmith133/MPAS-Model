@@ -66,7 +66,7 @@ libcvmix: cvmix_source
 
 libcvmix2: cvmix2_source
 	if [ -d cvmix_kokkos ]; then \
-		(cd cvmix_kokkos; make libs CXX="$(KOKKOS_CXX)" CXXFLAGS="$(KOKKOS_CPPFLAGS) $(CXXFLAGS)" KOKKOS_CUDA_OPTIONS="$(KOKKOS_CUDA_OPTIONS)" KOKKOS_ARCH="$(KOKKOS_ARCH)" KOKKOS_DEVICES="$(KOKKOS_DEVICES)" ) \
+		(cd cvmix_kokkos; make libs CXX="$(KOKKOS_CXX)" CXXFLAGS="$(KOKKOS_CPPFLAGS) $(CXXFLAGS)" KOKKOS_CUDA_OPTIONS="$(KOKKOS_CUDA_OPTIONS)" KOKKOS_ARCH="$(KOKKOS_ARCH)" KOKKOS_DEVICES="$(KOKKOS_DEVICES)" KOKKOS_CPP_FLAGS="$(KOKKOS_CPP_FLAGS)" ) \
 	else \
 		(exit 1) \
 	fi

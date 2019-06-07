@@ -72,7 +72,7 @@ clean: kokkos-clean
 	rm -f *.o *.mod $(EXE) libcvmix2.a
 
 .cpp.o: 
-	$(CXX) -c $(KOKKOS_CPPFLAGS) $(KOKKOS_CXXFLAGS) $(CXXFLAGS) $(EXTRA_INC) $<
+	$(CXX) -c $(KOKKOS_CPPFLAGS) $(KOKKOS_CPP_FLAGS) $(KOKKOS_CXXFLAGS) $(CXXFLAGS) $(EXTRA_INC) $<
 
 %.o: %.f90
 	$(F90) -c $(DEBUG) $(F90FLAGS) $<

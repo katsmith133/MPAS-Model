@@ -72,9 +72,12 @@ class KPPvariables{
 		ViewDoubleType::HostMirror h_u;
 		ViewDoubleType::HostMirror h_v;
 		ViewDoubleType::HostMirror h_n2;
-		ViewDoubleType::HostMirror h_ri;
+	  ViewDoubleType::HostMirror h_n2_temp;
+	ViewDoubleType::HostMirror h_ri;
 		ViewDoubleType::HostMirror h_rho;
 
+    ViewDoubleType::HostMirror h_brnS;
+    ViewDoubleType::HostMirror h_brnB;
 		ViewColType::HostMirror h_f;
 		ViewColType::HostMirror h_sfc_buoy;
 		ViewColType::HostMirror h_us;

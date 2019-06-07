@@ -82,14 +82,14 @@ pgi-p9:
   "CFLAGS_ACC = -acc -Mcuda=cuda9.0 -ta=tesla:cc70 -DMPAS_GPTL_TIMERS=1 -I/usr/projects/icapt/libs-mpas/ompi-pg18/include"  \
   "OPENACC = $(OPENACC)" \
   "CFLAGS_OPT = -g -O3 " \
-  "CXXFLAGS_OPT = -g -O3 " \
+  "CXXFLAGS_OPT =  -g -O3 " \
   "LDFLAGS_OPT = -g -O3 -L/usr/projects/icapt/libs-mpas/ompi-pg18/lib" \
-  "FFLAGS_DEBUG = -O0 -g -Mbounds -Mchkptr -byteswapio -Mfree -Ktrap=divz,fp,inv,ovf " \
-  "CFLAGS_DEBUG = -O0 -g " \
-  "CXXFLAGS_DEBUG = -O0 -g " \
-  "LDFLAGS_DEBUG = -O0 -g -Mbounds -Mchkptr -Ktrap=divz,fp,inv,ovf  -L/usr/projects/icapt/libs-mpas/ompi-pg18/lib" \
-  "FFLAGS_OMP = -mp" \
-  "CFLAGS_OMP = -mp" \
+  "FFLAGS_DEBUG =  -O0 -g -Mbounds -Mchkptr -byteswapio -Mfree -Ktrap=divz,fp,inv,ovf " \
+  "CFLAGS_DEBUG =  -O0 -g " \
+  "CXXFLAGS_DEBUG =  -O0 -g " \
+  "LDFLAGS_DEBUG = -O0 -Mbounds -Mchkptr -Ktrap=divz,fp,inv,ovf  -L/usr/projects/icapt/libs-mpas/ompi-pg18/lib" \
+  "FFLAGS_OMP =  -mp" \
+  "CFLAGS_OMP =  -mp" \
   "CORE = $(CORE)" \
   "DEBUG = $(DEBUG)" \
   "USE_PAPI = $(USE_PAPI)" \
@@ -615,19 +615,19 @@ endif #OPENMP IF
 
 ifeq "$(KOKKOS)" "true"
 	KOKKOS_DEVICES=Cuda
-	KOKKOS_CXX="kokkos/bin/nvcc_wrapper"
+
+	KOKKOS_CXX=kokkos/bin/nvcc_wrapper -ccbin 
+	KOKKOS_CXX += $(CXX)
 	KOKKOS_CUDA_OPTIONS = enable_lambda
 	KOKKOS_CPP_FLAGS = "-DGPU -lineinfo"
 	LIBS += -L$(CUDA)/lib64 -lcudart
 else
 	KOKKOS_DEVICES=Serial
-	KOKKOS_CXX = 'g++'
+	KOKKOS_CXX = $(CXX_SERIAL) 
 endif
 
 ifneq "$(KOKKOSARCH)" ""
 	KOKKOS_ARCH = $(KOKKOSARCH)
-else
-	KOKKOS_ARCH = " "
 endif
 
 ifeq "$(PRECISION)" "single"
@@ -704,7 +704,7 @@ else
 endif
 
 ifeq "$(CVMIX2)" "true"
-	LIBS += -lstdc++ -ldl
+	LIBS += -lpgatm -L/autofs/nccs-svm1_sw/summit/gcc/6.4.0/lib64 -lstdc++ -ldl
 
 endif
 
@@ -813,28 +813,29 @@ pio_test:
 	@#
 	@# Create two test programs: one that should work with PIO1 and a second that should work with PIO2
 	@#
-	@echo "program pio1; use pio; use pionfatt_mod; integer, parameter :: MPAS_IO_OFFSET_KIND = PIO_OFFSET; integer, parameter :: MPAS_INT_FILLVAL = NF_FILL_INT; end program" > pio1.f90
+	@echo "program pio1; use pio; use pionfatt_mod; integer :: MPAS_IO_OFFSET_KIND = PIO_OFFSET; integer :: MPAS_INT_FILLVAL = NF_FILL_INT; end program" > pio1.f90
 	@echo "program pio2; use pio; integer, parameter :: MPAS_IO_OFFSET_KIND = PIO_OFFSET_KIND; integer, parameter :: MPAS_INT_FILLVAL = PIO_FILL_INT; end program" > pio2.f90
 
 	@#
 	@# See whether either of the test programs can be compiled
 	@#
 	@echo "Checking for a usable PIO library..."
-	@($(FC) $(FCINCLUDES) $(FFLAGS) $(LDFLAGS) $(LIBS) -o pio1.out pio1.f90 &> /dev/null && echo "=> PIO 1 detected") || \
-	 ($(FC) $(FCINCLUDES) $(FFLAGS) $(LDFLAGS) $(LIBS) -o pio2.out pio2.f90 &> /dev/null && echo "=> PIO 2 detected") || \
+	@($(FC) $(FCINCLUDES) $(LDFLAGS) $(LIBS) -o pio1.out pio1.f90 &> /dev/null && echo "=> PIO 1 detected") || \
+	 ($(FC) $(FCINCLUDES) $(LDFLAGS) $(LIBS) -o pio2.out pio2.f90 && echo "=> PIO 2 detected") || \
 	 (echo "************ ERROR ************"; \
 	  echo "Failed to compile a PIO test program"; \
 	  echo "Please ensure the PIO environment variable is set to the PIO installation directory"; \
 	  echo "************ ERROR ************"; \
-	  rm -rf pio[12].f90 pio[12].out; exit 1)
+	  echo $(FC) $(FCINCLUDES)  $(LDFLAGS) $(LIBS); \
+	  exit 1)
 
-	@rm -rf pio[12].out
+#@	@rm -rf pio[12].out
 
 	@#
 	@# Check that what the user has specified agrees with the PIO library version that was detected
 	@#
 ifeq "$(USE_PIO2)" "true"
-	@($(FC) $(FCINCLUDES) $(FFLAGS) $(LDFLAGS) $(LIBS) -o pio2.out pio2.f90 &> /dev/null) || \
+	@($(FC) $(FCINCLUDES) $(LDFLAGS) $(LIBS) -o pio2.out pio2.f90 &> /dev/null) || \
 	(echo "************ ERROR ************"; \
 	 echo "PIO 1 was detected, but USE_PIO2=true was specified in the make command"; \
 	 echo "************ ERROR ************"; \
@@ -876,6 +877,7 @@ endif
                  KOKKOS_DEVICES="$(KOKKOS_DEVICES)" \
 		 KOKKOS_CUDA_OPTIONS="$(KOKKOS_CUDA_OPTIONS)" \
 		 KOKKOS_ARCH="$(KOKKOS_ARCH)" \
+		 KOKKOS_CPP_FLAGS="$(KOKKOS_CPP_FLAGS)" \
 		 NAMELIST_SUFFIX="$(NAMELIST_SUFFIX)" \
                  EXE_NAME="$(EXE_NAME)"
 

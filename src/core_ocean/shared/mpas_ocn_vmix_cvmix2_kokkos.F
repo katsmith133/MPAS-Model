@@ -95,7 +95,7 @@ module ocn_vmix_cvmix2_kokkos
    interface
      subroutine f_cvmix2_compute_mixing(nCells,nVertLevels,visc,diff, layerThickness, U, V, &
        NLT, N2, RI_grad, rho, fCor, sfcBuoyancyForcing, sfcFrictionVelocity, maxLevel, &
-       OSBL, efactor, lasl, wind10, mixingOpts)                                             &
+       OSBL, efactor, lasl, wind10, bulkri, bulkriS, bulkriB,  mixingOpts)                 &
        BIND(c, NAME='c_compute_cvmix2_mixing') 
 
         use mpas_kind_types
@@ -110,7 +110,7 @@ module ocn_vmix_cvmix2_kokkos
            sfcFrictionVelocity(nCells), U(nVertLevels, nCells), V(nVertLevels,nCells),  &
            rho(nVertLevels,nCells), fCor(nCells),                  &
            OSBL(nCells), efactor(nCells),lasl(nCells),   &   
-           wind10(nCells)
+           wind10(nCells), bulkri(nVertLevels,nCells), bulkriS(nVertLevels,nCells), bulkriB(nVertLevels,nCells)
         integer (c_int) :: maxLevel(nCells)
         type (CVMix_mixingOpts) :: mixingOpts
      end subroutine f_cvmix2_compute_mixing 
@@ -187,7 +187,7 @@ contains
       !-----------------------------------------------------------------
 
       integer, dimension(:), pointer :: &
-        maxLevelCell, nEdgesOnCell
+        maxLevelCell, nEdgesOnCell,indexToCellID
 
       real (kind=RKIND), dimension(:), pointer :: &
         surfaceBuoyancyForcing, surfaceFrictionVelocity, fCell, &
@@ -196,7 +196,7 @@ contains
       real (kind=RKIND), dimension(:,:), pointer :: &
         vertViscTopOfCell, vertDiffTopOfCell, layerThickness, &
         zMid, zTop, potentialDensity, bulkRichardsonNumber, RiTopOfCell, BruntVaisalaFreqTop,  &
-        velocityMeridional, velocityZonal
+        velocityMeridional, velocityZonal, bulkRichardsonNumberShear, bulkRichardsonNumberBuoy
 
       real (kind=RKIND), dimension(:,:,:), pointer :: vertNonLocalFlux
       integer, pointer :: index_vertNonLocalFluxTemp, config_cvmix_num_ri_smooth_loops
@@ -258,6 +258,9 @@ contains
       call mpas_pool_get_array(diagnosticsPool, 'velocityZonal', velocityZonal)
       call mpas_pool_get_array(diagnosticsPool, 'velocityMeridional', velocityMeridional) 
 
+      call mpas_pool_get_array(diagnosticsPool, 'bulkRichardsonNumber', bulkRichardsonNumber)
+      call mpas_pool_get_array(diagnosticsPool, 'bulkRichardsonNumberBuoy', bulkRichardsonNumberBuoy)
+      call mpas_pool_get_array(diagnosticsPool, 'bulkRichardsonNumberShear', bulkRichardsonNumberShear)
       !
       ! set pointers for fields related to position on sphere
       !
@@ -266,6 +269,7 @@ contains
       !
       ! set pointers for fields related to vertical mesh
       !
+      call mpas_pool_get_array(meshPool, 'indexToCellID', indexToCellID)
       call mpas_pool_get_array(meshPool, 'maxLevelCell', maxLevelCell)
       call mpas_pool_get_array(statePool, 'layerThickness', layerThickness, timeLevel)
 
@@ -307,15 +311,20 @@ contains
 
       !$omp do schedule(runtime)
       do iCell = 1, nCells
-         vertViscTopOfCell(:, iCell) = 0.0_RKIND
-         vertDiffTopOfCell(:, iCell) = 0.0_RKIND
+         vertViscTopOfCell(1:maxLevelCell(iCell), iCell) = config_cvmix_background_viscosity
+         vertDiffTopOfCell(1:maxLevelCell(iCell), iCell) = config_cvmix_background_diffusion
          vertNonLocalFlux(:, :, iCell) = 0.0_RKIND
          boundaryLayerDepth(iCell) = layerThickness(1,iCell)
       end do
       !$omp end do
 
       call mpas_timer_start('cvmix2.0 compute coefficients', .false.)
-     
+
+      !      print *, 'sfcBuoy = ',maxval(surfaceBuoyancyForcing), minval(surfaceBuoyancyForcing)
+      !print *, 'kv = ',maxval(vertDiffTopOfCell(:,:nCells)), minval(vertDiffTopOfCell(:,:nCells))     
+
+      !  print *, 'temp = ',potentialDensity(:5,1)
+      !  print *, 'U = ',velocityZonal(:5,1)
       call f_cvmix2_compute_mixing(nCells, nVertLevels, vertViscTopOfCell,      &
                   vertDiffTopOfCell, layerThickness, velocityZonal,       &
                   velocityMeridional, vertNonLocalFlux,            &
@@ -323,8 +332,9 @@ contains
                   RiTopOfCell, potentialDensity, fCell,                   &
                   surfaceBuoyancyForcing, surfaceFrictionVelocity, &
                   maxLevelCell, boundaryLayerDepth, iceFraction, lasl,    &
-                  windSpeed10m, mixingOpts)
+                  windSpeed10m, bulkRichardsonNumber, bulkRichardsonNumberShear, bulkRichardsonNumberBuoy, mixingOpts)
 
+                !print *, 'diffs = ',maxval(vertDiffTopOfCell(:,:nCells)),minval(vertDiffTopOfCell(:,:nCells))
       call mpas_timer_stop('cvmix2.0 compute coefficients')
 
    !--------------------------------------------------------------------
@@ -413,7 +423,7 @@ contains
       err=0
 
       ! Options shared with original CVMix driver
-      call mpas_pool_get_config(ocnConfigs, 'config_cvmix2_prandtl_number', config_cvmix_prandtl_number)
+      call mpas_pool_get_config(ocnConfigs, 'config_cvmix_prandtl_number', config_cvmix_prandtl_number)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix2_background_viscosity', config_cvmix_background_viscosity)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix2_background_diffusion', config_cvmix_background_diffusion)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix2_kpp_criticalBulkRichardsonNumber', &
@@ -441,7 +451,7 @@ contains
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix2_kpp_MonObOBL', config_cvmix_kpp_MonObOBL)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix2_convective_diffusion', config_cvmix_convective_diffusion)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix2_convective_viscosity', config_cvmix_convective_viscosity)
-      call mpas_pool_get_config(ocnConfigs, 'config_cvmix2_kpp_use_enhanced_diff', config_cvmix_kpp_use_enhanced_diff)
+      call mpas_pool_get_config(ocnConfigs, 'config_cvmix_kpp_use_enhanced_diff', config_cvmix_kpp_use_enhanced_diff)
 
       ! New options for CVMix 2.0
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix2_background_mixing_scheme',   &
@@ -457,7 +467,6 @@ contains
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix_kpp_surface_layer_extent',    &
                                 config_cvmix_kpp_surface_layer_extent)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix2_cs_value', config_cvmix2_cs_value)
-      call mpas_pool_get_config(ocnConfigs, 'config_cvmix2_minVTsqr', config_cvmix2_minVTsqr)
       call mpas_pool_get_config(ocnConfigs, 'config_density0', config_density0)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix2_as_value', config_cvmix2_as_value)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix2_cm_value', config_cvmix2_cm_value)

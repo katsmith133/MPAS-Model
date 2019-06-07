@@ -29,7 +29,8 @@ struct CVMix_mixingOpts{
 }
 void compute_mixing(const int, const int, double *, double *, double *, double *,
             double *, double *, double *, double *, double *, double *,
-            double *, double *, int *, double *, double *, double *, double *, CVMix_mixingOpts *);
+            double *, double *, int *, double *, double *, double *, double *, 
+            double *, double *, double *, CVMix_mixingOpts *);
 
 double compute_kpp_ustokes_SL_model(double, double);
 
@@ -64,7 +65,7 @@ void c_kokkos_initialize(int nVertLevels, int nCols) {
     KPPvars->u =   ViewDoubleType("U-velocity", nVertLevels, nCols);
     KPPvars->v =   ViewDoubleType("V-velocity", nVertLevels, nCols);
     KPPvars->f =   ViewColType("Coriolis Parameter", nCols);
-    KPPvars->n2 =  ViewDoubleType("brunt Vaisala frequency", nVertLevels+1, nCols);
+    KPPvars->n2 =  ViewDoubleType("brunt Vaisala frequency", nVertLevels, nCols);
     KPPvars->rho = ViewDoubleType("density", nVertLevels, nCols);
     KPPvars->ri =  ViewDoubleType("gradient richardson number", nVertLevels+1, nCols);
     KPPvars->sfc_buoy = ViewColType("surface buoyancy forcing", nCols);
@@ -100,6 +101,8 @@ void c_kokkos_initialize(int nVertLevels, int nCols) {
     KPPvars->riSmoothed = ViewDoubleType("smoothed gradient richardson number", nVertLevels, nCols);
     KPPvars->iceFrac = ViewColType("ice fraction from sea ice model", nCols);
 
+    KPPvars->h_brnS = Kokkos::create_mirror_view(KPPvars->bulkRichardsonNumberShear);
+    KPPvars->h_brnB = Kokkos::create_mirror_view(KPPvars->bulkRichardsonNumberBuoy);
     KPPvars->h_iceFrac = Kokkos::create_mirror_view(KPPvars->iceFrac);
     KPPvars->h_efactor = Kokkos::create_mirror_view(KPPvars->Langmuir_EFactor);
     KPPvars->h_lasl = Kokkos::create_mirror_view(KPPvars->LaSL);
@@ -112,6 +115,7 @@ void c_kokkos_initialize(int nVertLevels, int nCols) {
     KPPvars->h_u = Kokkos::create_mirror_view(KPPvars->u);
     KPPvars->h_v = Kokkos::create_mirror_view(KPPvars->v);
     KPPvars->h_n2 = Kokkos::create_mirror_view(KPPvars->n2);
+    KPPvars->h_n2_temp = Kokkos::create_mirror_view(KPPvars->n2);
     KPPvars->h_ri = Kokkos::create_mirror_view(KPPvars->ri);
     KPPvars->h_rho = Kokkos::create_mirror_view(KPPvars->rho);
     KPPvars->h_f = Kokkos::create_mirror_view(KPPvars->f);
@@ -126,7 +130,7 @@ void c_compute_cvmix2_mixing(const int nCols, const int nVertLevels,  double *vi
     double *layerThickness, double *U, double *V, double *NLT, double *N2, double *RI_grad,
     double *density, double *fCor, double *sfcBuoyancyForcing, double *sfcFrictionVelocity,
     int *maxLevel, double *OSBL, double *iceFraction, double *lasl, double *wind10,
-    CVMix_mixingOpts* mixingOpts)
+    double *BRN, double *BRNS, double *BRNB, CVMix_mixingOpts* mixingOpts)
 {
 
   double efactor[nCols];
@@ -148,7 +152,7 @@ if(mixingOpts->computeLangmuir){
 
 compute_mixing(nCols,nVertLevels,visc,diff,NLT,layerThickness,U,V,N2,density,
             RI_grad, fCor, sfcBuoyancyForcing,sfcFrictionVelocity,maxLevel,OSBL,
-            iceFraction, lasl, efactor,mixingOpts);
+            iceFraction, lasl, efactor, BRN, BRNS, BRNB, mixingOpts);
 
 }
 }
@@ -157,7 +161,7 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
             double *NLT, double *layerThickness, double *U, double *V,
             double *N2, double *density, double *RI_grad, double *fCor, double *sfcBuoyancyForcing,
             double *sfcFrictionVelocity, int *maxLevel, double *OSBL, double *iceFraction, double *lasl,
-            double *efactor, CVMix_mixingOpts* mixingOpts)
+            double *efactor, double *BRN, double *BRNS, double *BRNB, CVMix_mixingOpts* mixingOpts)
 {
 
     auto& uVelocitySum = KPPvars->uVelocitySum;
@@ -166,7 +170,6 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
     auto& bulkRichardsonNumberBuoy = KPPvars->bulkRichardsonNumberBuoy;
     auto& bulkRichardsonNumberShear = KPPvars->bulkRichardsonNumberShear;
     auto& N_cntr = KPPvars->N_cntr;
-    auto& stokesDrift = KPPvars->stokesDrift;
     auto& LaSL = KPPvars->LaSL;
     auto& bulkRi = KPPvars->bulkRi;
     auto& Vt2 = KPPvars->Vt2;
@@ -205,6 +208,8 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
     auto& iceFrac = KPPvars->iceFrac;
 
     auto& h_nlt = KPPvars->h_nlt;
+    auto& h_brnS = KPPvars->h_brnS;
+    auto& h_brnB = KPPvars->h_brnB;
     auto& h_rib = KPPvars->h_rib;
     auto& h_lt = KPPvars->h_lt;
     auto& h_u = KPPvars->h_u;
@@ -212,6 +217,7 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
     auto& h_rho = KPPvars->h_rho;
     auto& h_ri = KPPvars->h_ri;
     auto& h_n2 = KPPvars->h_n2;
+    auto& h_n2_temp = KPPvars->h_n2_temp;
     auto& h_kv = KPPvars->h_kv;
     auto& h_kh = KPPvars->h_kh;
     auto& h_OSBL = KPPvars->h_OSBL;
@@ -233,6 +239,7 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
             h_u(j,k) = (U)[ii];
             h_v(j,k) = (V)[ii];
             h_rho(j,k) = (density)[ii];
+            h_n2_temp(j,k) = (N2)[ii];
         }
 
         for(int i=0; i<(nVertLevels+1); i++){
@@ -241,7 +248,6 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
             int j = ii - k*(nVertLevels+1);
 
             h_ri(j,k) = max(cvmix_zero,(RI_grad)[ii]);
-            h_n2(j,k) = (N2)[ii];
             h_kv(j,k) = visc[ii];
             h_kh(j,k) = diff[ii];
         }
@@ -257,6 +263,13 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
 //host views of eFactor lasl wind10
 
     }
+    for(int iCol=0; iCol < nCols; iCol++){
+      h_n2(0,iCol) = cvmix_zero;
+      for(int k=1; k < nVertLevels; k++){
+        h_n2(k,iCol) = h_n2_temp(k,iCol);
+      }
+    }
+
 
     Kokkos::deep_copy(iceFrac,h_iceFrac);
     Kokkos::deep_copy(lt,h_lt);
@@ -416,7 +429,6 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
 
         // Tidal
 
-
         // double diffusion
 
         if(lKPP){
@@ -445,17 +457,17 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
           for(int k=0; k<nVertLevels; k++){
             double L = pow(us(iCol),3) / (kappa * sfc_buoy(iCol));
             double sigma = -zt(k,iCol) / bldArray(k,iCol);
-            double zeta = sigma * bldArray(k,iCol) / (L + 1.0E-10);
+            double zeta = sigma * bldArray(k,iCol) / (L + 1.0E-16);
 
             ws(k,iCol) = kappa*us(iCol) / (1.+5.*zeta);
           }
         }
         else{
           for(int k=0; k < nVertLevels; k++){
-            double L = pow(us(iCol),3) / (kappa * sfc_buoy(iCol) + 1.0E-10);
+            double L = pow(us(iCol),3) / (kappa * sfc_buoy(iCol) + 1.0E-16);
             double sigma = -zt(k,iCol) / bldArray(k,iCol);
             double sigma1 = min(sigma,surf_layer_ext);
-            double zeta = sigma1 * bldArray(k,iCol) / (L + 1.0E-10);
+            double zeta = sigma1 * bldArray(k,iCol) / (L + 1.0E-16);
 
             if(zeta < -1.0 || us(iCol) == cvmix_zeroD){
               ws(k,iCol) = kappa*pow((a_s*pow(us(iCol),3) - c_s*kappa*sigma1*bldArray(k,iCol)*sfc_buoy(iCol)),1./3.);
@@ -488,7 +500,7 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
 
         // compute unresolved shear
         double Vtc = sqrt(beta / (c_s*surf_layer_ext)) / pow(kappa,2);
-        for(int k = 0; k < nVertLevels; k++){
+        for(int k = 0; k < nVertLevels-1; k++){
           N_cntr(k,iCol) = sqrt(max(n2(k+1,iCol),cvmix_zeroD));
           double CvT = 2.1 - 200.0*N_cntr(k,iCol);
 
@@ -512,7 +524,7 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
     for(int k=0; k < nVertLevels; k++){
       double num = -scaling*zt(k,iCol)*bulkRichardsonNumberBuoy(k,iCol);
       double denom = bulkRichardsonNumberShear(k,iCol) + Vt2(k,iCol);
-      bulkRi(k,iCol) = num / (denom + 1.0E-10);
+      bulkRi(k,iCol) = num / (denom + 1.0E-16);
     }
     // bld
     double OBL_limit = abs(zt(maxLevs(iCol)-1,iCol));
@@ -533,6 +545,10 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
     for(int k=0; k < nVertLevels; k++){
       if(bulkRi(k,iCol) > Ri_crit){
         kindex= k;
+        break;
+      }
+      if(k==nVertLevels-1){
+        kindex=k;
         break;
       }
     }
@@ -620,8 +636,8 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
     if(sfc_buoy(iCol) >= 0) {
       for(int k=1; k<nVertLevels; k++){
         double L = pow(us(iCol),3) / (kappa * sfc_buoy(iCol));
-        double sigma = -zw(k,iCol) / h(iCol);
-        double zeta = sigma * h(iCol) / (L + 1.0E-10);
+        double sigma = min(surf_layer_ext,-zw(k,iCol) / h(iCol));
+        double zeta = sigma * h(iCol) / (L + 1.0E-16);
 
         ws(k,iCol) = kappa*us(iCol) / (1.+5.*zeta);
         wm(k,iCol) = ws(k,iCol);
@@ -647,25 +663,31 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
     }
     else{
       for(int k=1; k < nVertLevels; k++){
-        double L = pow(us(iCol),3) / (kappa * sfc_buoy(iCol) + 1.0E-10);
-        double sigma = -zw(k,iCol) / h(iCol);
-        double zeta = sigma * h(iCol) / (L + 1.0E-10);
+        double L = pow(us(iCol),3) / (kappa * sfc_buoy(iCol));
+        double sigma = min(surf_layer_ext,-zw(k,iCol) / h(iCol));
+        double zeta = sigma * h(iCol) / (L + 1.0E-16);
 
+// printf("vals = %e %e %e %e %e %d %d\n",L,sigma,zeta,sfc_buoy(iCol),us(iCol),k,iCol);
         if(zeta < -0.2 || us(iCol) == cvmix_zeroD){
-          double sigma1 = min(surf_layer_ext, sigma);
-          wm(k,iCol) = kappa*pow((a_m*pow(us(iCol),3) - c_m*kappa*sigma1*h(iCol)*sfc_buoy(iCol)),1./3.);
+     //     double sigma1 = min(surf_layer_ext, sigma);
+          wm(k,iCol) = kappa*pow((a_m*pow(us(iCol),3) - c_m*kappa*sigma*h(iCol)*sfc_buoy(iCol)),1./3.);
         } else{
           wm(k,iCol) = kappa*us(iCol)*pow((1.0 - 16.0*zeta),0.25);
         }
 
         if(zeta < -1.0 || us(iCol) == cvmix_zeroD){
-          double sigma1 = min(surf_layer_ext, sigma);
-          ws(k,iCol) = kappa*pow((a_s*pow(us(iCol),3) - c_s*kappa*sigma1*h(iCol)*sfc_buoy(iCol)),1./3.);
+     //     double sigma1 = min(surf_layer_ext, sigma);
+
+          ws(k,iCol) = kappa*pow((a_s*pow(us(iCol),3) - c_s*kappa*sigma*h(iCol)*sfc_buoy(iCol)),1./3.);
+          if(sigma < 1){
+          //nprintf("ws convective = %e %e %e %e %e %e %e %e %e\n",ws(k,iCol),us(iCol),sigma,h(iCol),sfc_buoy(iCol),zw(k,iCol),c_s,zeta, L);
+          }
         }
         else{
           ws(k,iCol) = kappa*us(iCol)*pow((1.0 - 16.0*zeta),1.0/2.0);
         }
 
+        
         MshapeAtS = Mshape1 + Mshape2*sigma + Mshape3*pow(sigma,2.0) +
                     Mshape4*pow(sigma,3.0);
 
@@ -681,9 +703,12 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
         MixingCoefEnhancement = Langmuir_EFactor(iCol);
        }
 
+      // printf("val = %e %e %e %d %d\n",sfc_buoy(iCol),h(iCol),wm(k,iCol),k,iCol);
         OBL_Mdiff(k,iCol) = h(iCol)*wm(k,iCol)*MshapeAtS*MixingCoefEnhancement;
         OBL_Tdiff(k,iCol) = h(iCol)*ws(k,iCol)*TshapeAtS*MixingCoefEnhancement;
         nlt(k,iCol) = non_local_coeff*GAtS;
+     //   printf("vals = %e %e %e %e %e\n",OBL_Tdiff(k,iCol),h(iCol),ws(k,iCol),TshapeAtS,MixingCoefEnhancement);
+
       }
     }
 
@@ -697,14 +722,14 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
 
     if(sfc_buoy(iCol) >= 0){
         double L = pow(us(iCol),3) / (kappa * sfc_buoy(iCol));
-        double zeta = sigma_ktup * h(iCol) / (L + 1.0E-10);
+        double zeta = sigma_ktup * h(iCol) / (L + 1.0E-16);
 
         ws_ktup = kappa*us(iCol) / (1. + 5.*zeta);
         wm_ktup = ws_ktup;
     } else{
         double L = pow(us(iCol),3) / (kappa * sfc_buoy(iCol));
         double sigma1 = min(sigma_ktup,surf_layer_ext);
-        double zeta = sigma1 / (L + 1.0E-10);
+        double zeta = sigma1 / (L + 1.0E-16);
 
         if(zeta < -0.2 || us(iCol) == 0){
             wm_ktup = kappa*pow((a_m*pow(us(iCol),3) - c_m*kappa*sigma1*h(iCol)*sfc_buoy(iCol)),1./3.);
@@ -754,8 +779,8 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
     //Simply overwrite diffusivities in OBL -- ADD option to add diffusivity later
     for(int k=1; k< nVertLevels+1; k++){
         if(k <= kwup){
-            kh(k,iCol) = OBL_Tdiff(k,iCol);
-            kv(k,iCol) = OBL_Mdiff(k,iCol);
+            kh(k,iCol) = OBL_Tdiff(k,iCol);// + kh(k,iCol);
+            kv(k,iCol) = OBL_Mdiff(k,iCol);// + kv(k,iCol);
         } else{
             nlt(k,iCol) = cvmix_zeroD;
         }
@@ -765,7 +790,7 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
 
         // Convection -- TODO: Fix to add the other option, just step for now
         if(lBruntVaisala){
-            for(int k=1; k< nVertLevels+1; k++){
+            for(int k=1; k< nVertLevels; k++){
                 if(n2(k,iCol) <= cvmix_zeroD and k > kwup){
                     kh(k,iCol) = kh(k,iCol) + convect_diff;
                     kv(k,iCol) = kv(k,iCol) + convect_visc;
@@ -774,8 +799,9 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
         }
     }
 
+
     if(lBruntVaisala and !lKPP){
-        for(int k=1; k<= nVertLevels+1; k++){
+        for(int k=1; k< nVertLevels; k++){
             if(n2(k,iCol) <= cvmix_zeroD){
                 kh(k,iCol) = kh(k,iCol) + convect_diff;
                 kv(k,iCol) = kv(k,iCol) + convect_visc;
@@ -783,8 +809,8 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
         }
     }
 
-    for(int k=1; k < nVertLevels+1; k++){
-        kh(k,iCol) = kh(k,iCol)*maskw(k,iCol);
+    for(int k=1; k < nVertLevels+1; k++){//
+      kh(k,iCol) = kh(k,iCol)*maskw(k,iCol);
         kv(k,iCol) = kv(k,iCol)*maskw(k,iCol);
     }
     });
@@ -794,6 +820,8 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
     Kokkos::deep_copy(h_OSBL,h);
     Kokkos::deep_copy(h_nlt,nlt);
     Kokkos::deep_copy(h_rib,bulkRi);
+    Kokkos::deep_copy(h_brnS,bulkRichardsonNumberShear);
+    Kokkos::deep_copy(h_brnB,bulkRichardsonNumberBuoy);
 
     for(int iCol=0; iCol < nCols; iCol++){
         // Pack data up for return to calling model
@@ -809,7 +837,15 @@ void compute_mixing(const int nCols, const int nVertLevels, double *visc, double
 
         (OSBL)[iCol] = h_OSBL(iCol);
 
+        for(int i=0; i<nVertLevels; i++){
+            int ii = i+iCol*(nVertLevels);
+            int k = ii / (nVertLevels);
+            int j = ii - k*(nVertLevels);
 
+            (BRN)[ii] = h_rib(j,k);
+            (BRNS)[ii] = h_brnS(j,k);
+            (BRNB)[ii] = h_brnB(j,k);
+        }
     }
 
 }
