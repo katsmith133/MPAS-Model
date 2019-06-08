@@ -526,11 +526,13 @@ contains
       !
       !--------------------------------------------------------------------
 
+
+      cGMphaseSpeed(:) = config_gravWaveSpeed_trunc**2
       if (config_gm_lat_variable_c2) then
           nEdges = nEdgesArray( 3 )
           sumN2 = 0.0
           countN2 = 0
-          !$omp do schedule(runtime) private(cell1, cell2, k, BruntVaisalaFreqTopEdge, N)
+          !$omp do schedule(runtime) private(cell1, cell2, k, BruntVaisalaFreqTopEdge, sumN2, countN2, bottomAv)
           do iEdge = 1, nEdges
              cell1 = cellsOnEdge(1,iEdge)
              cell2 = cellsOnEdge(2,iEdge)
@@ -547,7 +549,7 @@ contains
 
              bottomAv = 0.5_RKIND*(bottomDepth(cell1)+bottomDepth(cell2))
 
-             cGMphaseSpeed(iEdge) = max(config_gm_min_phase_speed ,sqrt(sumN2/countN2)*bottomAv / 3.141592_RKIND)
+             if(countN2 > 0) cGMphaseSpeed(iEdge) = max(config_gm_min_phase_speed ,sqrt(sumN2/countN2)*bottomAv / 3.141592_RKIND)
 
           enddo
           !$omp end do
@@ -555,17 +557,22 @@ contains
       else
           cGMphaseSpeed(:) = config_gravWaveSpeed_trunc**2
       endif
-      !need thte 2d kappa to follow visbeck 1997, can't do average thing.  it
-      !may work though....
+
+      !$omp do schedule(runtime)
+      do iEdge=1,nEdges
+         kappaGM3D(:,iEdge) = gmBolusKappa(iEdge)
+      enddo 
+      !$omp end do
+
       if (config_gm_kappa_lat_depth_variable) then
 
-         maxN = -1.0_RKIND
-         !$omp do schedule(runtime) private(cell1, cell2, k, BruntVaisalaFreqTopEdge, N)
+         !$omp do schedule(runtime) private(cell1, cell2, k, BruntVaisalaFreqTopEdge, maxN)
          do iEdge = 1,nEdges
             cell1 = cellsOnEdge(1,iEdge)
             cell2 = cellsOnEdge(2,iEdge)
 
-            do k=1,maxLevelEdgeTop(iEdge)
+            maxN = -1.0_RKIND
+            do k=2,maxLevelEdgeTop(iEdge)
                BruntVaisalaFreqTopEdge = 0.5_RKIND * (BruntVaisalaFreqTop(k,cell1) + BruntVaisalaFreqTop(k,cell2))
                BruntVaisalaFreqTopEdge = max(BruntVaisalaFreqTopEdge, 0.0_RKIND)
 
@@ -573,17 +580,22 @@ contains
 
             enddo
 
-            do k=1,maxLevelEdgeTop(iEdge)
+            do k=2,maxLevelEdgeTop(iEdge)
                BruntVaisalaFreqTopEdge = 0.5_RKIND * (BruntVaisalaFreqTop(k,cell1) + BruntVaisalaFreqTop(k,cell2))
                BruntVaisalaFreqTopEdge = max(BruntVaisalaFreqTopEdge, 0.0_RKIND)
-               
+
                kappaGM3D(k,iEdge) = gmBolusKappa(iEdge)*max(config_gm_min_stratification_ratio, &
-                       BruntVaisalaFreqTopEdge / maxN)
+                       BruntVaisalaFreqTopEdge / (maxN + 1.0E-10_RKIND))
+               if(kappaGM3D(k,iEdge) <= 0) then
+                     print *, 'val = ',kappaGM3D(k,iEdge),k,iEdge
+                     stop
+                   endif
             enddo
          enddo
          !$omp end do
 
          if (config_gm_kappa_lat_variable) then
+           !$omp do schedule(runtime) private(cell1, cell2, k, kappaSum, ltSum)
             do iEdge = 1, nEdges
                cell1 = cellsOnEdge(1,iEdge)
                cell2 = cellsOnEdge(2,iEdge)
@@ -602,12 +614,7 @@ contains
             enddo
             !$omp end do
          endif
-    else
-         !$omp do schedule(runtime)
-         do iEdge=1,nEdges
-            kappaGM3D(:,iEdge) = gmBolusKappa(iEdge)
-         enddo 
-         !$omp end do
+
       endif
 
       !next do the 2d bit, just average it for now
@@ -885,6 +892,7 @@ contains
             err = 1
             call mpas_dmpar_finalize(domain % dminfo)
          end if
+
 
          block => block % next
       end do
