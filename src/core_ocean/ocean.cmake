@@ -121,27 +121,27 @@ execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/core_ocean/get_BGC.sh
 
 # Add CVMix
 set(CVMIX_FILES
-  core_ocean/cvmix/cvmix_kinds_and_types.F90
-  core_ocean/cvmix/cvmix_background.F90
-  core_ocean/cvmix/cvmix_convection.F90
-  core_ocean/cvmix/cvmix_ddiff.F90
-  core_ocean/cvmix/cvmix_kpp.F90
-  core_ocean/cvmix/cvmix_math.F90
-  core_ocean/cvmix/cvmix_put_get.F90
-  core_ocean/cvmix/cvmix_shear.F90
-  core_ocean/cvmix/cvmix_tidal.F90
-  core_ocean/cvmix/cvmix_utils.F90
+  ${CORE_BLDDIR}/cvmix/cvmix_kinds_and_types.F90
+  ${CORE_BLDDIR}/cvmix/cvmix_background.F90
+  ${CORE_BLDDIR}/cvmix/cvmix_convection.F90
+  ${CORE_BLDDIR}/cvmix/cvmix_ddiff.F90
+  ${CORE_BLDDIR}/cvmix/cvmix_kpp.F90
+  ${CORE_BLDDIR}/cvmix/cvmix_math.F90
+  ${CORE_BLDDIR}/cvmix/cvmix_put_get.F90
+  ${CORE_BLDDIR}/cvmix/cvmix_shear.F90
+  ${CORE_BLDDIR}/cvmix/cvmix_tidal.F90
+  ${CORE_BLDDIR}/cvmix/cvmix_utils.F90
 )
 
 # Add BGC
 set(BGC_FILES
-  core_ocean/BGC/BGC_mod.F90
-  core_ocean/BGC/BGC_parms.F90
-  core_ocean/BGC/DMS_mod.F90
-  core_ocean/BGC/DMS_parms.F90
-  core_ocean/BGC/MACROS_mod.F90
-  core_ocean/BGC/MACROS_parms.F90
-  core_ocean/BGC/co2calc.F90
+  ${CORE_BLDDIR}/BGC/BGC_mod.F90
+  ${CORE_BLDDIR}/BGC/BGC_parms.F90
+  ${CORE_BLDDIR}/BGC/DMS_mod.F90
+  ${CORE_BLDDIR}/BGC/DMS_parms.F90
+  ${CORE_BLDDIR}/BGC/MACROS_mod.F90
+  ${CORE_BLDDIR}/BGC/MACROS_parms.F90
+  ${CORE_BLDDIR}/BGC/co2calc.F90
 )
 
 list(APPEND RAW_SOURCES ${CVMIX_FILES} ${BGC_FILES})
