@@ -11,6 +11,7 @@
 #include "Registry_lagrangian_particle_tracking.xml"
 #include "Registry_eliassen_palm.xml"
 #include "Registry_mixed_layer_depths.xml"
+#include "Registry_hurricane_statistics.xml"
 #include "Registry_regional_stats_daily.xml"
 #include "Registry_regional_stats_weekly.xml"
 #include "Registry_regional_stats_monthly.xml"

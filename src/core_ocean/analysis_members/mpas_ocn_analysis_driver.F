@@ -40,6 +40,7 @@ module ocn_analysis_driver
    use ocn_lagrangian_particle_tracking
    use ocn_eliassen_palm
    use ocn_mixed_layer_depths
+   use ocn_hurricane_statistics
    use ocn_time_series_stats
    use ocn_pointwise_stats
    use ocn_debug_diagnostics
@@ -1112,6 +1113,8 @@ contains
          call ocn_init_eliassen_palm(domain, err_tmp)
       else if ( analysisMemberName(1:nameLength) == 'mixedLayerDepths' ) then
          call ocn_init_mixed_layer_depths(domain, err_tmp)
+      else if ( analysisMemberName(1:nameLength) == 'hurricaneStatistics' ) then
+         call ocn_init_hurricane_statistics(domain, err_tmp)
       else if ( analysisMemberName(1:nameLength) == 'pointwiseStats' ) then
          call ocn_init_pointwise_stats(domain, err_tmp)
       else if ( analysisMemberName(1:nameLength) == 'debugDiagnostics' ) then
@@ -1202,6 +1205,8 @@ contains
          call ocn_compute_lagrangian_particle_tracking(domain, timeLevel, err_tmp)
       else if ( analysisMemberName(1:nameLength) == 'eliassenPalm' ) then
          call ocn_compute_eliassen_palm(domain, timeLevel, err_tmp)
+      else if ( analysisMemberName(1:nameLength) == 'hurricaneStatistics' ) then
+         call ocn_compute_hurricane_statistics(domain, timeLevel, err_tmp)
       else if ( analysisMemberName(1:nameLength) == 'mixedLayerDepths' ) then
          call ocn_compute_mixed_layer_depths(domain, timeLevel, err_tmp)
       else if ( analysisMemberName(1:nameLength) == 'pointwiseStats' ) then
@@ -1299,6 +1304,8 @@ contains
          call ocn_restart_lagrangian_particle_tracking(domain, err_tmp)
       else if ( analysisMemberName(1:nameLength) == 'eliassenPalm' ) then
          call ocn_restart_eliassen_palm(domain, err_tmp)
+      else if ( analysisMemberName(1:nameLength) == 'hurricaneStatistics' ) then
+         call ocn_restart_hurricane_statistics(domain, err_tmp)
       else if ( analysisMemberName(1:nameLength) == 'mixedLayerDepths' ) then
          call ocn_restart_mixed_layer_depths(domain, err_tmp)
       else if ( analysisMemberName(1:nameLength) == 'pointwiseStats' ) then
@@ -1390,6 +1397,8 @@ contains
          call ocn_finalize_lagrangian_particle_tracking(domain, err_tmp)
       else if ( analysisMemberName(1:nameLength) == 'eliassenPalm' ) then
          call ocn_finalize_eliassen_palm(domain, err_tmp)
+      else if ( analysisMemberName(1:nameLength) == 'hurricaneStatistics' ) then
+         call ocn_finalize_hurricane_statistics(domain, err_tmp)
       else if ( analysisMemberName(1:nameLength) == 'mixedLayerDepths' ) then
          call ocn_finalize_mixed_layer_depths(domain, err_tmp)
       else if ( analysisMemberName(1:nameLength) == 'pointwiseStats' ) then
