@@ -38,6 +38,7 @@ list(APPEND RAW_SOURCES
   core_seaice/column/ice_zbgc.F90
   core_seaice/column/ice_zbgc_shared.F90
   core_seaice/column/ice_zsalinity.F90
+  core_seaice/column/ice_snow.F90
 )
 
 # shared

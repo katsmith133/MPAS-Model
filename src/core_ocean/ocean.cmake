@@ -50,7 +50,7 @@ list(APPEND RAW_SOURCES
   core_ocean/shared/mpas_ocn_thick_hadv.F
   core_ocean/shared/mpas_ocn_thick_vadv.F
   core_ocean/shared/mpas_ocn_thick_surface_flux.F
-  core_ocean/shared/mpas_ocn_vel_coriolis.F
+  core_ocean/shared/mpas_ocn_vel_hadv_coriolis.F
   core_ocean/shared/mpas_ocn_vel_vadv.F
   core_ocean/shared/mpas_ocn_vel_hmix.F
   core_ocean/shared/mpas_ocn_vel_hmix_del2.F
