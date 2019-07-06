@@ -178,18 +178,8 @@ list(APPEND RAW_SOURCES
 )
 
 # Generate core input
-set(NL_GEN_ARGS
-  "namelist.ocean"
-  "namelist.ocean.forward mode=forward"
-  "namelist.ocean.analysis mode=analysis"
-  "namelist.ocean.init mode=init"
+handle_st_nl_gen(
+  "namelist.ocean;namelist.ocean.forward mode=forward;namelist.ocean.analysis mode=analysis;namelist.ocean.init mode=init"
+  "streams.ocean stream_list.ocean. mutable;streams.ocean.forward stream_list.ocean.forward. mutable mode=forward;streams.ocean.analysis stream_list.ocean.analysis. mutable mode=analysis;streams.ocean.init stream_list.ocean.init. mutable mode=init"
+  ${CORE_INPUT_DIR} ${CORE_BLDDIR}
 )
-
-set(ST_GEN_ARGS
-  "streams.ocean stream_list.ocean. mutable"
-  "streams.ocean.forward stream_list.ocean.forward. mutable mode=forward"
-  "streams.ocean.analysis stream_list.ocean.analysis. mutable mode=analysis"
-  "streams.ocean.init stream_list.ocean.init. mutable mode=init"
-)
-
-handle_nl_st_gen()

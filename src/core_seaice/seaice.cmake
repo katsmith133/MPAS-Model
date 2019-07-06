@@ -100,12 +100,4 @@ list(APPEND RAW_SOURCES ${SEAICE_MODEL_FORWARD})
 list(APPEND DISABLE_QSMP ${SEAICE_MODEL_FORWARD})
 
 # Generate core input
-set(NL_GEN_ARGS
-  "namelist.seaice"
-)
-
-set(ST_GEN_ARGS
-  "streams.seaice stream_list.seaice. listed"
-)
-
-handle_nl_st_gen()
+handle_st_nl_gen("namelist.seaice" "streams.seaice stream_list.seaice. listed" ${CORE_INPUT_DIR} ${CORE_BLDDIR})

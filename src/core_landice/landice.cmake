@@ -43,12 +43,4 @@ if (CPPFLAGS MATCHES ".*MPAS_LI_BUILD_INTERFACE.*")
 endif()
 
 # Generate core input
-set(NL_GEN_ARGS
-  "namelist.landice"
-)
-
-set(ST_GEN_ARGS
-  "streams.landice stream_list.landice. listed"
-)
-
-handle_nl_st_gen()
+handle_st_nl_gen("namelist.landice" "streams.landice stream_list.landice. listed" ${CORE_INPUT_DIR} ${CORE_BLDDIR})

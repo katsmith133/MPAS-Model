@@ -58,62 +58,6 @@ function(build_core CORE)
   target_include_directories(${COMPONENT} PRIVATE ${INCLUDES})
 
   # Gather sources
-
-  # externals
-  set(RAW_SOURCES external/ezxml/ezxml.c)
-
-  # framework
-  list(APPEND RAW_SOURCES
-    framework/mpas_kind_types.F
-    framework/mpas_framework.F
-    framework/mpas_timer.F
-    framework/mpas_timekeeping.F
-    framework/mpas_constants.F
-    framework/mpas_attlist.F
-    framework/mpas_hash.F
-    framework/mpas_sort.F
-    framework/mpas_block_decomp.F
-    framework/mpas_block_creator.F
-    framework/mpas_dmpar.F
-    framework/mpas_abort.F
-    framework/mpas_decomp.F
-    framework/mpas_threading.F
-    framework/mpas_io.F
-    framework/mpas_io_streams.F
-    framework/mpas_bootstrapping.F
-    framework/mpas_io_units.F
-    framework/mpas_stream_manager.F
-    framework/mpas_stream_list.F
-    framework/mpas_forcing.F
-    framework/mpas_c_interfacing.F
-    framework/random_id.c
-    framework/pool_hash.c
-    framework/mpas_derived_types.F
-    framework/mpas_domain_routines.F
-    framework/mpas_field_routines.F
-    framework/mpas_pool_routines.F
-    framework/xml_stream_parser.c
-    framework/regex_matching.c
-    framework/mpas_field_accessor.F
-    framework/mpas_log.F
-  )
-
-  # operators
-  list(APPEND RAW_SOURCES
-    operators/mpas_vector_operations.F
-    operators/mpas_matrix_operations.F
-    operators/mpas_tensor_operations.F
-    operators/mpas_rbf_interpolation.F
-    operators/mpas_vector_reconstruction.F
-    operators/mpas_spline_interpolation.F
-    operators/mpas_tracer_advection_helpers.F
-    operators/mpas_tracer_advection_mono.F
-    operators/mpas_tracer_advection_std.F
-    operators/mpas_geometry_utils.F
-  )
-
-  set(COMMON_RAW_SOURCES ${RAW_SOURCES})
-
   set(CORE_BLDDIR ${CMAKE_BINARY_DIR}/core_${CORE})
   if (NOT EXISTS ${CORE_BLDDIR})
     file(MAKE_DIRECTORY ${CORE_BLDDIR})
@@ -156,34 +100,7 @@ function(build_core CORE)
     endforeach()
   endif()
 
-  # Run all .F files through cpp to generate the f90 file
-  foreach(ITEM IN LISTS INCLUDES)
-    list(APPEND INCLUDES_I "-I${ITEM}")
-  endforeach()
-
-  list(GET CORES 0 FIRST_CORE)
-  foreach(RAW_SOURCE_FILE IN LISTS RAW_SOURCES)
-    get_filename_component(SOURCE_EXT ${RAW_SOURCE_FILE} EXT)
-    if ( (SOURCE_EXT STREQUAL ".F" OR SOURCE_EXT STREQUAL ".F90") AND NOT RAW_SOURCE_FILE IN_LIST NO_PREPROCESS)
-      string(REPLACE "${SOURCE_EXT}" ".f90" SOURCE_F90 ${RAW_SOURCE_FILE})
-      get_filename_component(DIR_RELATIVE ${SOURCE_F90} DIRECTORY)
-      set(DIR_ABSOLUTE ${CMAKE_BINARY_DIR}/${DIR_RELATIVE})
-      if (NOT EXISTS ${DIR_ABSOLUTE})
-        file(MAKE_DIRECTORY ${DIR_ABSOLUTE})
-      endif()
-      if (CORE STREQUAL ${FIRST_CORE} OR NOT RAW_SOURCE_FILE IN_LIST COMMON_RAW_SOURCES)
-        add_custom_command (
-          OUTPUT ${CMAKE_BINARY_DIR}/${SOURCE_F90}
-          COMMAND cpp -P -traditional ${CPPDEFS} ${INCLUDES_I} -Uvector
-          ${CMAKE_CURRENT_SOURCE_DIR}/${RAW_SOURCE_FILE} > ${CMAKE_BINARY_DIR}/${SOURCE_F90}
-          DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${RAW_SOURCE_FILE} ${INC_DIR}/core_variables.inc)
-      endif()
-      list(APPEND SOURCES ${CMAKE_BINARY_DIR}/${SOURCE_F90})
-    else()
-      list(APPEND SOURCES ${RAW_SOURCE_FILE})
-    endif()
-  endforeach()
-
-  target_sources(${COMPONENT} PRIVATE ${SOURCES})
+  genf90_targets("${RAW_SOURCES}" "${INCLUDES}" "${CPPDEFS}" "${NO_PREPROCESS}" "${INC_DIR}")
+  target_sources(${COMPONENT} PRIVATE ${SOURCES} $<TARGET_OBJECTS:common>)
 
 endfunction(build_core)
