@@ -74,6 +74,7 @@ module ocn_forward_mode
    use ocn_equation_of_state
 
    use ocn_vmix
+   use ocn_vmix_cvmix2_kokkos
 
    use ocn_forcing
    use ocn_sea_ice
@@ -715,6 +716,12 @@ module ocn_forward_mode
       type (domain_type), intent(inout) :: domain
 
       integer :: ierr
+
+      logical, pointer :: config_use_cvmix2
+
+      call mpas_pool_get_config(ocnConfigs, 'config_use_cvmix2', config_use_cvmix2)
+
+      call ocn_vmix_cvmix2_kokkos_finalize()
 
       call mpas_dmpar_exch_group_destroy_reusable_buffers(domain, 'subcycleFields')
 
