@@ -2,9 +2,9 @@
 
 
 OCEAN_SHARED_INCLUDES = -I$(PWD)/../framework -I$(PWD)/../external/esmf_time_f90 -I$(PWD)/../operators
-OCEAN_SHARED_INCLUDES += -I$(PWD)/BGC -I$(PWD)/shared -I$(PWD)/analysis_members -I$(PWD)/cvmix -I$(PWD)/mode_forward -I$(PWD)/mode_analysis -I$(PWD)/mode_init
+OCEAN_SHARED_INCLUDES += -I$(PWD)/BGC -I$(PWD)/shared -I$(PWD)/analysis_members -I$(PWD)/cvmix -I$(PWD)/cvmix_kokkos -I$(PWD)/mode_forward -I$(PWD)/mode_analysis -I$(PWD)/mode_init
 
-all: shared libcvmix analysis_members libBGC
+all: shared libcvmix libcvmix2 analysis_members libBGC
 	(cd mode_forward; $(MAKE) FCINCLUDES="$(FCINCLUDES) $(OCEAN_SHARED_INCLUDES)" all )
 	(cd mode_analysis; $(MAKE) FCINCLUDES="$(FCINCLUDES) $(OCEAN_SHARED_INCLUDES)" all )
 	(cd mode_init; $(MAKE) FCINCLUDES="$(FCINCLUDES) $(OCEAN_SHARED_INCLUDES)" all )
@@ -49,6 +49,10 @@ cvmix_source: get_cvmix.sh
 	(/bin/bash ./get_cvmix.sh)
 	(cd cvmix)
 
+cvmix2_source: get_cvmix2.0.sh
+	(/bin/bash ./get_cvmix2.0.sh)
+	(cd cvmix_kokkos)
+
 BGC_source: get_BGC.sh
 	(/bin/bash ./get_BGC.sh)
 	(cd BGC)
@@ -60,6 +64,13 @@ libcvmix: cvmix_source
 		(exit 1) \
 	fi
 
+libcvmix2: cvmix2_source
+	if [ -d cvmix_kokkos ]; then \
+		(cd cvmix_kokkos; make libs CXX="$(KOKKOS_CXX)" CXXFLAGS="$(KOKKOS_CPPFLAGS) $(CXXFLAGS)" KOKKOS_CUDA_OPTIONS="$(KOKKOS_CUDA_OPTIONS)" KOKKOS_ARCH="$(KOKKOS_ARCH)" KOKKOS_DEVICES="$(KOKKOS_DEVICES)" KOKKOS_CPP_FLAGS="$(KOKKOS_CPP_FLAGS)" ) \
+	else \
+		(exit 1) \
+	fi
+
 libBGC: BGC_source
 	if [ -d BGC ]; then \
 		(cd BGC; make all FC="$(FC)" FCFLAGS="$(FFLAGS)" FINCLUDES="$(FINCLUDES)") \
@@ -67,15 +78,18 @@ libBGC: BGC_source
 		(exit 1) \
 	fi
 
-shared: libcvmix libBGC
+shared: libcvmix libcvmix2 libBGC
 	(cd shared; $(MAKE) FCINCLUDES="$(FCINCLUDES) $(OCEAN_SHARED_INCLUDES)")
 
-analysis_members: libcvmix shared
+analysis_members: libcvmix libcvmix2 shared
 	( cd analysis_members; $(MAKE) FCINCLUDES="$(FCINCLUDES) $(OCEAN_SHARED_INCLUDES)" CPPFLAGS="$(CPPFLAGS)" CPPINCLUDES="$(CPPINCLUDES)" all ) 
 
 clean:
 	if [ -d cvmix ]; then \
 		(cd cvmix; make clean) \
+	fi
+	if [ -d cvmix_kokkos ]; then \
+		(cd cvmix_kokkos; make clean) \
 	fi
 	if [ -d inc ]; then \
 		($(RM) -r inc) \

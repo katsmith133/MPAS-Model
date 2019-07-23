@@ -1,6 +1,8 @@
 # Ignore all cvmix code.
 cvmix
 .cvmix_all
+cvmix2
+.cvmix2_all
 BGC
 .BGC_all
 .*.zip
