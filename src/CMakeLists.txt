@@ -112,6 +112,19 @@ list(APPEND COMMON_RAW_SOURCES
   operators/mpas_geometry_utils.F
 )
 
+if (USE_KOKKOS)
+  include(${INSTALL_SHAREDPATH}/kokkos_generated_settings.cmake)
+  string (REPLACE ";" " " KOKKOS_CXXFLAGS_STR "${KOKKOS_CXXFLAGS}")
+  string (REPLACE ";" " " KOKKOS_LDFLAGS_STR "${KOKKOS_LDFLAGS}")
+  set(CXXFLAGS "${CXXFLAGS} ${KOKKOS_CXXFLAGS_STR}")
+  set(CXX_LDFLAGS "${CXX_LDFLAGS} ${KOKKOS_LDFLAGS_STR}")
+endif()
+
+if (CPPDEFS)
+  separate_arguments(CPPDEFS UNIX_COMMAND "${CPPDEFS}")
+endif()
+list(APPEND CPPDEFS ...)
+
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake_utils.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/build_core.cmake)
 

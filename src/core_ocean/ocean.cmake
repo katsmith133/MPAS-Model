@@ -102,6 +102,8 @@ list(APPEND RAW_SOURCES
   core_ocean/shared/mpas_ocn_framework_forcing.F
   core_ocean/shared/mpas_ocn_time_varying_forcing.F
   core_ocean/shared/mpas_ocn_wetting_drying.F
+  core_ocean/shared/mpas_ocn_vmix_cvmix2_kokkos.F
+  core_ocean/cvmix_kokkos/cvmix2_compute_mixing.cpp
 )
 
 set(OCEAN_DRIVER
