@@ -429,8 +429,8 @@
        DO  i = nxlu, nxr
           DO  j = nys, nyn
              DO  k = dp_level_ind_b+1, nzt
-                tend(k,j,i) = tend(k,j,i) - disturbFactor / dt_LS *  &
-                                             ( u(k,j,i) - uLSforcing(k))
+                tend(k,j,i) = tend(k,j,i) + disturbFactor / dt_LS *  &
+                                             ( uLSforcing(k))
               ENDDO
          ENDDO
        ENDDO
@@ -530,8 +530,8 @@
        DO  i = nxl, nxr
           DO  j = nysv, nyn
              DO  k = dp_level_ind_b+1, nzt
-                tend(k,j,i) = tend(k,j,i) -  disturbFactor / dt_LS * (                &
-                                                v(k,j,i) - vLSforcing(k))
+                tend(k,j,i) = tend(k,j,i) +  disturbFactor / dt_LS * (                &
+                                                vLSforcing(k))
              ENDDO
           ENDDO
        ENDDO
@@ -697,8 +697,8 @@
           do i = nxl, nxr
              do j = nys, nyn
                 do k = nzb+1, nzt
-                   tend(k,j,i) = tend(k,j,i) - disturbFactor / dt_LS *  &
-                                                (pt(k,j,i) - tLSforcing(k))
+                   tend(k,j,i) = tend(k,j,i) + disturbFactor / dt_LS *  &
+                                                (tLSforcing(k))
                 enddo
              enddo
           enddo
@@ -787,8 +787,8 @@
           do i = nxl, nxr
              do j = nys, nyn
                 do k = nzb+1, nzt
-                   tend(k,j,i) = tend(k,j,i) - disturbFactor / dt_LS *  &
-                                                (sa(k,j,i) - sLSforcing(k))
+                   tend(k,j,i) = tend(k,j,i) + disturbFactor / dt_LS *  &
+                                                (sLSforcing(k))
                 enddo
              enddo
          enddo

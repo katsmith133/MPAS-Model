@@ -208,15 +208,19 @@
 !--          Horizontally averaged profiles to be used as reference state in
 !--          buoyancy terms (WARNING: only the respective last call of
 !--          calc_mean_profile defines the reference state!)
-                CALL calc_mean_profile( rho_ocean, 14 )
+!                CALL calc_mean_profile( rho_ocean, 14 )
 
-                ref_state(:)  = hom(:,1,14,0)
+!                ref_state(:)  = hom(:,1,14,0)
 !--          Assure that ref_state does not become zero at any level
 !--          ( might be the case if a vertical level is completely occupied
 !--            with topography ).
-             ref_state = MERGE( MAXVAL(ref_state), ref_state,                  &
-                                ref_state == 0.0_wp )
+!             ref_state = MERGE( MAXVAL(ref_state), ref_state,                  &
+!                                ref_state == 0.0_wp )
 
+!                              print *, rho_ocean(:,1,10)
+!                              print *, '!!!!!!!!'
+!                              print *, ref_state
+!            print *, '************'
 !          CALL production_e_init
           IF ( ( ws_scheme_mom .OR. ws_scheme_sca )  .AND.  &
                intermediate_timestep_count == 1 )  CALL ws_statistics
@@ -268,16 +272,16 @@
           .OR. ( .NOT. call_psolver_at_all_substeps  .AND.                     &
                intermediate_timestep_count == 1 ) )                            &
           THEN
-  time_disturb = time_disturb + dt_3d
+             time_disturb = time_disturb + dt_3d
 
              IF ( time_disturb < dt_disturb ) then
       !       if (dt_3d_old == dt_3d .and. first) then
                   CALL disturb_field( 'u', tend, u)
-              CALL disturb_field( 'v', tend, v)
-              !    call disturb_field('pt', tend, pt)
+                  CALL disturb_field( 'v', tend, v)
+                  call disturb_field('pt', tend, pt)
                  ! call disturb_field('sa', tend, sa, sLSforcing,  &
                  !        hom(:,1,23,statistic_regions) )
-         else
+            else
                  first = .false.
             ENDIF
           ENDIF
@@ -367,15 +371,15 @@
        dt_3d_old = dt_3d
        CALL timestep
 
-       if(dt_3d_old .ne. dt_3d .and. first) THEN
+!       if(dt_3d_old .ne. dt_3d .and. first) THEN
          ! disturbFactor = 0.0_wp
 !          first = .false.
-          uProfileInit(:) =  hom(nzb:nzt,1,1,0)
-          vProfileInit(:) =  hom(nzb:nzt,1,2,0)
-          tProfileInit(:) =  hom(nzb:nzt,1,4,0)
-          sProfileInit(:) =  hom(nzb:nzt,1,5,0)
-          end_time = simulated_time + dt_LS
-       endif
+!          uProfileInit(:) =  hom(nzb:nzt,1,1,0)
+!          vProfileInit(:) =  hom(nzb:nzt,1,2,0)
+!          tProfileInit(:) =  hom(nzb:nzt,1,4,0)
+!          sProfileInit(:) =  hom(nzb:nzt,1,5,0)
+!          end_time = simulated_time + dt_LS
+!       endif
 
 !--    Computation and output of run control parameters.
 !--    This is also done whenever perturbations have been imposed

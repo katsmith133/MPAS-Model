@@ -327,11 +327,11 @@ contains
       do iCell = 1, nCells
          les_bottom(iCell) = max(zMid(maxLevelCell(iCell),iCell), config_les_bottom)
 
-         if(config_AM_mixedLayerDepths_enable) then
-            les_disturb_bottom(iCell) = -2.0_RKIND*dThreshMLD(iCell)
-         else
+!         if(config_AM_mixedLayerDepths_enable) then
+!            les_disturb_bottom(iCell) = -2.0_RKIND*dThreshMLD(iCell)
+!         else
             les_disturb_bottom(iCell) = config_les_disturb_bottom
-         endif
+!         endif
 
          fracAbsorbed = 1.0_RKIND - exp( max(-layerThickness(1, iCell) / config_flux_attenuation_coefficient, -100.0_RKIND) )
          fracAbsorbedRunoff = 1.0_RKIND - exp( max(-layerThickness(1, iCell) / config_flux_attenuation_coefficient_runoff, &
@@ -352,6 +352,8 @@ contains
 
          vw_sfc(iCell) = stressMeridional(iCell) / rho_sw
 
+         uw_sfc(iCell) = 0.0_RKIND
+         vw_sfc(iCell) = 0.0_RKIND
          latVal(iCell) = ASIN(fCell(iCell) / (2.0_RKIND*7.292E-5_RKIND))
 
      enddo
@@ -376,7 +378,7 @@ contains
       etime = dt
 
       call palm_main(nCells, nVertLevels, activeTracers(1,:,:), activeTracers(2,:,:),              &
-             velocityZonal, velocityMeridional, layerThickness, latVal,                       &
+            velocityZonal, velocityMeridional, layerThickness, latVal,                       &
              maxLevelCell, -wt_sfc, penetrativeTemperatureFlux, ws_sfc,                       &
              -uw_sfc, -vw_sfc, fac, dep1, dep2, config_les_dx, config_les_dy, config_les_dz,  &
              config_les_nx, config_les_ny, config_les_nz,                 &

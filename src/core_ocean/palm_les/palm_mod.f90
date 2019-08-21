@@ -81,7 +81,7 @@ module palm_mod
     Real(wp),allocatable,dimension(:)   :: T_mpas2, S_mpas2, U_mpas2, V_mpas2
     Real(wp),allocatable,dimension(:)   :: Tles, Sles, Ules, Vles, zmid, zedge
     Real(wp),allocatable,dimension(:)   :: zeLES, wtLES, wsLES, wuLES, wvLES
-    Real(wp),allocatable,dimension(:)   :: zeLESInv
+    Real(wp),allocatable,dimension(:)   :: zeLESInv, zmLESInv
 
 !-- arrays and parameters for PPR remapping
 
@@ -147,7 +147,7 @@ module palm_mod
 
    disturbFactor = restore_strength
    dt_disturb = dtDisturb
-   end_time = 3600.0_wp
+   end_time = 86400.0_wp
    ideal_solar_division = fac
    ideal_solar_efolding1 = dep1
    ideal_solar_efolding2 = dep2
@@ -160,7 +160,7 @@ module palm_mod
    dt_ls = dtLS
    dt_avg = timeAv
 
-   disturbance_level_t = disturbTop
+   !disturbance_level_t = disturbTop
    disturbance_amplitude = disturbAmp
    disturbance_energy_limit = disturbMax
 
@@ -221,9 +221,9 @@ module palm_mod
 
 !-- Determine processor topology and local array indices
     CALL init_pegrid
-    allocate(zu(nzb:nzt+1),zeLES(nzb-1:nzt+1),Tles(0:nzLES+1),Sles(0:nzLES+1))
-    allocate(zw(nzb:nzt+1),Ules(0:nzLES+1),Vles(0:nzLES+1))
-    allocate(zeLESinv(1:nzt-nzb+2))
+    allocate(zu(nzb:nzt+1),zeLES(nzb-1:nzt+1),Tles(1:nzLES+1),Sles(1:nzLES+1))
+    allocate(zw(nzb:nzt+1),Ules(1:nzLES+1),Vles(1:nzLES+1))
+    allocate(zeLESinv(1:nzt-nzb+2),zmLESinv(1:nzt-nzb+1))
     ALLOCATE( hyp(nzb:nzt+1) )
 
     nzt = nzLES
@@ -310,6 +310,8 @@ module palm_mod
       endif
     endif
 
+    zLES(:,iCell) = zeLES(nzb+1:nzt)
+
 !--    In case of dirichlet bc for u and v the first u- and w-level are defined
 !--    at same height.
        IF ( ibc_uv_b == 0 ) THEN
@@ -328,7 +330,7 @@ module palm_mod
        dd2zu(k) = 1.0_wp / ( dzu(k) + dzu(k+1) )
     ENDDO
 
-   disturbance_level_b = disturbBot(iCell)
+!   disturbance_level_b = disturbBot(iCell)
  !TODO add check for right / acceptable range.
     top_momentumflux_u = uwflux(iCell)
     top_momentumflux_v = vwflux(iCell)
@@ -354,9 +356,14 @@ module palm_mod
     call rmap1d(nzMPAS+1,nzLES+1,nvar,ndof,abs(zedge(1:nzMPAS+1)),abs(zeLESinv(1:nzLES+1)), &
                 fMPAS(:,:,:nzMPAS), fLES, bc_l, bc_r, work, opts)
 
+
+    do il=1,nzt+nzb+1
+      zmLESinv(il) = 0.5*(zeLESinv(il)+zeLESinv(il+1))
+    enddo
+
     jl = 1
     do il = nzt,nzb+1,-1
-      tLSforcing(il) = fLES(1,1,jl) + 273.15
+      tLSforcing(il) = fLES(1,1,jl) + 273.15_wp
       sLSforcing(il) = fLES(1,2,jl)
       uLSforcing(il) = fLES(1,3,jl)
       vLSforcing(il) = fLES(1,4,jl)
@@ -425,24 +432,27 @@ v_p = v
 
     endif
 
-    Tles = meanFields_avg(:,3)
-    Sles = meanFields_avg(:,4)
-    Ules = meanFields_avg(:,1)
-    Vles = meanFields_avg(:,2)
+    Tles = meanFields_avg(nzb+1:nzt,3)
+    Sles = meanFields_avg(nzb+1:nzt,4)
+    Ules = meanFields_avg(nzb+1:nzt,1)
+    Vles = meanFields_avg(nzb+1:nzt,2)
  ! need to integrate over layers in mpas to get increments
 
+ print *, Tles
+ stop
  if(minval(tempLES(:,iCell)) < 100.0_wp) tempLES(:,iCell) = tempLES(:,iCell) + 273.15_wp
     tProfileInit(1:) = tempLES(:,iCell)
     sProfileInit(1:) = salinityLES(:,iCell)
     uProfileInit(1:) = uLESout(:,iCell)
     vProfileInit(1:) = vLESout(:,iCell)
 
+    tempLES(:,iCell) = Tles(nzb+1:)
     jl=1
     do il=nzt,nzb+1,-1
-      fLES(1,1,jl) = (Tles(il) - tProfileInit(il)) / dtLS
-      fLES(1,2,jl) = (Sles(il) - sProfileInit(il)) / dtLS
-      fLES(1,3,jl) = (Ules(il) - uProfileInit(il)) / dtLS
-      fLES(1,4,jl) = (Vles(il) - vProfileInit(il)) / dtLS
+      fLES(1,1,jl) = (Tles(il) - tProfileInit(il)) / end_time 
+      fLES(1,2,jl) = (Sles(il) - sProfileInit(il)) / end_time
+      fLES(1,3,jl) = (Ules(il) - uProfileInit(il)) / end_time
+      fLES(1,4,jl) = (Vles(il) - vProfileInit(il)) / end_time
       jl = jl+1
     enddo
 
@@ -469,10 +479,10 @@ v_p = v
     e_restart(:,:,:,iCell) = e(:,:,:)
     km_restart(:,:,:,iCell) = km(:,:,:)
     kh_restart(:,:,:,iCell) = kh(:,:,:)
-    u_mean_restart(:,iCell) = Ules
-    v_mean_restart(:,iCell) = Vles
-    t_mean_restart(:,iCell) = Tles
-    s_mean_restart(:,iCell) = Sles
+    u_mean_restart(nzb+1:nzt,iCell) = Ules
+    v_mean_restart(nzb+1:nzt,iCell) = Vles
+    t_mean_restart(nzb+1:nzt,iCell) = Tles
+    s_mean_restart(nzb+1:nzt,iCell) = Sles
     call init_control_parameters
   enddo !ends icell loop
 
@@ -557,7 +567,7 @@ subroutine palm_main(nCells,nVertLevels,T_mpas,S_mpas,U_mpas,V_mpas,lt_mpas, &
    dt_avg = timeAv
 
    disturbFactor = restore_strength
-   disturbance_level_t = disturbTop
+!   disturbance_level_t = disturbTop
    disturbance_amplitude = disturbAmp
    disturbance_energy_limit = disturbMax
    initializing_actions  = 'SP_run_continue'
@@ -597,6 +607,7 @@ subroutine palm_main(nCells,nVertLevels,T_mpas,S_mpas,U_mpas,V_mpas,lt_mpas, &
       endif
     endif
 
+    zLES(:,iCell) = zeLES(nzb+1:nzt)
 !--    In case of dirichlet bc for u and v the first u- and w-level are defined
 !--    at same height.
        IF ( ibc_uv_b == 0 ) THEN
@@ -616,7 +627,7 @@ subroutine palm_main(nCells,nVertLevels,T_mpas,S_mpas,U_mpas,V_mpas,lt_mpas, &
     ENDDO
 
 
-   disturbance_level_b = disturbBot(iCell)
+ !  disturbance_level_b = disturbBot(iCell)
 !TODO add check for right / acceptable range.
     top_momentumflux_u = uwflux(iCell)
     top_momentumflux_v = vwflux(iCell)
@@ -643,24 +654,23 @@ subroutine palm_main(nCells,nVertLevels,T_mpas,S_mpas,U_mpas,V_mpas,lt_mpas, &
                 fMPAS, fLES, bc_l, bc_r, work, opts)
     jl = 1
     do il = nzt,nzb+1,-1
-      tLSforcing(il) = fLES(1,1,jl) + 273.15
-      sLSforcing(il) = fLES(1,2,jl)
-      uLSforcing(il) = fLES(1,3,jl)
-      vLSforcing(il) = fLES(1,4,jl)
+      tLSforcing(il) = fLES(1,1,jl) + 273.15 -  t_mean_restart(il,iCell)
+      sLSforcing(il) = fLES(1,2,jl) - s_mean_restart(il,iCell)
+      uLSforcing(il) = fLES(1,3,jl) - u_mean_restart(il,iCell)
+      vLSforcing(il) = fLES(1,4,jl) - v_mean_restart(il,iCell)
       jl = jl + 1
     enddo
 
-
-   do jl = nzt,nzb+1,-1
+!   do jl = nzt,nzb+1,-1
 !          pt(jl,:,:) = tempLES(jl) + 273.15_wp
 !          sa(jl,:,:) = salinityLES(jl)
 !          u(jl,:,:) = uLESout(jl)
 !          v(jl,:,:) = vLESout(jl)
-       uProfileInit(jl) = uLSforcing(jl)
-       vProfileInit(jl) = vLSforcing(jl)
-       tProfileInit(jl) = tLSforcing(jl)
-       sProfileInit(jl) = sLSforcing(jl)
-    enddo
+!       uProfileInit(jl) = uLSforcing(jl)
+!       vProfileInit(jl) = vLSforcing(jl)
+!       tProfileInit(jl) = tLSforcing(jl)
+!       sProfileInit(jl) = sLSforcing(jl)
+!    enddo
 !need to cudify this super easy collapse 3 herrel
     u(:,:,:) = u_restart(:,:,:,iCell)
     v(:,:,:) = v_restart(:,:,:,iCell)
@@ -679,11 +689,27 @@ subroutine palm_main(nCells,nVertLevels,T_mpas,S_mpas,U_mpas,V_mpas,lt_mpas, &
     e_p = e
 
     CALL init_3d_model
+
+#if ! defined( __nopointer )
+!
+!-- Initial assignment of the pointers
+    IF ( .NOT. neutral )  THEN
+       pt => pt_1;  pt_p => pt_2;  tpt_m => pt_3
+    ELSE
+       pt => pt_1;  pt_p => pt_1;  tpt_m => pt_3
+    ENDIF
+    u  => u_1;   u_p  => u_2;   tu_m  => u_3
+    v  => v_1;   v_p  => v_2;   tv_m  => v_3
+    w  => w_1;   w_p  => w_2;   tw_m  => w_3
+    sa => sa_1;  sa_p => sa_2;  tsa_m => sa_3
+#endif
+
+
     CALL flow_statistics
-    uLESout(:,iCell) = hom(:,1,1,0) 
-    vLESout(:,iCell) = hom(:,1,2,0)
-    tempLES(:,iCell) = hom(:,1,4,0)
-    salinityLES(:,iCell) = hom(:,1,5,0)
+    uLESout(:,iCell) = hom(nzb+1:nzt,1,1,0) 
+    vLESout(:,iCell) = hom(nzb+1:nzt,1,2,0)
+    tempLES(:,iCell) = hom(nzb+1:nzt,1,4,0)
+    salinityLES(:,iCell) = hom(nzb+1:nzt,1,5,0)
 
 #if defined( __cudaProfiler )
 !-- Only profile time_integration
@@ -713,28 +739,24 @@ call flow_statistics
 
     endif
 
-    Tles = meanFields_avg(:,3)
-    Sles = meanFields_avg(:,4)
-    Ules = meanFields_avg(:,1)
-    Vles = meanFields_avg(:,2)
+    Tles = meanFields_avg(nzb+1:nzt,3)
+    Sles = meanFields_avg(nzb+1:nzt,4)
+    Ules = meanFields_avg(nzb+1:nzt,1)
+    Vles = meanFields_avg(nzb+1:nzt,2)
  ! need to integrate over layers in mpas to get increments
 
  if(minval(tempLES(:,iCell)) < 100.0_wp) tempLES(:,iCell) = tempLES(:,iCell) + 273.15_wp
-!    tProfileInit(1:) = tempLES(:,iCell)
-!    sProfileInit(1:) = salinityLES(:,iCell)
-!    uProfileInit(1:) = uLESout(:,iCell)
-  !    vProfileInit(1:) = vLESout(:,iCell)
-    tProfileInit(1:) = t_mean_restart(1:nzt,iCell)
-    sProfileInit(1:) = s_mean_restart(1:nzt,iCell)
-    uProfileInit(1:) = u_mean_restart(1:nzt,iCell)
-    vProfileInit(1:) = v_mean_restart(1:nzt,iCell)
+    tProfileInit(1:) = t_mean_restart(nzb+1:nzt,iCell)
+    sProfileInit(1:) = s_mean_restart(nzb+1:nzt,iCell)
+    uProfileInit(1:) = u_mean_restart(nzb+1:nzt,iCell)
+    vProfileInit(1:) = v_mean_restart(nzb+1:nzt,iCell)
 
     jl=1
     do il=nzt,nzb+1,-1
-      fLES(1,1,jl) = (Tles(il) - tProfileInit(il)) / dtLS
-      fLES(1,2,jl) = (Sles(il) - sProfileInit(il)) / dtLS
-      fLES(1,3,jl) = (Ules(il) - uProfileInit(il)) / dtLS
-      fLES(1,4,jl) = (Vles(il) - vProfileInit(il)) / dtLS
+      fLES(1,1,jl) = (Tles(il) - tProfileInit(il)) / end_time 
+      fLES(1,2,jl) = (Sles(il) - sProfileInit(il)) / end_time
+      fLES(1,3,jl) = (Ules(il) - uProfileInit(il)) / end_time
+      fLES(1,4,jl) = (Vles(il) - vProfileInit(il)) / end_time
       jl = jl+1
     enddo
      call rmap1d(nzLES+1,nzMPAS+1,nvar,ndof,abs(zeLESinv(1:nzLES+1)),abs(zedge(1:nzMPAS+1)), &
@@ -750,7 +772,6 @@ call flow_statistics
       uIncrementLES(jl,iCell) = fMPAS(1,3,jl)
       vIncrementLES(jl,iCell) = fMPAS(1,4,jl)
     enddo
-
    !put variables in arrays to continue
     u_restart(:,:,:,iCell) = u(:,:,:)
     v_restart(:,:,:,iCell) = v(:,:,:)
@@ -760,10 +781,10 @@ call flow_statistics
     e_restart(:,:,:,iCell) = e(:,:,:)
     km_restart(:,:,:,iCell) = km(:,:,:)
     kh_restart(:,:,:,iCell) = kh(:,:,:)
-    u_mean_restart(:,iCell) = Ules
-    v_mean_restart(:,iCell) = Vles
-    t_mean_restart(:,iCell) = Tles
-    s_mean_restart(:,iCell) = Sles
+    u_mean_restart(nzb+1:nzt,iCell) = Ules
+    v_mean_restart(nzb+1:nzt,iCell) = Vles
+    t_mean_restart(nzb+1:nzt,iCell) = Tles
+    s_mean_restart(nzb+1:nzt,iCell) = Sles
     
 call init_control_parameters
   enddo !ends icell loop
@@ -858,7 +879,6 @@ subroutine init_control_parameters
         fft_method = 'temperton-algorithm'
         topography = 'flat'
         initializing_actions = 'set_constant_profiles'
-        random_generator = 'numerical-recipes'
         random_generator = 'random-parallel'
         reference_state = 'initial_profile'
         data_output = ' '

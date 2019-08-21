@@ -155,8 +155,8 @@
                                       ( s(k,j,i)-s(k-1,j,i) )  * ddzu(k)    &
                                                            * rho_air_zw(k-1)  &
                                                             * mask_bottom      &
-                                                  ) * ddzw(k) * drho_air(k)  !  &
-                                                            !  * flag
+                                                  ) * ddzw(k) * drho_air(k)    &
+                                                              * flag
              ENDDO
           ENDDO
        ENDDO

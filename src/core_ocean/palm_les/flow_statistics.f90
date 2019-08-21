@@ -371,8 +371,8 @@
 !--    used for summation. After that store profiles.
        sums(:,1) = sums(:,1) / ngp_2dh(sr)
        sums(:,2) = sums(:,2) / ngp_2dh(sr)
-       sums(:,4) = sums(:,4) / ngp_2dh_s_inner(:,sr)
-       sums(:,5) = sums(:,5) / ngp_2dh_s_inner(:,sr)
+       sums(:,4) = sums(:,4) / ngp_2dh(sr)!_s_inner(:,sr)
+       sums(:,5) = sums(:,5) / ngp_2dh(sr)!_s_inner(:,sr)
 
 !--    For speed optimization fluxes which have been computed in part directly
 !--    inside the WS advection routines are treated seperatly

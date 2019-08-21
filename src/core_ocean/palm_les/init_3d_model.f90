@@ -199,8 +199,8 @@
     ALLOCATE( uLSforcing(nzb:nzt), vLSforcing(nzb:nzt), tLSforcing(nzb:nzt) )
     ALLOCATE( sLSforcing(nzb:nzt) )
 
-    ALLOCATE( uProfileInit(nzb:nzt), vProfileInit(nzb:nzt) )
-    ALLOCATE( tProfileInit(nzb:nzt), sProfileInit(nzb:nzt) )
+    ALLOCATE( uProfileInit(nzb+1:nzt), vProfileInit(nzb+1:nzt) )
+    ALLOCATE( tProfileInit(nzb+1:nzt), sProfileInit(nzb+1:nzt) )
 
     ALLOCATE( ngp_2dh_outer(nzb:nzt+1,0:statistic_regions),                    &
               ngp_2dh_outer_l(nzb:nzt+1,0:statistic_regions),                  &
@@ -537,7 +537,8 @@ subroutine init_3d_model
 !       CALL location_message( 'finished', .TRUE. )
 
     ELSEIF ( TRIM( initializing_actions ) == 'read_restart_data'  .OR.         &
-             TRIM( initializing_actions ) == 'cyclic_fill' )                   &
+             TRIM( initializing_actions ) == 'cyclic_fill' .OR.                &
+             TRIM( initializing_actions ) == 'SP_run_continue' )                   &
     THEN
 
 !       CALL location_message( 'initializing in case of restart / cyclic_fill', &
@@ -548,6 +549,7 @@ subroutine init_3d_model
 !--    elements might be different between runs, e.g. in case of cyclic fill,
 !--    and not all surface elements are read, surface elements need to be
 !--    initialized before.
+if( TRIM( initializing_actions ) .ne. 'SP_run_continue' ) THEN
        CALL init_surfaces
 !
 !--    Read processor specific binary data from restart file
@@ -565,6 +567,7 @@ subroutine init_3d_model
 !--    of a sloping surface
        IF ( sloping_surface )  CALL init_slope
 
+     endif
 !
 !--    Initialize new time levels (only done in order to set boundary values
 !--    including ghost points)
@@ -710,7 +713,8 @@ subroutine init_3d_model
 !-- remove the divergences from the velocity field at the initial stage
     IF ( create_disturbances  .AND.  dt_disturb > 0.0_wp  .AND. &
          TRIM( initializing_actions ) /= 'read_restart_data'  .AND.            &
-         TRIM( initializing_actions ) /= 'cyclic_fill' )  THEN
+         TRIM( initializing_actions ) /= 'cyclic_fill' .AND.      &
+         TRIM( initializing_actions ) /= 'SP_run_continue' )  THEN
 
          !$acc data copy( u, v )
 !       CALL location_message( 'creating initial disturbances', .FALSE. )
