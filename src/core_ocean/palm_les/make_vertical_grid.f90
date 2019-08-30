@@ -62,12 +62,15 @@
        do il = nzt,nzb,-1
          zmidOUT(il) = 0.5*(zedge(il) + zedge(il-1))
        enddo
-       zmidOUT(nzt+1) = dz
-       zedge(nz+1:nzt) = zmidOUT(nzb+1:nzt)
+       zmidOUT(nzt+1) = 0.5_wp*dz
+       zmidOUT(nzb) = zedgeIN
+
+!       zedge(nz+1:nzt) = zmidOUT(nzb+1:nzt)
 
        zedgeOUT(nzt+1) = dz
        zedgeOUT(nzt)   = 0.0_wp
-       DO  k = 0, nzt
+       zedgeOUT(nzb) = zmidOUT(nzb)
+       DO  k = nzb+1, nzt
          zedgeOUT(k) = ( zmidOUT(k) + zmidOUT(k+1) ) * 0.5_wp
        ENDDO
 

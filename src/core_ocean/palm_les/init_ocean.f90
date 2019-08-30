@@ -166,14 +166,13 @@
 
        rho_reference = rho_reference / ( zw(nzt) - zu(nzb) )
 
-    
+       rho_ocean_init(nzt+1) = rho_ocean_init(nzt) 
        DO  k = nzt, 0, -1
           hyp(k) = hyp(k+1) + g * 0.5_wp * ( rho_ocean_init(k)                 &
                                            + rho_ocean_init(k+1) ) * dzu(k+1)
        ENDDO
 
     ENDDO
-
 !
 !-- Calculate the reference potential density
     prho_reference = 0.0_wp

@@ -447,8 +447,8 @@
           DO  k = nzb+1, nzt
              u_p(k,j,i) = u(k,j,i) + ( dt_3d * ( tsc(2) * tend(k,j,i) +          &
                                                  tsc(3) * tu_m(k,j,i) )          &
-           !                                    - tsc(5) * rdf(k) *               &
-           !                                             ( u(k,j,i) - u_init(k) ) &
+                                               - tsc(5) * rdf(k) *               &
+                                                        ( u(k,j,i) - u_init(k) ) &
                              ) * MERGE( 1.0_wp, 0.0_wp,   &
                                                 BTEST( wall_flags_0(k,j,i), 1 ))
 
@@ -548,8 +548,8 @@
           DO  k = nzb+1, nzt
              v_p(k,j,i) = v(k,j,i) + ( dt_3d * ( tsc(2) * tend(k,j,i) +        &
                                                  tsc(3) * tv_m(k,j,i) )        &
-          !                                     - tsc(5) * rdf(k) *             &
-          !                                            ( v(k,j,i) - v_init(k) ) &
+                                               - tsc(5) * rdf(k) *             &
+                                                      ( v(k,j,i) - v_init(k) ) &
                                                     ) * MERGE( 1.0_wp, 0.0_wp , &
                                                 BTEST( wall_flags_0(k,j,i), 2 )&
                                               )
@@ -715,9 +715,9 @@
              DO  k = nzb+1, nzt
                 pt_p(k,j,i) = pt(k,j,i) + ( dt_3d * ( sbt * tend(k,j,i) +      &
                                                    tsc(3) * tpt_m(k,j,i) )     &
-                      !                           - tsc(5) *                    &
-                      !                             ( pt(k,j,i) - pt_init(k) ) *&
-                      !                    ( rdf_sc(k) + ptdf_x(i) + ptdf_y(j) )&
+                                                 - tsc(5) *                    &
+                                                   ( pt(k,j,i) - pt_init(k) ) *&
+                                          ( rdf_sc(k) + ptdf_x(i) + ptdf_y(j) )&
                                        )                                      &
                                 * MERGE( 1.0_wp, 0.0_wp,                      &
                                              BTEST( wall_flags_0(k,j,i), 0 )   &
@@ -805,8 +805,8 @@
              DO  k = nzb+1, nzt
                 sa_p(k,j,i) = sa(k,j,i) + ( dt_3d * ( sbt * tend(k,j,i) +      &
                                                    tsc(3) * tsa_m(k,j,i) )     &
-!                                                 - tsc(5) * rdf_sc(k) *        &
-!                                                 ( sa(k,j,i) - sa_init(k) )    &
+                                                 - tsc(5) * rdf_sc(k) *        &
+                                                 ( sa(k,j,i) - sa_init(k) )    &
                                        )                                    &
                                 * MERGE( 1.0_wp, 0.0_wp,                    &
                                              BTEST( wall_flags_0(k,j,i), 0 )   &

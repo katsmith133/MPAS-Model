@@ -243,23 +243,24 @@
 !
 !-- Set zero vertical velocity at topography top (l=0), or bottom (l=1) in case
 !-- of downward-facing surfaces.
-    DO  l = 0, 1
+!    DO  l = 0, 1
 !
 !--    Set kb, for upward-facing surfaces value at topography top (k-1) is set,
 !--    for downward-facing surfaces at topography bottom (k+1).
-       kb = MERGE( -1, 1, l == 0 )
-       !$OMP PARALLEL DO PRIVATE( i, j, k )
-       !$acc parallel present( w_p, bc_h )
-       !$acc loop
-       DO  m = 1, bc_h(l)%ns
-          i = bc_h(l)%i(m)
-          j = bc_h(l)%j(m)
-          k = bc_h(l)%k(m)
-          w_p(k+kb,j,i) = 0.0_wp
-       ENDDO
-       !$acc end parallel
-    ENDDO
+!       kb = MERGE( -1, 1, l == 0 )
+!       !$OMP PARALLEL DO PRIVATE( i, j, k )
+!       !$acc parallel present( w_p, bc_h )
+!       !$acc loop
+!       DO  m = 1, bc_h(l)%ns
+!          i = bc_h(l)%i(m)
+!          j = bc_h(l)%j(m)
+!          k = bc_h(l)%k(m)
+!          w_p(k+kb,j,i) = 0.0_wp
+!       ENDDO
+!       !$acc end parallel
+!    ENDDO
 
+w_p(nzb:nzb+1,:,:) = 0.0_wp
 !
 !-- Top boundary. A nested domain ( ibc_uv_t = 3 ) does not require settings.
     IF ( ibc_uv_t == 0 )  THEN

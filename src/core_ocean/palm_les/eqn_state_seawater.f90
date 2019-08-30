@@ -256,33 +256,35 @@
              prho(nzt+1,j,i)      = prho(nzt,j,i)
              rho_ocean(nzt+1,j,i) = rho_ocean(nzt,j,i)
 
+             prho(nzb,j,i) = prho(nzb+1,j,i)
+             rho_ocean(nzb,j,i) = rho_ocean(nzb+1,j,i)
           ENDDO
        ENDDO
        !$acc end parallel
 !
 !--    Neumann conditions at up/downward-facing surfaces
-       !$OMP PARALLEL DO PRIVATE( i, j, k )
-       !$acc parallel present( bc_h, prho, rho_ocean )
-       !$acc loop
-       DO  m = 1, bc_h(0)%ns
-          i = bc_h(0)%i(m)
-          j = bc_h(0)%j(m)
-          k = bc_h(0)%k(m)
-          prho(k-1,j,i)      = prho(k,j,i)
-          rho_ocean(k-1,j,i) = rho_ocean(k,j,i)
-       ENDDO
+!       !$OMP PARALLEL DO PRIVATE( i, j, k )
+!       !$acc parallel present( bc_h, prho, rho_ocean )
+!       !$acc loop
+!       DO  m = 1, bc_h(0)%ns
+!          i = bc_h(0)%i(m)
+!          j = bc_h(0)%j(m)
+!          k = bc_h(0)%k(m)
+!          prho(k-1,j,i)      = prho(k,j,i)
+!          rho_ocean(k-1,j,i) = rho_ocean(k,j,i)
+!       ENDDO
 !
 !--    Downward facing surfaces
-       !$OMP PARALLEL DO PRIVATE( i, j, k )
-       !$acc loop
-       DO  m = 1, bc_h(1)%ns
-          i = bc_h(1)%i(m)
-          j = bc_h(1)%j(m)
-          k = bc_h(1)%k(m)
-          prho(k+1,j,i)      = prho(k,j,i)
-          rho_ocean(k+1,j,i) = rho_ocean(k,j,i)
-       ENDDO
-       !$acc end parallel
+!       !$OMP PARALLEL DO PRIVATE( i, j, k )
+!       !$acc loop
+!       DO  m = 1, bc_h(1)%ns
+!          i = bc_h(1)%i(m)
+!          j = bc_h(1)%j(m)
+!          k = bc_h(1)%k(m)
+!          prho(k+1,j,i)      = prho(k,j,i)
+!          rho_ocean(k+1,j,i) = rho_ocean(k,j,i)
+!       ENDDO
+!       !$acc end parallel
 
     END SUBROUTINE eqn_state_seawater
 

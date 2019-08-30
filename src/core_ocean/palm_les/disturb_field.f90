@@ -136,8 +136,8 @@
     ALLOCATE( dist2(nzb:nzt+1,nysg:nyng,nxlg:nxrg) )
     dist1 = 0.0_wp
     dist2 = 0.0_wp
-!    disturbance_level_ind_b = nzt - 6
-!    disturbance_level_ind_t = nzt
+    disturbance_level_ind_b = nzt - 6
+    disturbance_level_ind_t = nzt
 
 
 !-- Create the random perturbation and store it on temporary array
@@ -218,38 +218,38 @@
 !-- Loop has been splitted to make runs reproducible on HLRN systems using
 !-- compiler option -O3
 
-     DO  i = nxl, nxr
-        DO  j = nys, nyn
-          DO  k = disturbance_level_ind_b-1, disturbance_level_ind_t+1
-             dist2(k,j,i) = ( dist1(k,j,i-1) + dist1(k,j,i+1)                  &
-                            + dist1(k,j+1,i) + dist1(k+1,j,i)                  &
-                            ) / 12.0_wp
-          ENDDO
-          DO  k = disturbance_level_ind_b-1, disturbance_level_ind_t+1
-              dist2(k,j,i) = dist2(k,j,i) + ( dist1(k,j-1,i) + dist1(k-1,j,i)  &
-                            + 6.0_wp * dist1(k,j,i)                            &
-                            ) / 12.0_wp
-          ENDDO
-        ENDDO
-     ENDDO
+!     DO  i = nxl, nxr
+!        DO  j = nys, nyn
+!          DO  k = disturbance_level_ind_b-1, disturbance_level_ind_t+1
+!             dist2(k,j,i) = ( dist1(k,j,i-1) + dist1(k,j,i+1)                  &
+!                            + dist1(k,j+1,i) + dist1(k+1,j,i)                  &
+!                            ) / 12.0_wp
+!          ENDDO
+!          DO  k = disturbance_level_ind_b-1, disturbance_level_ind_t+1
+!              dist2(k,j,i) = dist2(k,j,i) + ( dist1(k,j-1,i) + dist1(k-1,j,i)  &
+!                            + 6.0_wp * dist1(k,j,i)                            &
+!                            ) / 12.0_wp
+!          ENDDO
+!        ENDDO
+!     ENDDO
 
 !
 !-- Exchange of ghost points for the filtered perturbation.
 !-- Afterwards, filter operation and exchange of ghost points are repeated.
-    CALL exchange_horiz( dist2, nbgp )
+!    CALL exchange_horiz( dist2, nbgp )
 
-    DO  i = nxl, nxr
-       DO  j = nys, nyn
-          DO  k = disturbance_level_ind_b-2, disturbance_level_ind_t+2
-             dist1(k,j,i) = ( dist2(k,j,i-1) + dist2(k,j,i+1) + dist2(k,j-1,i) &
-                            + dist2(k,j+1,i) + dist2(k+1,j,i) + dist2(k-1,j,i) &
-                            + 6.0_wp * dist2(k,j,i)                            &
-                            ) / 12.0_wp
-          ENDDO
-       ENDDO
-    ENDDO
+!    DO  i = nxl, nxr
+!       DO  j = nys, nyn
+!          DO  k = disturbance_level_ind_b-2, disturbance_level_ind_t+2
+!             dist1(k,j,i) = ( dist2(k,j,i-1) + dist2(k,j,i+1) + dist2(k,j-1,i) &
+!                            + dist2(k,j+1,i) + dist2(k+1,j,i) + dist2(k-1,j,i) &
+!                            + 6.0_wp * dist2(k,j,i)                            &
+!                            ) / 12.0_wp
+!          ENDDO
+!       ENDDO
+!    ENDDO
 
-    CALL exchange_horiz( dist1, nbgp )
+!    CALL exchange_horiz( dist1, nbgp )
 
 !
 !-- Remove perturbations below topography (including one gridpoint above it

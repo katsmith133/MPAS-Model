@@ -147,7 +147,7 @@ module palm_mod
 
    disturbFactor = restore_strength
    dt_disturb = dtDisturb
-   end_time = 86400.0_wp
+   end_time = 3600.0_wp
    ideal_solar_division = fac
    ideal_solar_efolding1 = dep1
    ideal_solar_efolding2 = dep2
@@ -438,9 +438,7 @@ v_p = v
     Vles = meanFields_avg(nzb+1:nzt,2)
  ! need to integrate over layers in mpas to get increments
 
- print *, Tles
- stop
- if(minval(tempLES(:,iCell)) < 100.0_wp) tempLES(:,iCell) = tempLES(:,iCell) + 273.15_wp
+  if(minval(tempLES(:,iCell)) < 100.0_wp) tempLES(:,iCell) = tempLES(:,iCell) + 273.15_wp
     tProfileInit(1:) = tempLES(:,iCell)
     sProfileInit(1:) = salinityLES(:,iCell)
     uProfileInit(1:) = uLESout(:,iCell)
@@ -636,6 +634,9 @@ subroutine palm_main(nCells,nVertLevels,T_mpas,S_mpas,U_mpas,V_mpas,lt_mpas, &
     latitude = lat_mpas(iCell) * 180.0 / pi
     wb_solar = wtflux_solar(iCell)
 
+    print *, zw
+    print *, ' '
+
     f  = 2.0_wp * omega * SIN( latitude / 180.0_wp * pi )
 !    fs = 0.0_wp * omega * COS( latitude / 180.0_wp * pi )
 
@@ -772,6 +773,10 @@ call flow_statistics
       uIncrementLES(jl,iCell) = fMPAS(1,3,jl)
       vIncrementLES(jl,iCell) = fMPAS(1,4,jl)
     enddo
+    print *, 'tles = ',hom(:,1,4,0)
+    print *, ' '
+    print *, 'tinit = ',tProfileInit
+stop
    !put variables in arrays to continue
     u_restart(:,:,:,iCell) = u(:,:,:)
     v_restart(:,:,:,iCell) = v(:,:,:)
@@ -785,7 +790,7 @@ call flow_statistics
     v_mean_restart(nzb+1:nzt,iCell) = Vles
     t_mean_restart(nzb+1:nzt,iCell) = Tles
     s_mean_restart(nzb+1:nzt,iCell) = Sles
-    
+
 call init_control_parameters
   enddo !ends icell loop
 

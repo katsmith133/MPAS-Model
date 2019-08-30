@@ -190,6 +190,7 @@
     DO  WHILE ( simulated_time < end_time  .AND.  .NOT. stop_dt  .AND. &
                 .NOT. terminate_run )
 
+       
        CALL cpu_log( log_point_s(10), 'timesteps', 'start' )
 !
 !--    Start of intermediate step loop
@@ -208,14 +209,14 @@
 !--          Horizontally averaged profiles to be used as reference state in
 !--          buoyancy terms (WARNING: only the respective last call of
 !--          calc_mean_profile defines the reference state!)
-!                CALL calc_mean_profile( rho_ocean, 14 )
+                CALL calc_mean_profile( rho_ocean, 14 )
 
-!                ref_state(:)  = hom(:,1,14,0)
+                ref_state(:)  = hom(:,1,14,0)
 !--          Assure that ref_state does not become zero at any level
 !--          ( might be the case if a vertical level is completely occupied
 !--            with topography ).
-!             ref_state = MERGE( MAXVAL(ref_state), ref_state,                  &
-!                                ref_state == 0.0_wp )
+             ref_state = MERGE( MAXVAL(ref_state), ref_state,                  &
+                                ref_state == 0.0_wp )
 
 !                              print *, rho_ocean(:,1,10)
 !                              print *, '!!!!!!!!'

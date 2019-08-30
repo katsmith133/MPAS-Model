@@ -159,7 +159,8 @@
 #endif
 
        IF ( .NOT. sloping_surface )  THEN
-!
+
+         !
 !--       Normal case: horizontal surface
           !$acc parallel present( var ) &
           !$acc present( tend, wall_flags_0, g, ref_state )
