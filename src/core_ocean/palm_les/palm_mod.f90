@@ -383,10 +383,10 @@ module palm_mod
        vProfileInit(jl) = vLSforcing(jl)
        tProfileInit(jl) = tLSforcing(jl)
        sProfileInit(jl) = sLSforcing(jl)
-!       uLSforcing(jl) = 0.0_wp   !need to set to zero due to restoring code changes.
-!       vLSforcing(jl) = 0.0_wp
-!       tLSforcing(jl) = 0.0_wp
-!       sLSforcing(jl) = 0.0_wp
+       uLSforcing(jl) = 0.0_wp   !need to set to zero due to restoring code changes.
+       vLSforcing(jl) = 0.0_wp
+       tLSforcing(jl) = 0.0_wp
+       sLSforcing(jl) = 0.0_wp
     enddo
 
     pt(nzb,:,:) = pt(nzb+1,:,:)
@@ -539,7 +539,7 @@ subroutine palm_main(nCells,nVertLevels,T_mpas,S_mpas,U_mpas,V_mpas,lt_mpas, &
    Real(wp) :: dxLES, dyLES, dzLES, z_fac, z_frst, z_cntr, restore_strength
    real(wp) :: z_fac1, z_fac2, z_facn, tol, test, fac, dep1, dep2
    real(wp) :: dtDisturb, endTime, thickDiff, disturbMax, disturbAmp
-   real(wp) :: disturbTop, timeAv
+   real(wp) :: disturbTop, timeAv, A_pt, A_s, A_u, A_v
    real(wp) :: sumValT, sumValS, sumValU, sumValV, thickVal
    real(wp) :: fLES(ndof, nvar, nzLES)
    real(wp) :: fMPAS(ndof, nvar, nVertLevels)
@@ -668,6 +668,64 @@ subroutine palm_main(nCells,nVertLevels,T_mpas,S_mpas,U_mpas,V_mpas,lt_mpas, &
       vLSforcing(il) = fLES(1,4,jl) !- v_mean_restart(il,iCell)
       jl = jl + 1
     enddo
+
+    !Fix up mean profiles based on Campin et al 2011
+    do il = nzt,nzb+1,-1
+       if(tLSforcing(il) < t_mean_restart(il,iCell)-1e-5) then
+          A_pt = min(tLSforcing(il), minval(pt_restart(il,nys:nyn,nxlu:nxr,iCell)))
+       else if(tLSforcing(il) > t_mean_restart(il,iCell)+1e-5) then
+          A_pt = max(tLSforcing(il), maxval(pt_restart(il,nys:nyn,nxlu:nxr,iCell)))
+       else
+          A_pt = 0.0_wp
+       endif
+
+       if(sLSforcing(il) < s_mean_restart(il,iCell)-1e-5) then
+          A_s = min(sLSforcing(il), minval(sa_restart(il,:,:,iCell)))
+       else if (sLSforcing(il) > s_mean_restart(il,iCell)+1e-5) then
+          A_s = max(sLSforcing(il), maxval(sa_restart(il,:,:,iCell)))
+       else
+          A_s = 0.0_wp
+       endif
+
+       if(uLSforcing(il) < u_mean_restart(il,iCell)-1e-5) then
+          A_u = min(uLSforcing(il), minval(u_restart(il,:,:,iCell)))
+       else if(uLSforcing(il) > u_mean_restart(il,iCell)+1e-5) then
+          A_u = max(uLSforcing(il), maxval(u_restart(il,:,:,iCell)))
+       else
+          A_u = 0.0_wp
+       endif
+
+       if(vLSforcing(il) < v_mean_restart(il,iCell)) then
+          A_v = min(vLSforcing(il), minval(v_restart(il,:,:,iCell)))
+       else if(tLSforcing(il) > t_mean_restart(il,iCell)) then
+          A_v = max(vLSforcing(il), maxval(v_restart(il,:,:,iCell)))
+       else
+          A_v = 0.0_wp
+       endif
+
+!       u_mean_restart(il,iCell) = uLSforcing(il)
+!       v_mean_restart(il,iCell) = vLSforcing(il)
+!       s_mean_restart(il,iCell) = sLSforcing(il)
+!       t_mean_restart(il,iCell) = tLSforcing(il)
+
+       do i = nxlu, nxr
+          do j = nys,nyn
+             pt_restart(il,j,i,iCell) = A_pt + (pt_restart(il,j,i,iCell) - A_pt) *  &
+                     (tLSforcing(il) - A_pt) / (t_mean_restart(il,iCell) - A_pt)
+             sa_restart(il,j,i,iCell) = A_s + (sa_restart(il,j,i,iCell)- A_s) *  &
+                     (sLSforcing(il) - A_s) / (s_mean_restart(il,iCell) - A_s)
+             u_restart(il,j,i,iCell) = A_u + (u_restart(il,j,i,iCell) - A_u)*  &
+                     (uLSforcing(il) - A_u) / (u_mean_restart(il,iCell) - A_u)
+             v_restart(il,j,i,iCell) = A_v + (v_restart(il,j,i,iCell) - A_v) *  &
+                     (vLSforcing(il) - A_v) / (v_mean_restart(il,iCell) - A_v)
+          enddo
+       enddo
+       u_mean_restart(il,iCell) = uLSforcing(il)
+       v_mean_restart(il,iCell) = vLSforcing(il)
+       s_mean_restart(il,iCell) = sLSforcing(il)
+       t_mean_restart(il,iCell) = tLSforcing(il)
+
+   enddo
 
 !    print *, 'tLS = ',t_mean_restart(:,iCell)
 !   do jl = nzt,nzb+1,-1
