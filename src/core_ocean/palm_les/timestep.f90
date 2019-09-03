@@ -255,6 +255,7 @@
           ENDDO
        ENDDO
        !$OMP END PARALLEL
+
 #if defined( __parallel )
        IF ( collective_wait )  CALL MPI_BARRIER( comm2d, ierr )
        CALL MPI_ALLREDUCE( dt_diff_l, dt_diff, 1, MPI_REAL, MPI_MIN, comm2d,   &
@@ -269,7 +270,7 @@
 !--    The time step must not exceed the maximum allowed value.
        dt_3d = cfl_factor * MIN( dt_diff, dt_u, dt_v, dt_w )
        dt_3d = MIN( dt_3d, dt_max )
-!
+
 !--    Remember the restricting time step criterion for later output.
        IF ( MIN( dt_u, dt_v, dt_w ) < dt_diff )  THEN
           timestep_reason = 'A'

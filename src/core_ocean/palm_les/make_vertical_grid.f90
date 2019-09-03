@@ -175,7 +175,7 @@
          z_facbl = z_fac
          nzb1 = nz - nzTop + 1
          z_fac2 = 1.0_wp / REAL(nzb1,kind=wp)
-         z_fac1 = -(z_ht - zedgeIN) / -dz
+         z_fac1 = -(z_ht - zedgeIN) / (-dz)
          z_fac = 1.1_wp
          knt = 0
          test = 10.0_wp

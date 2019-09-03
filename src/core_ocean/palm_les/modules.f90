@@ -969,6 +969,7 @@
     REAL(wp) ::  dt_run_control = 0.0_wp                      !< namelist parameter
     REAL(wp) ::  dt_spinup = 60.0_wp                           !< namelist parameter
     REAL(wp) ::  dt_3d = 0.01_wp                               !< time step
+    REAL(wp) ::  dt_3d_restart = 0.01_wp                       !< time step value to save
     REAL(wp) ::  dt_LS = 99999999.9_wp                         !< timestep from MPAS
     REAL(wp) ::  disturbFactor = 0.0_wp
     REAL(wp) ::  dz_max = 1000.0_wp                            !< namelist parameter

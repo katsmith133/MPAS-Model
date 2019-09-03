@@ -285,7 +285,7 @@
 
     USE control_parameters,                                                    &
         ONLY:  air_chemistry, call_microphysics_at_all_substeps,               &
-               cloud_physics, cloud_top_radiation,         &
+               create_disturbances, cloud_physics, cloud_top_radiation,         &
                dp_external, dp_level_ind_b, dp_smooth_factor, dpdxy, dt_3d,    &
                humidity, idealized_diurnal, g,                                 &
                inflow_l, intermediate_timestep_count,                          &
@@ -430,7 +430,7 @@
           DO  j = nys, nyn
              DO  k = dp_level_ind_b+1, nzt
                 tend(k,j,i) = tend(k,j,i) + disturbFactor / dt_LS *  &
-                                             ( uLSforcing(k))
+                                             ( uLSforcing(k) - hom(k,1,1,0))
               ENDDO
          ENDDO
        ENDDO
@@ -531,7 +531,7 @@
           DO  j = nysv, nyn
              DO  k = dp_level_ind_b+1, nzt
                 tend(k,j,i) = tend(k,j,i) +  disturbFactor / dt_LS * (                &
-                                                vLSforcing(k))
+                                                vLSforcing(k)-hom(k,1,2,0))
              ENDDO
           ENDDO
        ENDDO
@@ -602,7 +602,7 @@
        ENDDO
     ENDDO
     !$acc end parallel
-
+!
     CALL advec_w_ws
     CALL diffusion_w
     CALL coriolis( 3 )
@@ -682,11 +682,9 @@
 
 
        CALL advec_s_ws( pt, 'pt' )
-
        CALL diffusion_s( pt,                                                 &
                          top_heatflux,                                    &
                          wb_solar )
-
 !--    If required, compute Stokes-advection term
        IF ( ocean .AND. stokes_force ) THEN
           CALL stokes_force_s( pt )
@@ -698,7 +696,7 @@
              do j = nys, nyn
                 do k = nzb+1, nzt
                    tend(k,j,i) = tend(k,j,i) + disturbFactor / dt_LS *  &
-                                                (tLSforcing(k))
+                                                (tLSforcing(k)-hom(k,1,4,0))
                 enddo
              enddo
           enddo
@@ -715,7 +713,7 @@
              DO  k = nzb+1, nzt
                 pt_p(k,j,i) = pt(k,j,i) + ( dt_3d * ( sbt * tend(k,j,i) +      &
                                                    tsc(3) * tpt_m(k,j,i) )     &
-                                                 - tsc(5) *                    &
+                                                 - 0.0_wp*tsc(5) *                    &
                                                    ( pt(k,j,i) - pt_init(k) ) *&
                                           ( rdf_sc(k) + ptdf_x(i) + ptdf_y(j) )&
                                        )                                      &
@@ -788,7 +786,7 @@
              do j = nys, nyn
                 do k = nzb+1, nzt
                    tend(k,j,i) = tend(k,j,i) + disturbFactor / dt_LS *  &
-                                                (sLSforcing(k))
+                                                (sLSforcing(k)-hom(k,1,5,0))
                 enddo
              enddo
          enddo

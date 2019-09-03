@@ -431,7 +431,7 @@ subroutine init_3d_model
 !
 !-- Initialize model variables
     IF ( TRIM( initializing_actions ) /= 'read_restart_data'  .AND.            &
-         TRIM( initializing_actions ) /= 'cyclic_fill' .OR.                    &
+         TRIM( initializing_actions ) /= 'cyclic_fill' .AND.                    &
          TRIM( initializing_actions ) /= 'SP_run_continue' )  THEN
 
        IF ( INDEX(initializing_actions, 'set_constant_profiles') /= 0 )    &
