@@ -211,6 +211,14 @@
 !--          calc_mean_profile defines the reference state!)
                 CALL calc_mean_profile( rho_ocean, 14 )
 
+                print *, 'tinside = ',hom(:,1,4,0)
+                print *, ' '
+                print *, 'u = ',hom(:,1,1,0)
+                print *, ' '
+                print *, 'v = ',hom(:,1,2,0)
+                print *, ' '
+                print *, 'w = ',hom(:,1,3,0)
+                print *, '******************'
                 ref_state(:)  = hom(:,1,14,0)
 !--          Assure that ref_state does not become zero at any level
 !--          ( might be the case if a vertical level is completely occupied

@@ -431,7 +431,7 @@ subroutine init_3d_model
 !
 !-- Initialize model variables
     IF ( TRIM( initializing_actions ) /= 'read_restart_data'  .AND.            &
-         TRIM( initializing_actions ) /= 'cyclic_fill' .OR.                    &
+         TRIM( initializing_actions ) /= 'cyclic_fill' .AND.                    &
          TRIM( initializing_actions ) /= 'SP_run_continue' )  THEN
 
        IF ( INDEX(initializing_actions, 'set_constant_profiles') /= 0 )    &
@@ -534,6 +534,7 @@ subroutine init_3d_model
        tsa_m = 0.0_wp
        sa_p  = sa
 
+
 !       CALL location_message( 'finished', .TRUE. )
 
     ELSEIF ( TRIM( initializing_actions ) == 'read_restart_data'  .OR.         &
@@ -582,6 +583,7 @@ if( TRIM( initializing_actions ) .ne. 'SP_run_continue' ) THEN
        tsa_m = 0.0_wp
 !
 !       CALL location_message( 'finished', .TRUE. )
+
 
     ELSE
 !

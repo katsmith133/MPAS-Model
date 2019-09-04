@@ -284,7 +284,7 @@
     USE kinds
 
     USE control_parameters,                                                    &
-        ONLY:  air_chemistry, call_microphysics_at_all_substeps,               &
+        ONLY:  create_disturbances, air_chemistry, call_microphysics_at_all_substeps,               &
                cloud_physics, cloud_top_radiation,         &
                dp_external, dp_level_ind_b, dp_smooth_factor, dpdxy, dt_3d,    &
                humidity, idealized_diurnal, g,                                 &
@@ -607,7 +607,7 @@
     CALL diffusion_w
     CALL coriolis( 3 )
 
-    CALL buoyancy( rho_ocean, 3 )
+!    CALL buoyancy( rho_ocean, 3 )
     !
 !-- If required, compute Stokes forces
     IF ( ocean .AND. stokes_force ) THEN
@@ -681,7 +681,7 @@
     !$acc end parallel
 
 
-       CALL advec_s_ws( pt, 'pt' )
+    if( create_disturbances ) CALL advec_s_ws( pt, 'pt' )
 
        CALL diffusion_s( pt,                                                 &
                          top_heatflux,                                    &

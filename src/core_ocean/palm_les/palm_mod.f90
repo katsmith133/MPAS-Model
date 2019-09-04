@@ -484,6 +484,8 @@ v_p = v
     call init_control_parameters
   enddo !ends icell loop
 
+  print *, 'winit = ',w_restart(15,:,:,1)
+  print *, ' '
 !   deallocate(zmid,zedge)
 !   deallocate(T_mpas2,S_mpas2,U_mpas2)
 !   deallocate(V_mpas2)
@@ -634,8 +636,6 @@ subroutine palm_main(nCells,nVertLevels,T_mpas,S_mpas,U_mpas,V_mpas,lt_mpas, &
     latitude = lat_mpas(iCell) * 180.0 / pi
     wb_solar = wtflux_solar(iCell)
 
-    print *, zw
-    print *, ' '
 
     f  = 2.0_wp * omega * SIN( latitude / 180.0_wp * pi )
 !    fs = 0.0_wp * omega * COS( latitude / 180.0_wp * pi )
@@ -705,7 +705,6 @@ subroutine palm_main(nCells,nVertLevels,T_mpas,S_mpas,U_mpas,V_mpas,lt_mpas, &
     sa => sa_1;  sa_p => sa_2;  tsa_m => sa_3
 #endif
 
-
     CALL flow_statistics
     uLESout(:,iCell) = hom(nzb+1:nzt,1,1,0) 
     vLESout(:,iCell) = hom(nzb+1:nzt,1,2,0)
@@ -716,7 +715,8 @@ subroutine palm_main(nCells,nVertLevels,T_mpas,S_mpas,U_mpas,V_mpas,lt_mpas, &
 !-- Only profile time_integration
     CALL cudaProfilerStart()
 #endif
-!
+
+
 !-- Integration of the model equations using timestep-scheme
     CALL time_integration
 

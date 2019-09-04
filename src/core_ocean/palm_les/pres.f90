@@ -455,30 +455,40 @@
 !-- This condition is only required for internal output. The pressure
 !-- gradient (dp(nzb+1)-dp(nzb))/dz is not used anywhere else.
     IF ( ibc_p_b == 1 )  THEN
-!
+
+
+      !
 !--    Neumann (dp/dz = 0). Using surfae data type, first for non-natural
 !--    surfaces, then for natural and urban surfaces
 !--    Upward facing
        !$OMP PARALLEL DO PRIVATE( i, j, k )
        !$acc parallel loop present( tend, bc_h )
-       DO  m = 1, bc_h(0)%ns
-          i = bc_h(0)%i(m)
-          j = bc_h(0)%j(m)
-          k = bc_h(0)%k(m)
-          tend(k-1,j,i) = tend(k,j,i)
-       ENDDO
+       do i = nxl, nxr
+         do j = nys, nyn
+            tend(nzb,j,i) = tend(nzb+1,j,i)
+ !           tend(nzt+1,j,i) = tend(nzt,j,i)
+         enddo
+       enddo
+!      
+!       
+!       DO  m = 1, bc_h(0)%ns
+!          i = bc_h(0)%i(m)
+!          j = bc_h(0)%j(m)
+!          k = bc_h(0)%k(m)
+!          tend(k-1,j,i) = tend(k,j,i)
+!       ENDDO
        !$acc end parallel
 !
 !--    Downward facing
-       !$OMP PARALLEL DO PRIVATE( i, j, k )
-       !$acc parallel loop present( tend, bc_h )
-       DO  m = 1, bc_h(1)%ns
-          i = bc_h(1)%i(m)
-          j = bc_h(1)%j(m)
-          k = bc_h(1)%k(m)
-          tend(k+1,j,i) = tend(k,j,i)
-       ENDDO
-       !$acc end parallel
+!       !$OMP PARALLEL DO PRIVATE( i, j, k )
+!       !$acc parallel loop present( tend, bc_h )
+!       DO  m = 1, bc_h(1)%ns
+!          i = bc_h(1)%i(m)
+!          j = bc_h(1)%j(m)
+!          k = bc_h(1)%k(m)
+!          tend(k+1,j,i) = tend(k,j,i)
+!       ENDDO
+!       !$acc end parallel
 
     ELSE
 !
