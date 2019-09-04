@@ -352,8 +352,6 @@ contains
 
          vw_sfc(iCell) = stressMeridional(iCell) / rho_sw
 
-         uw_sfc(iCell) = 0.0_RKIND
-         vw_sfc(iCell) = 0.0_RKIND
          latVal(iCell) = ASIN(fCell(iCell) / (2.0_RKIND*7.292E-5_RKIND))
 
      enddo
@@ -361,6 +359,7 @@ contains
 
       if(first) then
 
+        etime = config_les_end_time
         call palm_init(nCells, nVertLevels, activeTracers(1,:,:), activeTracers(2,:,:),              &
              velocityZonal, velocityMeridional, layerThickness, latVal,                       &
              maxLevelCell, -wt_sfc, penetrativeTemperatureFlux, ws_sfc,                       &
@@ -373,7 +372,7 @@ contains
              config_les_disturb_nblocks, les_bottom, config_les_time_avg, constant_dz,        &
              dThreshMLD, mixed_layer_refine,0.0_RKIND)
 
-      endif
+      else
 
       etime = dt
 
@@ -388,6 +387,8 @@ contains
              config_les_disturb_amplitude, les_disturb_bottom, config_les_disturb_top,        &
              config_les_disturb_nblocks, les_bottom, config_les_time_avg, constant_dz,        &
              dThreshMLD, mixed_layer_refine, config_les_restoring_strength)
+
+      endif
 
       normalVelocityIncrementLES(:,:) = 0.0_RKIND
       !$omp do schedule(runtime)

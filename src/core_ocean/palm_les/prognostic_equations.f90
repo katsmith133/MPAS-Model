@@ -424,17 +424,17 @@
        ENDDO
     ENDIF
     !$acc end parallel
-    if (disturbFactor .gt. 0.0_wp) then
-      !$acc loop collapse(3)
-       DO  i = nxlu, nxr
-          DO  j = nys, nyn
-             DO  k = dp_level_ind_b+1, nzt
-                tend(k,j,i) = tend(k,j,i) + disturbFactor / dt_LS *  &
-                                             ( uLSforcing(k))
-              ENDDO
-         ENDDO
-       ENDDO
-   ENDIF
+!    if (disturbFactor .gt. 0.0_wp) then
+!      !$acc loop collapse(3)
+!       DO  i = nxlu, nxr
+!          DO  j = nys, nyn
+!             DO  k = dp_level_ind_b+1, nzt
+!                tend(k,j,i) = tend(k,j,i) + disturbFactor / dt_LS *  &
+!                                             ( uLSforcing(k) - hom(k,1,1,0))
+!              ENDDO
+!         ENDDO
+!       ENDDO
+!   ENDIF
 
 !
 !-- Prognostic equation for u-velocity component
@@ -525,17 +525,17 @@
        ENDDO
     ENDIF
     !$acc end parallel
-    IF ( disturbFactor .gt. 0.0_wp )  THEN
-      !$acc loop collapse(3)
-       DO  i = nxl, nxr
-          DO  j = nysv, nyn
-             DO  k = dp_level_ind_b+1, nzt
-                tend(k,j,i) = tend(k,j,i) +  disturbFactor / dt_LS * (                &
-                                                vLSforcing(k))
-             ENDDO
-          ENDDO
-       ENDDO
-    ENDIF
+!    IF ( disturbFactor .gt. 0.0_wp )  THEN
+!      !$acc loop collapse(3)
+!       DO  i = nxl, nxr
+!          DO  j = nysv, nyn
+!             DO  k = dp_level_ind_b+1, nzt
+!                tend(k,j,i) = tend(k,j,i) +  disturbFactor / dt_LS * (                &
+!                                                vLSforcing(k)-hom(k,1,2,0))
+!             ENDDO
+!          ENDDO
+!       ENDDO
+!    ENDIF
 
     !
 !-- Prognostic equation for v-velocity component
@@ -602,7 +602,7 @@
        ENDDO
     ENDDO
     !$acc end parallel
-
+!
     CALL advec_w_ws
     CALL diffusion_w
     CALL coriolis( 3 )
@@ -681,28 +681,26 @@
     !$acc end parallel
 
 
-    if( create_disturbances ) CALL advec_s_ws( pt, 'pt' )
-
+       CALL advec_s_ws( pt, 'pt' )
        CALL diffusion_s( pt,                                                 &
                          top_heatflux,                                    &
                          wb_solar )
-
 !--    If required, compute Stokes-advection term
        IF ( ocean .AND. stokes_force ) THEN
           CALL stokes_force_s( pt )
        ENDIF
 
-       if (disturbFactor .gt. 0.0_wp) then
-         !$acc loop collapse(3)
-          do i = nxl, nxr
-             do j = nys, nyn
-                do k = nzb+1, nzt
-                   tend(k,j,i) = tend(k,j,i) + disturbFactor / dt_LS *  &
-                                                (tLSforcing(k))
-                enddo
-             enddo
-          enddo
-       endif
+!       if (disturbFactor .gt. 0.0_wp) then
+!         !$acc loop collapse(3)
+!          do i = nxl, nxr
+!             do j = nys, nyn
+!                do k = nzb+1, nzt
+!                   tend(k,j,i) = tend(k,j,i) + disturbFactor / dt_LS *  &
+!                                                (tLSforcing(k)-hom(k,1,4,0))
+!                enddo
+!             enddo
+!          enddo
+!       endif
 
 !--    Prognostic equation for potential temperature
     !$acc parallel present( tsc, wall_flags_0, rdf_sc ) &
@@ -715,7 +713,7 @@
              DO  k = nzb+1, nzt
                 pt_p(k,j,i) = pt(k,j,i) + ( dt_3d * ( sbt * tend(k,j,i) +      &
                                                    tsc(3) * tpt_m(k,j,i) )     &
-                                                 - tsc(5) *                    &
+                                                 - 0.0_wp*tsc(5) *                    &
                                                    ( pt(k,j,i) - pt_init(k) ) *&
                                           ( rdf_sc(k) + ptdf_x(i) + ptdf_y(j) )&
                                        )                                      &
@@ -782,17 +780,17 @@
        IF ( stokes_force ) THEN
           CALL stokes_force_s( sa )
        ENDIF
-       if (disturbFactor .gt. 0.0_wp) then
-         !$acc loop collapse(3)
-          do i = nxl, nxr
-             do j = nys, nyn
-                do k = nzb+1, nzt
-                   tend(k,j,i) = tend(k,j,i) + disturbFactor / dt_LS *  &
-                                                (sLSforcing(k))
-                enddo
-             enddo
-         enddo
-       endif
+!       if (disturbFactor .gt. 0.0_wp) then
+!         !$acc loop collapse(3)
+!          do i = nxl, nxr
+!             do j = nys, nyn
+!                do k = nzb+1, nzt
+!                   tend(k,j,i) = tend(k,j,i) + disturbFactor / dt_LS *  &
+!                                                (sLSforcing(k)-hom(k,1,5,0))
+!                enddo
+!             enddo
+!         enddo
+!       endif
 !
 !
 !--    Prognostic equation for salinity

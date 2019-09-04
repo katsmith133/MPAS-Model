@@ -262,7 +262,8 @@
     ENDIF
 
     IF ( TRIM( initializing_actions ) /= 'read_restart_data'  .AND.            &
-         TRIM( initializing_actions ) /= 'cyclic_fill' )  THEN
+         TRIM( initializing_actions ) /= 'cyclic_fill' .AND.    &
+        TRIM( initializing_actions ) /= 'SP_run_continue' )  THEN
 !
 !--    No restart run: several initialising actions are possible
        action = initializing_actions

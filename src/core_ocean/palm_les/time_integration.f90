@@ -190,7 +190,7 @@
     DO  WHILE ( simulated_time < end_time  .AND.  .NOT. stop_dt  .AND. &
                 .NOT. terminate_run )
 
-       
+print *, 'time = ',simulated_time       
        CALL cpu_log( log_point_s(10), 'timesteps', 'start' )
 !
 !--    Start of intermediate step loop
@@ -234,6 +234,7 @@
           IF ( ( ws_scheme_mom .OR. ws_scheme_sca )  .AND.  &
                intermediate_timestep_count == 1 )  CALL ws_statistics
 !
+
             CALL prognostic_equations_vector
             !
 !i

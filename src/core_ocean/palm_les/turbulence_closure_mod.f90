@@ -1467,7 +1467,7 @@
     ENDDO
     !$acc end parallel
 
-    !
+        !
     !-- Apply top flux
 
     !$acc parallel present( g, drho_air_zw ) &
@@ -1729,7 +1729,7 @@
 !--             Compute diffusion coefficients for momentum and heat
              km(k,j,i) = c_0 * l * SQRT( e(k,j,i) )
              kh(k,j,i) = ( 1.0_wp + 2.0_wp * l / ll ) * km(k,j,i)
-!
+             !
 !--             Summation for averaged profile (cf. flow_statistics)
              ! DO  sr = 0, statistic_regions
              !    sums_l_l(k,sr,tn) = sums_l_l(k,sr,tn) + l * rmask(j,i,sr)
@@ -1754,27 +1754,27 @@
 !-- values of the diffusivities are not needed.
 !
 !--    Upward-facing
-       !$OMP PARALLEL DO PRIVATE( i, j, k )
+!       !$OMP PARALLEL DO PRIVATE( i, j, k )
     !$acc parallel present(km, kh, bc_h)
-    !$acc loop
-       DO  m = 1, bc_h(0)%ns
-          i = bc_h(0)%i(m)
-          j = bc_h(0)%j(m)
-          k = bc_h(0)%k(m)
-          km(k-1,j,i) = km(k,j,i)
-          kh(k-1,j,i) = kh(k,j,i)
-       ENDDO
+!    !$acc loop
+!       DO  m = 1, bc_h(0)%ns
+!          i = bc_h(0)%i(m)
+!          j = bc_h(0)%j(m)
+!          k = bc_h(0)%k(m)
+!          km(k-1,j,i) = km(k,j,i)
+!          kh(k-1,j,i) = kh(k,j,i)
+!       ENDDO
 !
 !--    Downward facing surfaces
-       !$OMP PARALLEL DO PRIVATE( i, j, k )
-    !$acc loop
-       DO  m = 1, bc_h(1)%ns
-          i = bc_h(1)%i(m)
-          j = bc_h(1)%j(m)
-          k = bc_h(1)%k(m)
-          km(k+1,j,i) = km(k,j,i)
-          kh(k+1,j,i) = kh(k,j,i)
-       ENDDO
+!       !$OMP PARALLEL DO PRIVATE( i, j, k )
+!    !$acc loop
+!       DO  m = 1, bc_h(1)%ns
+!          i = bc_h(1)%i(m)
+!          j = bc_h(1)%j(m)
+!          k = bc_h(1)%k(m)
+!          km(k+1,j,i) = km(k,j,i)
+!          kh(k+1,j,i) = kh(k,j,i)
+!       ENDDO
 
 !
 !-- Model top
@@ -1782,6 +1782,8 @@
     !$acc loop collapse(2)
     DO  i = nxlg, nxrg
        DO  j = nysg, nyng
+          km(nzb,j,i) = km(nzb+1,j,i)
+          kh(nzb,j,i) = kh(nzb+1,j,i)
           km(nzt+1,j,i) = km(nzt,j,i)
           kh(nzt+1,j,i) = kh(nzt,j,i)
        ENDDO
