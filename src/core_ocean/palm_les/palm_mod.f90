@@ -451,10 +451,10 @@ v_p = v
     tempLES(:,iCell) = Tles(nzb+1:)
     jl=1
     do il=nzt,nzb+1,-1
-      fLES(1,1,jl) = (Tles(il) - tProfileInit(il)) / end_time 
-      fLES(1,2,jl) = (Sles(il) - sProfileInit(il)) / end_time
-      fLES(1,3,jl) = (Ules(il) - uProfileInit(il)) / end_time
-      fLES(1,4,jl) = (Vles(il) - vProfileInit(il)) / end_time
+      fLES(1,1,jl) = (Tles(il) - tProfileInit(il)) / dt_ls !end_time 
+      fLES(1,2,jl) = (Sles(il) - sProfileInit(il)) / dt_ls !end_time
+      fLES(1,3,jl) = (Ules(il) - uProfileInit(il)) / dt_ls !end_time
+      fLES(1,4,jl) = (Vles(il) - vProfileInit(il)) / dt_ls !end_time
       jl = jl+1
     enddo
 
@@ -488,8 +488,6 @@ v_p = v
     call init_control_parameters
   enddo !ends icell loop
 
-  print *, 'winit = ',w_restart(15,:,:,1)
-  print *, ' '
 !   deallocate(zmid,zedge)
 !   deallocate(T_mpas2,S_mpas2,U_mpas2)
 !   deallocate(V_mpas2)
@@ -644,10 +642,21 @@ subroutine palm_main(nCells,nVertLevels,T_mpas,S_mpas,U_mpas,V_mpas,lt_mpas, &
     f  = 2.0_wp * omega * SIN( latitude / 180.0_wp * pi )
 !    fs = 0.0_wp * omega * COS( latitude / 180.0_wp * pi )
 
-    fMPAS(1,1,:nzMPAS) = T_mpas(1:nzMPAS,iCell)
-    fMPAS(1,2,:nzMPAS) = S_mpas(1:nzMPAS,iCell)
-    fMPAS(1,3,:nzMPAS) = U_mpas(1:nzMPAS,iCell)
-    fMPAS(1,4,:nzMPAS) = V_mpas(1:nzMPAS,iCell)
+    jl=1
+    do il=nzt,nzb+1,-1
+      fLES(1,1,jl) = t_mean_restart(il,iCell) -273.15_wp
+      fLES(1,2,jl) = s_mean_restart(il,iCell) 
+      fLES(1,3,jl) = u_mean_restart(il,iCell) 
+      fLES(1,4,jl) = v_mean_restart(il,iCell) 
+      jl = jl+1
+    enddo
+     call rmap1d(nzLES+1,nzMPAS+1,nvar,ndof,abs(zeLESinv(1:nzLES+1)),abs(zedge(1:nzMPAS+1)), &
+                fLES,fMPAS(:,:,:nzMPAS),bc_l,bc_r,work,opts)
+
+    fMPAS(1,1,:nzMPAS) = T_mpas(1:nzMPAS,iCell) - fMPAS(1,1,:nzMPAS)
+    fMPAS(1,2,:nzMPAS) = S_mpas(1:nzMPAS,iCell) - fMPAS(1,2,:nzMPAS)
+    fMPAS(1,3,:nzMPAS) = U_mpas(1:nzMPAS,iCell) - fMPAS(1,3,:nzMPAS)
+    fMPAS(1,4,:nzMPAS) = V_mpas(1:nzMPAS,iCell) - fMPAS(1,4,:nzMPAS)
 
     jl=1
     do il = nzt,nzb-1,-1
@@ -655,19 +664,15 @@ subroutine palm_main(nCells,nVertLevels,T_mpas,S_mpas,U_mpas,V_mpas,lt_mpas, &
       jl = jl + 1
     enddo
 
-
-!    print *, 'mpas = ',T_mpas(:nzMPAS,iCell)
-!    print *, ' '
-!    print *, 'tmean = ',t_mean_restart(:,iCell)-273.15_wp
-!stop
     call rmap1d(nzMPAS+1,nzLES+1,nvar,ndof,abs(zedge(1:nzMPAS+1)),abs(zeLESinv(1:nzLES+1)), &
                 fMPAS, fLES, bc_l, bc_r, work, opts)
+
     jl = 1
     do il = nzt,nzb+1,-1
-      tLSforcing(il) = fLES(1,1,jl) + 273.15 !-  t_mean_restart(il,iCell)
-      sLSforcing(il) = fLES(1,2,jl) !- s_mean_restart(il,iCell)
-      uLSforcing(il) = fLES(1,3,jl) !- u_mean_restart(il,iCell)
-      vLSforcing(il) = fLES(1,4,jl) !- v_mean_restart(il,iCell)
+      tLSforcing(il) = fLES(1,1,jl) + t_mean_restart(il,iCell)
+      sLSforcing(il) = fLES(1,2,jl) + s_mean_restart(il,iCell)
+      uLSforcing(il) = fLES(1,3,jl) + u_mean_restart(il,iCell)
+      vLSforcing(il) = fLES(1,4,jl) + v_mean_restart(il,iCell)
       jl = jl + 1
     enddo
 
@@ -814,8 +819,6 @@ call flow_statistics
     Vles = meanFields_avg(nzb+1:nzt,2)
  ! need to integrate over layers in mpas to get increments
 
- print *, 't2 = ',Tles
-
  if(minval(tempLES(:,iCell)) < 100.0_wp) tempLES(:,iCell) = tempLES(:,iCell) + 273.15_wp
     tProfileInit(1:) = t_mean_restart(nzb+1:nzt,iCell)
     sProfileInit(1:) = s_mean_restart(nzb+1:nzt,iCell)
@@ -830,6 +833,7 @@ call flow_statistics
       fLES(1,4,jl) = (Vles(il) - vProfileInit(il)) / end_time
       jl = jl+1
     enddo
+
      call rmap1d(nzLES+1,nzMPAS+1,nvar,ndof,abs(zeLESinv(1:nzLES+1)),abs(zedge(1:nzMPAS+1)), &
                 fLES,fMPAS(:,:,:nzMPAS),bc_l,bc_r,work,opts)
 
