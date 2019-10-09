@@ -1367,7 +1367,7 @@ contains
       real (kind=RKIND), dimension(:), pointer :: dcEdge, dvEdge, areaCell
       real (kind=RKIND), dimension(:), pointer :: penetrativeTemperatureFlux, surfaceThicknessFlux, &
            surfaceBuoyancyForcing, surfaceFrictionVelocity, penetrativeTemperatureFluxOBL, &
-           normalVelocitySurfaceLayer, surfaceThicknessFluxRunoff, rainFlux, evaporationFlux
+           normalVelocitySurfaceLayer, surfaceThicknessFluxRunoff, rainFlux, evaporationFlux, temperatureFluxForKrausTurnerMinimum
       real (kind=RKIND), pointer :: config_flux_attenuation_coefficient, config_flux_attenuation_coefficient_runoff
 
       real (kind=RKIND), dimension(:), pointer :: surfaceStress, surfaceStressMagnitude
@@ -1432,6 +1432,7 @@ contains
       call mpas_pool_get_array(diagnosticsPool, 'surfaceFrictionVelocity', surfaceFrictionVelocity)
       call mpas_pool_get_array(diagnosticsPool, 'penetrativeTemperatureFluxOBL', penetrativeTemperatureFluxOBL)
       call mpas_pool_get_array(diagnosticsPool, 'indexSurfaceLayerDepth', indexSurfaceLayerDepth)
+      call mpas_pool_get_array(diagnosticsPool, 'temperatureFluxForKrausTurnerMinimum', temperatureFluxForKrausTurnerMinimum)
       call mpas_pool_get_array(diagnosticsPool, 'surfaceBuoyancyForcing', surfaceBuoyancyForcing)
       call mpas_pool_get_array(diagnosticsPool, 'normalVelocitySurfaceLayer', normalVelocitySurfaceLayer)
       call mpas_pool_get_array(tracersSurfaceFluxPool, 'nonLocalSurfaceTracerFlux', nonLocalSurfaceTracerFlux)
@@ -1506,6 +1507,9 @@ contains
        nonLocalSurfaceTracerFlux(indexSaltFlux,iCell) = activeTracersSurfaceFlux(indexSaltFlux,iCell) &
                - fracAbsorbed * surfaceThicknessFlux(iCell) * activeTracers(indexSaltFlux,1,iCell) &
                - fracAbsorbedRunoff * surfaceThicknessFluxRunoff(iCell) * activeTracers(indexSaltFlux,1,iCell)
+
+      temperatureFluxForKrausTurnerMinimum(iCell) = thermalExpansionCoeff (1,iCell) &
+        * nonLocalSurfaceTracerFlux(indexTempFlux,iCell)
 
        surfaceBuoyancyForcing(iCell) =  thermalExpansionCoeff (1,iCell) &
               * nonLocalSurfaceTracerFlux(indexTempFlux,iCell) &

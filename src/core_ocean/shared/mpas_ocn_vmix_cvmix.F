@@ -55,6 +55,7 @@ module ocn_vmix_cvmix
    !
    !--------------------------------------------------------------------
 
+   type(cvmix_kpp_params_type) :: cvmix_kpp_params
    type(cvmix_global_params_type) :: cvmix_global_params
    type(cvmix_bkgnd_params_type)  :: cvmix_background_params
    type(cvmix_shear_params_type)  :: cvmix_shear_params
@@ -131,7 +132,8 @@ contains
       real (kind=RKIND), dimension(:), pointer :: &
         latCell, lonCell, bottomDepth, surfaceBuoyancyForcing, surfaceFrictionVelocity, fCell, &
         boundaryLayerDepth, ssh, indexBoundaryLayerDepth, dcEdge, dvEdge, areaCell, iceFraction, &
-        boundaryLayerDepthSmooth, windSpeed10m
+        boundaryLayerDepthSmooth, windSpeed10m, boundaryLayerDepthKrausTurner,                 &
+        temperatureFluxForKrausTurnerMinimum, critBulkRI
 
       real (kind=RKIND), dimension(:,:), pointer :: &
         vertViscTopOfCell, vertDiffTopOfCell, layerThickness, &
@@ -145,27 +147,33 @@ contains
 
       logical, pointer :: config_use_cvmix_shear, config_use_cvmix_convection, config_use_cvmix_kpp
       logical, pointer :: config_use_cvmix_fixed_boundary_layer, config_cvmix_use_BLD_smoothing
+      logical, pointer :: config_cvmix_kpp_use_stable_KTforcing_BLD_code
       real (kind=RKIND), pointer :: config_cvmix_kpp_stop_OBL_search, config_cvmix_kpp_criticalBulkRichardsonNumber
       real (kind=RKIND), pointer :: config_cvmix_kpp_boundary_layer_depth, config_cvmix_kpp_surface_layer_extent
       real (kind=RKIND), pointer :: configure_cvmix_kpp_minimum_OBL_under_sea_ice
       character (len=StrKIND), pointer :: config_cvmix_shear_mixing_scheme, config_cvmix_kpp_matching
-
+      logical, pointer :: config_cvmix_use_enhanced_SO_bulkRI
+      real (kind=RKIND), pointer :: config_cvmix_SO_bulkRI_transition_lat, &
+                                    config_cvmix_SO_bulkRI_transition_width, &
+                                    config_cvmix_SO_bulkRI_transition_max
+ 
       integer :: k, i, iCell, jCell, iNeighbor, iter, timeLevel, kIndexOBL, kav, iEdge, nCells
       integer :: edgeCount, nEdges, topIndex, nsmooth, kpp_stage
-      integer, pointer :: nVertLevels, nVertLevelsP1
+      integer, pointer :: nVertLevels, nVertLevelsP1, indexTempFlux, cellNeighbor
       integer, dimension(:), pointer :: nCellsArray
       integer, dimension(:), allocatable :: surfaceAverageIndex
 
       real (kind=RKIND) :: r, layerSum, bulkRichardsonNumberStop, sfc_layer_depth, invAreaCell
       real (kind=RKIND) :: normalVelocityAv, factor, delU2, areaSum, blTemp
-      real (kind=RKIND) :: sigma, turbulentScalarVelocityScalePoint
+      real (kind=RKIND) :: sigma, turbulentScalarVelocityScalePoint, bldTemp
       real (kind=RKIND), dimension(:), allocatable :: Nsqr_iface, turbulentScalarVelocityScale, &
                                                       deltaVelocitySquared, normalVelocitySum, &
                                                       potentialDensitySum, RiTemp
       real (kind=RKIND), dimension(:), allocatable, target :: RiSmoothed, BVFSmoothed, OBLDepths, interfaceForcings
       logical :: bulkRichardsonFlag
 
-      real (kind=RKIND), pointer :: config_cvmix_background_viscosity, config_cvmix_background_diffusion
+      real (kind=RKIND), pointer :: config_cvmix_background_viscosity, config_cvmix_background_diffusion, &
+        config_cvmix_kpp_minimum_sfc_buoyancy_forcing, config_cvmix_kpp_KTminimum_factor
       real (kind=RKIND) :: langmuirEnhancementFactor, langmuirNumber
       logical, pointer :: config_cvmix_kpp_use_theory_wave
 
@@ -196,6 +204,11 @@ contains
       !
       ! set parameters
       !
+      call mpas_pool_get_config(ocnConfigs, 'config_cvmix_kpp_KTminimum_factor', config_cvmix_kpp_KTminimum_factor)
+      call mpas_pool_get_config(ocnConfigs, 'config_cvmix_kpp_use_stable_KTforcing_BLD_code', &
+                                config_cvmix_kpp_use_stable_KTforcing_BLD_code)
+      call mpas_pool_get_config(ocnConfigs, 'config_cvmix_kpp_minimum_sfc_buoyancy_forcing', &
+                                config_cvmix_kpp_minimum_sfc_buoyancy_forcing)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix_background_viscosity', config_cvmix_background_viscosity)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix_background_diffusion', config_cvmix_background_diffusion)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix_kpp_stop_OBL_search', config_cvmix_kpp_stop_OBL_search)
@@ -225,6 +238,15 @@ contains
       call mpas_pool_get_array(meshPool, 'edgesOnCell', edgesOnCell)
       call mpas_pool_get_array(meshPool, 'cellsOnCell', cellsOnCell)
       call mpas_pool_get_array(meshPool, 'cellMask', cellMask)
+      call mpas_pool_get_config(ocnConfigs, 'config_cvmix_use_enhanced_SO_bulkRI',  &
+                                config_cvmix_use_enhanced_SO_bulkRI)
+      call mpas_pool_get_config(ocnConfigs, 'config_cvmix_SO_bulkRI_transition_lat', &
+                                config_cvmix_SO_bulkRI_transition_lat)
+      call mpas_pool_get_config(ocnConfigs, 'config_cvmix_SO_bulkRI_transition_width', &
+                                config_cvmix_SO_bulkRI_transition_width)
+      call mpas_pool_get_config(ocnConfigs, 'config_cvmix_SO_bulkRI_transition_max', &
+                                config_cvmix_SO_bulkRI_transition_max)
+
 
       !
       ! set pointers for fields related to position on sphere
@@ -248,12 +270,14 @@ contains
       !
       ! set pointers for fields related ocean state
       !
+      call mpas_pool_get_array(diagnosticsPool, 'critBulkRI', critBulkRI)
       call mpas_pool_get_array(diagnosticsPool, 'density', density)
       call mpas_pool_get_array(diagnosticsPool, 'displacedDensity', displacedDensity)
       call mpas_pool_get_array(diagnosticsPool, 'potentialDensity', potentialDensity)
       call mpas_pool_get_array(diagnosticsPool, 'bulkRichardsonNumber', bulkRichardsonNumber)
       call mpas_pool_get_array(diagnosticsPool, 'unresolvedShear', unresolvedShear)
       call mpas_pool_get_array(diagnosticsPool, 'boundaryLayerDepth', boundaryLayerDepth)
+      call mpas_pool_get_array(diagnosticsPool, 'boundaryLayerDepthKrausTurner', boundaryLayerDepthKrausTurner)
       call mpas_pool_get_array(diagnosticsPool, 'boundaryLayerDepthSmooth', boundaryLayerDepthSmooth)
       call mpas_pool_get_array(diagnosticsPool, 'RiTopOfCell', RiTopOfCell)
       call mpas_pool_get_array(diagnosticsPool, 'BruntVaisalaFreqTop',BruntVaisalaFreqTop)
@@ -270,6 +294,8 @@ contains
       !
       ! set pointers for fields related forcing at ocean surface
       !
+      call mpas_pool_get_array(diagnosticsPool, 'temperatureFluxForKrausTurnerMinimum', &
+        temperatureFluxForKrausTurnerMinimum)
       call mpas_pool_get_array(diagnosticsPool, 'surfaceFrictionVelocity', surfaceFrictionVelocity)
       call mpas_pool_get_array(diagnosticsPool, 'surfaceBuoyancyForcing', surfaceBuoyancyForcing)
 
@@ -576,7 +602,7 @@ contains
               ! TODO: the surface buoyancy forcing here does not include penetrative solar radiation? <05-09-18, Qing Li> !
 
               ! each level of bulk Richardson is computed as if OBL resided at bottom of that level
-
+              call cvmix_put_kpp('ri_crit', critBulkRI(iCell), cvmix_kpp_params)
               call cvmix_kpp_compute_OBL_depth(  &
                    Ri_bulk = bulkRichardsonNumber(1:maxLevelCell(iCell),iCell), &
                    zw_iface = cvmix_variables % zw_iface(1:maxLevelCell(iCell)+1), &
@@ -585,7 +611,8 @@ contains
                    zt_cntr = cvmix_variables % zt_cntr(1:maxLevelCell(iCell)), &
                    surf_fric = cvmix_variables % SurfaceFriction, &
                    surf_buoy = cvmix_variables % SurfaceBuoyancyForcing, &
-                   Coriolis = cvmix_variables % Coriolis)
+                   Coriolis = cvmix_variables % Coriolis,   &
+                   CVmix_kpp_params_user = cvmix_kpp_params)
 
              endif  ! if (config_use_cvmix_fixed_boundary_layer) then
 
@@ -593,6 +620,19 @@ contains
              if(cvmix_variables % BoundaryLayerDepth .lt. layerThickness(1,iCell)/2.0_RKIND) then
                 cvmix_variables % BoundaryLayerDepth = layerThickness(1,iCell)/2.0_RKIND
                 cvmix_variables % kOBL_depth = cvmix_kpp_compute_kOBL_depth(  &
+                          zw_iface = cvmix_variables%zw_iface(1:maxLevelCell(iCell)+1),&
+                          zt_cntr = cvmix_variables%zt_cntr(1:maxLevelCell(iCell)),    &
+                          OBL_depth = cvmix_variables % BoundaryLayerDepth )
+             endif
+
+             if(temperatureFluxForKrausTurnerMinimum(iCell) > config_cvmix_kpp_minimum_sfc_buoyancy_forcing) then
+               boundaryLayerDepthKrausTurner(iCell) = surfaceFrictionVelocity(iCell)**3.0_RKIND / &
+                        temperatureFluxForKrausTurnerMinimum(iCell) * config_cvmix_kpp_KTminimum_factor
+
+               !boundary layer depth from this mod can be too deep, check surrounding points for max depth
+               bldTemp = bottomDepth(ICell)
+               cvmix_variables % BoundaryLayerDepth = min(bldTemp, boundaryLayerDepthKrausTurner(iCell))
+               cvmix_variables % kOBL_depth = cvmix_kpp_compute_kOBL_depth(  &
                           zw_iface = cvmix_variables%zw_iface(1:maxLevelCell(iCell)+1),&
                           zt_cntr = cvmix_variables%zt_cntr(1:maxLevelCell(iCell)),    &
                           OBL_depth = cvmix_variables % BoundaryLayerDepth )
@@ -843,6 +883,7 @@ contains
 
       integer, pointer :: nVertLevels
       type (block_type), pointer :: block
+      type (mpas_pool_type), pointer :: diagnosticsPool,meshPool
 
       ! CVMix
       logical, pointer :: config_use_cvmix
@@ -877,16 +918,24 @@ contains
       real (kind=RKIND), pointer :: config_cvmix_kpp_criticalBulkRichardsonNumber, &
                                     config_cvmix_kpp_surface_layer_extent, &
                                     config_cvmix_kpp_stop_OBL_search
-
+      logical, pointer :: config_cvmix_use_enhanced_SO_bulkRI
+      real (kind=RKIND), pointer :: config_cvmix_SO_bulkRI_transition_lat, &
+                                    config_cvmix_SO_bulkRI_transition_width, &
+                                    config_cvmix_SO_bulkRI_transition_max
       ! Langmuir turbulence
       character (len=StrKIND), pointer :: config_cvmix_kpp_langmuir_mixing_opt, &
                                           config_cvmix_kpp_langmuir_entrainment_opt
+
+      real (kind=RKIND), dimension(:), pointer :: critBulkRI, latCell
+      integer :: iCell, nCells
+      integer, dimension(:), pointer :: nCellsArray
 
       !
       ! assume no errors during initialization and set to 1 when error is encountered
       !
       err=0
 
+       call mpas_pool_get_dimension(meshPool, 'nCellsArray', nCellsArray)
       call mpas_pool_get_config(ocnConfigs, 'config_use_cvmix', config_use_cvmix)
       call mpas_pool_get_config(ocnConfigs, 'config_use_cvmix_background', config_use_cvmix_background)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix_background_viscosity', config_cvmix_background_viscosity)
@@ -921,6 +970,15 @@ contains
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix_kpp_langmuir_mixing_opt', config_cvmix_kpp_langmuir_mixing_opt)
       call mpas_pool_get_config(ocnConfigs, 'config_cvmix_kpp_langmuir_entrainment_opt', &
                                 config_cvmix_kpp_langmuir_entrainment_opt)
+      call mpas_pool_get_config(ocnConfigs, 'config_cvmix_use_enhanced_SO_bulkRI',  &
+                                config_cvmix_use_enhanced_SO_bulkRI)
+      call mpas_pool_get_config(ocnConfigs, 'config_cvmix_SO_bulkRI_transition_lat', &
+                                config_cvmix_SO_bulkRI_transition_lat)
+      call mpas_pool_get_config(ocnConfigs, 'config_cvmix_SO_bulkRI_transition_width', &
+                                config_cvmix_SO_bulkRI_transition_width)
+      call mpas_pool_get_config(ocnConfigs, 'config_cvmix_SO_bulkRI_transition_max', &
+                                config_cvmix_SO_bulkRI_transition_max)
+
       cvmixOn = config_use_cvmix
       cvmixBackgroundOn = config_use_cvmix_background
       backgroundVisc = config_cvmix_background_viscosity
@@ -928,6 +986,7 @@ contains
       cvmixConvectionOn = config_use_cvmix_convection
       cvmixKPPOn = config_use_cvmix_kpp
 
+      nCells = nCellsArray(3)
       !
       ! only initialize if CVMix is turned on
       !
@@ -1057,6 +1116,33 @@ contains
            return
         endif
 
+        if ( config_cvmix_use_enhanced_SO_bulkRI ) then
+          block => domain % blocklist
+          do while (associated(block))
+            call mpas_pool_get_subpool(block % structs, 'diagnostics', diagnosticsPool)
+            call mpas_pool_get_subpool(block % structs, 'mesh', meshPool)
+            call mpas_pool_get_array(diagnosticsPool, 'critBulkRI', critBulkRI)
+            call mpas_pool_get_array(meshPool, 'latCell', latCell)
+
+            do iCell = 1, nCells
+              if ( latCell(iCell) < config_cvmix_SO_bulkRI_transition_lat ) then
+                critBulkRI(iCell) = (config_cvmix_SO_bulkRI_transition_max - &
+                  config_cvmix_kpp_criticalBulkRichardsonNumber) /                   &
+                  config_cvmix_SO_bulkRI_transition_width * ( latCell(iCell) - &
+                  config_cvmix_SO_bulkRI_transition_lat ) +                    &
+                  config_cvmix_kpp_criticalBulkRichardsonNumber
+              else
+                critBulkRI(iCell) = config_cvmix_kpp_criticalBulkRichardsonNumber
+              endif
+            enddo
+          enddo
+
+        else
+          do iCell = 1,nCells
+            critBulkRI(iCell) = config_cvmix_kpp_criticalBulkRichardsonNumber
+          enddo
+        endif
+
         call cvmix_init_kpp ( &
                ri_crit = config_cvmix_kpp_criticalBulkRichardsonNumber, &
                interp_type = config_cvmix_kpp_interpolationOMLType, &
@@ -1068,6 +1154,19 @@ contains
                langmuir_mixing_str = config_cvmix_kpp_langmuir_mixing_opt, &
                langmuir_entrainment_str = config_cvmix_kpp_langmuir_entrainment_opt, &
                lenhanced_diff = config_cvmix_kpp_use_enhanced_diff)
+        call cvmix_put_kpp('lMonOb', config_cvmix_kpp_MonObOBL,cvmix_kpp_params)
+        call cvmix_put_kpp('lEkman', config_cvmix_kpp_EkmanOBL,cvmix_kpp_params)
+        call cvmix_put_kpp('vonkarman', 0.4_RKIND,cvmix_kpp_params)
+        if(config_cvmix_kpp_interpolationOMLType == 'line' .or. &
+              config_cvmix_kpp_interpolationOMLType == 'linear') then
+            call cvmix_put_kpp('interp_type', 1, cvmix_kpp_params)
+        elseif(config_cvmix_kpp_interpolationOMLType == 'quad' .or. &
+              config_cvmix_kpp_interpolationOMLType == 'quadratic') then
+            call cvmix_put_kpp('interp_type', 2, cvmix_kpp_params)
+        else
+            call cvmix_put_kpp('interp_type', 3, cvmix_kpp_params)
+        endif
+        call cvmix_put_kpp('minOBLdepth', 0.0_RKIND,cvmix_kpp_params)
       endif
 
 

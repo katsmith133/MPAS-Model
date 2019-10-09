@@ -649,7 +649,35 @@
 		<nml_option name="config_cvmix_kpp_langmuir_entrainment_opt" type="character" default_value="NONE" units="NA"
 					description="Option of Langmuir enhanced entrainment parameterization"
 					possible_values="NONE, LWF16, LF17, RWHGK16"
-		/>
+    />
+    <nml_option name="config_cvmix_kpp_minimum_sfc_buoyancy_forcing" type="real" default_value="0.0" units="m^{2}s^{-1}"
+          description="value above which to use the KT minimum boundary layer depth code"
+          possible_values="small positive reals"
+    />
+    <nml_option name="config_cvmix_kpp_use_stable_KTforcing_BLD_code" type="logical" default_value=".false." units="NA"
+          description="logical to use the Diniman et al. code modifications"
+          possible_values=".true. or .false."
+    />
+    <nml_option name="config_cvmix_kpp_KTminimum_factor" type="real" default_value="1.0" units="NA"
+          description="value to multiple the flux ratio by in the KT minimum BLD scheme"
+          possible_values="positive reals"
+    />
+    <nml_option name="config_cvmix_use_enhanced_SO_bulkRI" type="logical" default_value=".false." units="NA"
+          description="flag to turn on enhanced Ri Critical in S. Ocean"
+          possible_values=".true. or .false."
+    />
+    <nml_option name="config_cvmix_SO_bulkRI_transition_max" type="real" default_value="0.75" units="NA"
+          description="value of critical richardson number for boundary layer depth calculation in S. ocean"
+          possible_values="small positive reals, likely between 0.25 and 1.5"
+    />
+    <nml_option name="config_cvmix_SO_bulkRI_transition_lat" type="real" default_value="-1.047" units="radians"
+          description="transition latitude to go to enhanced Ri Critical"
+          possible_values="S. Ocean latitudes"
+    />
+    <nml_option name="config_cvmix_SO_bulkRI_transition_width" type="real" default_value="0.1745" units="radians"
+          description="width of transition from Ri Crit global to S. Ocean value"
+          possible_values="smallish positive values"
+    />
 	</nml_record>
 	<nml_record name="vmix_const" mode="forward">
 		<nml_option name="config_use_const_visc" type="logical" default_value=".false." units="unitless"
@@ -2683,12 +2711,18 @@
 		<var name="unresolvedShear" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}"
 			 description="CVMix/KPP: contribution of unresolved velocity to vertical shear"
 		/>
-		<var name="boundaryLayerDepth" type="real" dimensions="nCells Time" units="m"
+		<var name="RiCrit" type="real" dimensions="nCells Time" units="NA"
+			 description="CVMix/KPP: value of critical richardson number as function of latitude"
+		/>
+	<var name="boundaryLayerDepth" type="real" dimensions="nCells Time" units="m"
 			 description="CVMix/KPP: diagnosed depth of the ocean surface boundary layer"
 		/>
 		<var name="boundaryLayerDepthSmooth" type="real" dimensions="nCells Time" units="m"
 			 description="CVMix/KPP: smoothed boundary layer depth"
-		/>
+       />
+    <var name="boundaryLayerDepthKrausTurner" type="real" dimensions="nCells Time" units="m"
+       description="CVMix/KPP: BLD set by the KrausTurner wind forced min"
+    />
 		<var name="boundaryLayerDepthEdge" type="real" dimensions="nEdges Time" units="m"
 			 description="CVMix/KPP: diagnosed depth of the ocean surface boundary layer averaged to cell edges"
 			 packages="forwardMode;analysisMode"
@@ -2714,7 +2748,11 @@
 			 description="CVMix/KPP: Penetrative temperature flux at the bottom of boundary layer due to solar radiation. Positive is into the ocean."
 			 packages="forwardMode;analysisMode"
 		/>
-		<var name="surfaceBuoyancyForcing" type="real" dimensions="nCells Time" units="m^2 s^{-3}"
+		<var name="temperatureFluxForKrausTurnerMinimum" type="real" dimensions="nCells Time" units="m^2 s^{-3}"
+			 description="CVMix/KPP: diagnosed surface buoyancy flux due to heat only,. for KT minimum scheme. Positive flux increases buoyancy."
+			 packages="forwardMode;analysisMode"
+		/>
+    <var name="surfaceBuoyancyForcing" type="real" dimensions="nCells Time" units="m^2 s^{-3}"
 			 description="CVMix/KPP: diagnosed surface buoyancy flux due to heat, salt and freshwater fluxes. Positive flux increases buoyancy."
 			 packages="forwardMode;analysisMode"
 		/>
