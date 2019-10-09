@@ -2726,7 +2726,11 @@
 		<var name="boundaryLayerDepthEdge" type="real" dimensions="nEdges Time" units="m"
 			 description="CVMix/KPP: diagnosed depth of the ocean surface boundary layer averaged to cell edges"
 			 packages="forwardMode;analysisMode"
-		/>
+       />
+    <var name="critBulkRI" type="real" dimensions="nCells Time" units="m"
+       description="array for spatially varying critical bulk richardson number for KPP"
+       packages="forwardMode;analysisMode"
+       />
 		<var_array name="vertNonLocalFlux" type="real" dimensions="nVertLevelsP1 nCells Time" packages="forwardMode;analysisMode">
 			<var name="vertNonLocalFluxTemp" array_group="vertNonLocalFlux" units="nondimensional" name_in_code="vertNonLocalFluxTemp"
 				 description="CVMix/KPP: nonlocal boundary layer mixing term for temperature"
