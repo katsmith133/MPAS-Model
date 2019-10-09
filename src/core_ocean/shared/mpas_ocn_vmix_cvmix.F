@@ -602,7 +602,7 @@ contains
               ! TODO: the surface buoyancy forcing here does not include penetrative solar radiation? <05-09-18, Qing Li> !
 
               ! each level of bulk Richardson is computed as if OBL resided at bottom of that level
-              call cvmix_put_kpp('ri_crit', critBulkRI(iCell), cvmix_kpp_params)
+              call cvmix_put_kpp('Ri_crit', critBulkRI(iCell), cvmix_kpp_params)
               call cvmix_kpp_compute_OBL_depth(  &
                    Ri_bulk = bulkRichardsonNumber(1:maxLevelCell(iCell),iCell), &
                    zw_iface = cvmix_variables % zw_iface(1:maxLevelCell(iCell)+1), &
@@ -1126,11 +1126,12 @@ contains
 
             do iCell = 1, nCells
               if ( latCell(iCell) < config_cvmix_SO_bulkRI_transition_lat ) then
-                critBulkRI(iCell) = (config_cvmix_SO_bulkRI_transition_max - &
+                critBulkRI(iCell) = min((config_cvmix_SO_bulkRI_transition_max - &
                   config_cvmix_kpp_criticalBulkRichardsonNumber) /                   &
                   config_cvmix_SO_bulkRI_transition_width * ( latCell(iCell) - &
                   config_cvmix_SO_bulkRI_transition_lat ) +                    &
-                  config_cvmix_kpp_criticalBulkRichardsonNumber
+                  config_cvmix_kpp_criticalBulkRichardsonNumber,               &
+                  config_cvmix_SO_bulkRI_transition_max)
               else
                 critBulkRI(iCell) = config_cvmix_kpp_criticalBulkRichardsonNumber
               endif
