@@ -463,12 +463,19 @@ contains
 !--------------
     print *, shape(debugTracers)
     print *, shape(vertVelocityTop)
+    ! layer_1 = 25 , layer_2 = 50
+    ! debugTracer shape 1, 100, 10001
+    ! vertVelcoityTop shape 289600  , 100
+    if ( associated(debugTracers) ) then
+      debugTracers(:,:, iCell) = 0.0_RKIND
+      debugTracers(:,layer_1:layer_2,  iCell) = 1.0_RKIND
+    endif
 !    debugTracers(:,:) = 0.0_RKIND
 !    debugTracers(:, layer_1:layer_2, :) = 1.0_RKIND
-    !vertVelocityTop(:,:) = var 
-    do iEdge=1, nEdgesSolve
-      normalVelocity(:, iEdge) = ( cos(angleEdge(iEdge)) * config_vertical_advection_zonalC) + ( sin(angleEdge(iEdge)) * config_vertical_advection_meridionalC )
-    enddo
+!    vertVelocityTop(:,:) = var 
+!    do iEdge=1, nEdgesSolve
+!      normalVelocity(:, iEdge) = ( cos(angleEdge(iEdge)) * config_vertical_advection_zonalC) + ( sin(angleEdge(iEdge)) * config_vertical_advection_meridionalC )    enddo
+!    enddo
 !--------------
 ! end Jamil edit
 !--------------
