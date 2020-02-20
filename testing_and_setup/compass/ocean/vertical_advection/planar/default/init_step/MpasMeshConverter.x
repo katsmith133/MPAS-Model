@@ -1,1 +1,0 @@
-/lustre/scratch4/turquoise/jamilg/MPAS-Tools/mesh_tools/mesh_conversion_tools/MpasMeshConverter.x
