@@ -365,14 +365,19 @@ contains
 
         ! as a place holder, have some debug tracer in the top few
         ! layers and zero below
+        !print * , shape(debugTracers)
+!            1         100       10001
+        ! set everything to zero
+        debugTracers(:,:,:) = 0.0_RKIND
+        ! if it is a correct debugger
         if ( associated(debugTracers) ) then
-          r_pt = sqrt((xCell(iCell) - x_cent) ** 2 + (yCell(iCell)- y_cent)**2)
-          debugTracers(:,:,iCell) = 0.0_RKIND
-          if (r_pt < config_tracer_radius) then
-             debugTracers(index_tracer1, :, iCell) = 1.0_RKIND
-          endif       
-        endif
-
+!          debugTracers(:,:,iCell) = 1.0_RKIND
+          ! does not work
+          ! debugTracers(index_tracer1, :, iCell) = 1.0_RKIND
+          ! I think it should be something like this:
+          debugTracers(:, layer_1:layer_2, iCell) = 1.0_RKIND
+        endif       
+    
         ! Set layerThickness
         do k = 1, nVertLevels
            layerThickness(k, iCell) = config_vertical_advection_bottom_depth * (interfaceLocations(k+1) - interfaceLocations(k))
@@ -466,10 +471,10 @@ contains
     ! layer_1 = 25 , layer_2 = 50
     ! debugTracer shape 1, 100, 10001
     ! vertVelcoityTop shape 289600  , 100
-    if ( associated(debugTracers) ) then
-      debugTracers(:,:, iCell) = 0.0_RKIND
-      debugTracers(:,layer_1:layer_2,  iCell) = 1.0_RKIND
-    endif
+!    if ( associated(debugTracers) ) then
+!      debugTracers(:,:, iCell) = 0.0_RKIND
+!      debugTracers(:,layer_1:layer_2,  iCell) = 1.0_RKIND
+!    endif
 !    debugTracers(:,:) = 0.0_RKIND
 !    debugTracers(:, layer_1:layer_2, :) = 1.0_RKIND
 !    vertVelocityTop(:,:) = var 
