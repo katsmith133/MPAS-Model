@@ -2,8 +2,6 @@
 <config case="init_step">
 
     <add_executable source="model" dest="ocean_model"/>
-        <add_executable source="mesh_converter" dest="MpasMeshConverter.x"/>
-        <add_executable source="planar_hex" dest="planar_hex"/>
         
     <namelist name="namelist.ocean" mode="init">
         <option name="config_init_configuration">'horizontal_advection'</option>
@@ -111,12 +109,12 @@
             <argument flag="--nx">100</argument>
             <argument flag="--ny">100</argument>
             <argument flag="--dc">100</argument>
-            <argument flag="--outFileName">mesh.nc</argument>
+            <argument flag="--outFileName">base_mesh.nc</argument>
         </step>
 
     <step executable="MpasMeshConverter.x">
+        <argument flag="">base_mesh.nc</argument>
         <argument flag="">mesh.nc</argument>
-        <argument flag="">mesh2.nc</argument>
     </step>
      
        <step executable="mpirun">
