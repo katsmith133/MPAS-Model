@@ -109,7 +109,7 @@ contains
       !-----------------------------------------------------------------
 
       real (kind=RKIND), dimension(:,:), pointer :: &
-        vertDiffTopOfCell, k33
+        vertDiffTopOfCell, k33, kappaGMVert
       real (kind=RKIND), dimension(:), pointer :: &
         RediKappa
 
@@ -126,9 +126,10 @@ contains
       call mpas_pool_get_array(diagnosticsPool, 'vertDiffTopOfCell', vertDiffTopOfCell)
       call mpas_pool_get_array(diagnosticsPool, 'k33', k33)
       call mpas_pool_get_array(diagnosticsPool, 'RediKappa', RediKappa)
+      call mpas_pool_get_array(diagnosticsPool, 'kappaGMVert', kappaGMVert)
 
       if (config_use_Redi) then
-          call ocn_tracer_vmix_coefs_redi(meshPool, vertDiffTopOfCell, k33, RediKappa, err)
+          call ocn_tracer_vmix_coefs_redi(meshPool, vertDiffTopOfCell, k33, kappaGMVert, RediKappa, err)
       end if
 
    !--------------------------------------------------------------------
@@ -148,7 +149,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   subroutine ocn_tracer_vmix_coefs_redi(meshPool, vertDiffTopOfCell, k33, RediKappa, err)!{{{
+   subroutine ocn_tracer_vmix_coefs_redi(meshPool, vertDiffTopOfCell, k33, kappaGMVert, RediKappa, err)!{{{
 
       !-----------------------------------------------------------------
       !
@@ -177,7 +178,7 @@ contains
          RediKappa
 
       real (kind=RKIND), dimension(:,:), intent(in) :: &
-         k33
+         k33, kappaGMVert
 
       integer :: iCell, nCells
       integer, pointer :: nCellsSolve
@@ -202,7 +203,8 @@ contains
 
       !$omp do schedule(runtime)
       do iCell = 1, nCells
-         vertDiffTopOfCell(:, iCell) = vertDiffTopOfCell(:, iCell) + RediKappa(iCell) * k33(:, iCell)
+         vertDiffTopOfCell(:, iCell) = vertDiffTopOfCell(:, iCell) + kappaGMVert(:,iCell) * &
+                                              RediKappa(iCell) * k33(:, iCell)
       end do
       !$omp end do
 

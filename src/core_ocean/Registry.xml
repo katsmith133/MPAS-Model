@@ -406,7 +406,11 @@
 		<nml_option name="config_Redi_closure" type="character" default_value="constant" units="unitless"
 					description="Control what type of function is used for Redi $\kappa$. Only 'constant' is currently supported."
 					possible_values="'constant', 'data', 'match_GM'"
-		/>
+    />
+    <nml_option name="config_redi_limit_slopes" type="logical" default_value=".true." units="unitless"
+          description="Turns on slope limiting (sfc and slopes) from Danabasoglu and McWilliams 95 and Large et al 97"
+          possible_values=".true. or .false."
+    />
 	</nml_record>
 	<nml_record name="GM_eddy_parameterization" mode="forward">
 		<nml_option name="config_use_GM" type="logical" default_value=".false." units="NA"
@@ -2643,10 +2647,14 @@
 			description="phase speed for the bolus velocity calculation"
 			packages="forwardMode;analysisMode"
 			/>
-		<var name="kappaGM3D" type="real" dimensions="nVertLevels nEdges Time" units="m s^{-1}"
+		<var name="kappaGM3D" type="real" dimensions="nVertLevelsP1 nEdges Time" units="m^2 s^{-1}"
 			description="spatially and depth varying GM kappa"
 			packages="forwardMode;analysisMode"
-		/>
+    />
+    <var name="kappaGMVert" type="real" dimensions="nVertLevelsP1 nCells Time" units="NA"
+      description="structure of the vertically varying GM and Redi kappa values"
+      packages="forwardMode;analysisMode"
+    />
 		<var name="GMBolusVelocityX" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}"
 			 description="Bolus velocity in Gent-McWilliams eddy parameterization, x-direction"
 			 packages="forwardMode;analysisMode"
@@ -2737,10 +2745,14 @@
 			 description="CVMix/KPP: diagnosed surface buoyancy flux due to heat, salt and freshwater fluxes. Positive flux increases buoyancy."
 			 packages="forwardMode;analysisMode"
     />
-    <var name="rediRossbyRadius" type="real" dimensions="nEdges Time" units="m"
+    <var name="rediRossbyRadius" type="real" dimensions="nCells Time" units="m"
        description="Rossby radius of deformation used to compute Redi limiting near surface"
        packages="forwardMode;analysisMode"
-    />
+       />
+    <var name="slopeCellCenter" type="real" dimensions="nVertLevels nCells Time" units="na"
+      description="triad slopes at cell center"
+      packages="forwardMode;analysisMode"
+      />
 		<var name="slopeTriadUp" type="real" dimensions="nVertLevels TWO nEdges Time" units="non-dimensional"
 			 description="Magnitude of slope of isopycnal surface, using triad through this cell and edge, angled up. Uses expansion of equation of state."
 			 packages="forwardMode;analysisMode"

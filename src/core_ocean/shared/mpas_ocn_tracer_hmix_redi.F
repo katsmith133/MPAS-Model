@@ -71,7 +71,7 @@ contains
 
    subroutine ocn_tracer_hmix_Redi_tend(meshPool, scratchPool, layerThicknessEdge, zMid, tracers, &
                     redi_term1, redi_term2, redi_term3, RediKappa, slopeTriadUp, slopeTriadDown,  &
-                    tend, err)!{{{
+                    kappaGMVert, tend, err)!{{{
 
       !-----------------------------------------------------------------
       !
@@ -87,7 +87,8 @@ contains
 
       real (kind=RKIND), dimension(:,:), intent(in) :: &
          layerThicknessEdge, &!< Input: thickness at edge
-         zMid                 !< Input: Z coordinate at the center of a cell
+         zMid,               &!< Input: Z coordinate at the center of a cell
+         kappaGMVert          !< Input: vertical structure of GM kappa (non dimensional)
 
       real (kind=RKIND), dimension(:,:,:), intent(in) :: &
          slopeTriadUp, slopeTriadDown, &
@@ -183,7 +184,9 @@ contains
                   tracer_turb_flux = tracers(iTr, k, cell2) - tracers(iTr, k, cell1)
 
                   ! div(h \kappa_2 \nabla \phi) at cell center
-                  flux = layerThicknessEdge(k, iEdge) * tracer_turb_flux * RediKappa(iCell) * r_tmp
+                  flux = 0.25_RKIND*(kappaGMVert(k, cell1) + kappaGMVert(k, cell2) + &
+                              kappaGMVert(k+1, cell1) + kappaGMVert(k+1, cell2)) * &
+                              layerThicknessEdge(k, iEdge) * tracer_turb_flux * RediKappa(iCell) * r_tmp
 
                   redi_term1(iTr,k,iCell) = redi_term1(iTr,k,iCell) - edgeSignOnCell(i, iCell) * flux * invAreaCell
                   tend(iTr,k,iCell) = tend(iTr,k,iCell) - edgeSignOnCell(i, iCell) * flux * invAreaCell
@@ -217,7 +220,9 @@ contains
             do iTr = 1, nTracers
 
                ! For top layer, only use triads pointing down:
-               flux_term2 = coef * RediKappa(iCell) * layerThicknessEdge(k, iEdge) * &
+               flux_term2 = 0.25_RKIND*(kappaGMVert(k, cell1) + kappaGMVert(k, cell2) + &
+                                kappaGMVert(k+1, cell1) + kappaGMVert(k+1, cell2)) * coef * &
+                                RediKappa(iCell) * layerThicknessEdge(k, iEdge) * &
                   0.25_RKIND * &
                   (  slopeTriadDown(k,1,iEdge) * (tracers(iTr,k,cell1) - tracers(iTr,k+1,cell1)) &
                                   / (zMid(k,cell1) - zMid(k+1,cell1)) &
@@ -232,7 +237,9 @@ contains
             do k = 2, maxLevelEdgeTop(iEdge)-1
                do iTr = 1, nTracers
                   ! There are four triads associated with each edge:
-                  flux_term2 = coef * RediKappa(iCell) * layerThicknessEdge(k, iEdge) * &
+                  flux_term2 = 0.25_RKIND*(kappaGMVert(k, cell1) + kappaGMVert(k, cell2) + &
+                                    kappaGMVert(k+1,cell1) + kappaGMVert(k+1, cell2)) * coef * &
+                                    RediKappa(iCell) * layerThicknessEdge(k, iEdge) * &
                      0.25_RKIND * &
                      (  slopeTriadUp(k,1,iEdge) * (tracers(iTr,k-1,cell1) - tracers(iTr,k,cell1)) &
                                      / (zMid(k-1,cell1) - zMid(k,cell1)) &
@@ -252,7 +259,9 @@ contains
             k=maxLevelEdgeTop(iEdge)
             do iTr = 1, nTracers
                ! For bottom layer, only use triads pointing up:
-               flux_term2 = coef * RediKappa(iCell) * layerThicknessEdge(k, iEdge) * &
+               flux_term2 = 0.25_RKIND*(kappaGMVert(k, cell1) + kappaGMVert(k, cell2) + &
+                                kappaGMVert(k+1, cell1) + kappaGMVert(k+1, cell2)) * coef * &
+                                RediKappa(iCell) * layerThicknessEdge(k, iEdge) * &
                   0.25_RKIND * &
                   (  slopeTriadUp(k,1,iEdge) * (tracers(iTr,k-1,cell1) - tracers(iTr,k,cell1)) &
                                   / (zMid(k-1,cell1) - zMid(k,cell1)) &
@@ -321,7 +330,8 @@ contains
                ! 2.0 in next line is because a dot product on a C-grid
                ! requires a factor of 1/2 to average to the cell center.
                flux_term3 = RediKappa(iCell) * 2.0_RKIND * &
-                   (fluxRediZTop(iTr,k)/areaSum(k) - fluxRediZTop(iTr,k+1)/areaSum(k+1))
+                   ((kappaGMVert(k,iCell)*fluxRediZTop(iTr,k))/areaSum(k) - &
+                   (kappaGMVert(k+1,iCell)*fluxRediZTop(iTr,k+1))/areaSum(k+1))
 
                redi_term3(iTr,k,iCell) = redi_term3(iTr,k,iCell) + flux_term3
                tend(iTr,k,iCell) = tend(iTr,k,iCell) + flux_term3
