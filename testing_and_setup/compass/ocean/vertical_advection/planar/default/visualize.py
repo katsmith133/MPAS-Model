@@ -58,7 +58,7 @@ def main():
 
   # set the proper bounds with alittle extra padding
   plt.xlim(-10,data.xCell.shape[0]+10)
-  plt.ylim(-10,data.yCell.shape[0]+10)
+  plt.ylim(-10,data.zCell.shape[0]+10)
   gif_frames = data.tracer1.shape[0]
 
   # make directory to save images in
@@ -71,8 +71,8 @@ def main():
   for i in range(gif_frames):
     # updates progress bar
     printProgressBar(i+1, gif_frames, prefix = "Saving Frames", suffix = "Compleate", length=50)
- 
-    plt.scatter(data.xCell, data.yCell, c=data.tracer1[i,:,99])
+    plt.title("iteration: {}".format(i))
+    plt.scatter(data.xCell, data.zCell, c=data.tracer1[i,:,99])
     plt.savefig(dir_name +"/"+ str(i)+".png")
 
   # new line for next progress bar
