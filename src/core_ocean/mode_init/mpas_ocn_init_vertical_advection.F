@@ -102,14 +102,11 @@ contains
       real (kind=RKIND), dimension(:), pointer :: evaporationFlux,rainFlux
       real (kind=RKIND), dimension(:), pointer :: salinityRestore,bottomDepth, angleEdge
       real (kind=RKIND), dimension(:), pointer :: fCell, fEdge, fVertex,xCell, yCell
-      real (kind=RKIND), dimension(:, :), pointer :: layerThickness,restingThickness, normalVelocity
+      real (kind=RKIND), dimension(:, :), pointer :: layerThickness,restingThickness, normalVelocity, vertVelocityTop
       real (kind=RKIND), dimension(:, :, :), pointer :: activeTracers,debugTracers
       real (kind=RKIND), dimension(:, :), pointer ::activeTracersPistonVelocity, activeTracersSurfaceRestoringValue
       real (kind=RKIND), dimension(:, :, :), pointer ::activeTracersInteriorRestoringValue, activeTracersInteriorRestoringRate
 
-      ! Jamil Edits
-      real (kind=RKIND), dimension(:,:), pointer :: vertVelocityTop     
-      !
       real (kind=RKIND), dimension(:), pointer :: interfaceLocations
 
       integer :: iCell, iEdge, iVertex, k, kML
@@ -147,7 +144,8 @@ contains
                                           config_vertical_advection_mixed_layer_salinity_change,&
                                           config_vertical_advection_zonalC, &
                                           config_vertical_advection_meridionalC,&
-                                          x_cent , y_cent, layer_1, layer_2 , config_tracer_radius
+                                          x_cent , y_cent,layer_1, layer_2, vertVelocityTopVar, &
+                                          config_tracer_radius
       ! assume no error
       iErr = 0
 
@@ -211,10 +209,10 @@ contains
       call mpas_pool_get_config(domain % configs,'config_vertical_advection_meridionalC', config_vertical_advection_meridionalC)
       call mpas_pool_get_config(domain % configs,'config_tracer_radius', config_tracer_radius)
       call mpas_pool_get_config(domain % configs, 'y_cent', y_cent)
-      call mpas_pool_get_config(domain % configs, 'x_cent', x_cent)
       call mpas_pool_get_config(domain % configs, 'layer_1', layer_1)
       call mpas_pool_get_config(domain % configs, 'layer_2', layer_2)
-
+      call mpas_pool_get_config(domain % configs, 'x_cent', x_cent)
+      call mpas_pool_get_config(domain % configs, 'vertVeclocityTopVar', vertVelocityTopVar )
 
      !----------------
      ! end Jamil edits
@@ -279,10 +277,8 @@ contains
         call mpas_pool_get_array(forcingPool, 'evaporationFlux',evaporationFlux)
         call mpas_pool_get_array(forcingPool, 'rainFlux', rainFlux)
 
-        ! Jamil edits
+        ! JAMIL NOTE: adding vertVelcoityTop to the code
         call mpas_pool_get_array(diagnosticsPool, 'vertVelocityTop', vertVelocityTop)
-        ! End Jamil edits
-
         ! Set refBottomDepth and refBottomDepthTopOfCell
         do k = 1, nVertLevels
            refBottomDepth(k) = config_vertical_advection_bottom_depth *interfaceLocations(k+1)
@@ -291,8 +287,32 @@ contains
 
         ! Set vertCoordMovementWeights
         vertCoordMovementWeights(:) = 1.0_RKIND
-
+        debugTracers(:,:,:) = 0.0_RKIND
+          
         do iCell = 1, nCellsSolve
+
+           if ( associated(debugTracers) ) then
+            ! generates the region inside the circle
+            ! r_pt = sqrt((xCell(iCell) - x_cent) ** 2 + (yCell(iCell)- y_cent)**2)
+            ! if inside the region of the circle then set inside tracer to 1
+            ! if (r_pt < config_tracer_radius) then
+               ! JAMIL NOTE: 1 is for hortizontal advection: shape of debugTracers
+               ! is 1 100 10001 however in order to test out the output for simple
+               ! chages (see 2) no output is generated, just a purple screen.
+               ! leaving default to what is expected after talks with luke
+               !  1) debugTracers(index_tracer1, :, iCell) = 1.0_RKIND
+               !  2) debugTracers(index_tracer1, int(1):int(99), iCell) = 1.0_RKIND
+               debugTracers(:, int(layer_1):int(layer_2), iCell) = 1.0_RKIND
+            ! endif
+          endif
+          ! JAMIL NOTE: using  shared/mpas_ocn_diagnostics.F as a reference
+          ! print *, associated(vertVelocityTop)
+          ! output: -364690528          32
+          ! I think I am allocating vertVelcoityTop wrong? 
+          ! vertVelocityTop(:, iCell) = vertVelocityTopVar
+        
+
+
            if(associated(activeTracers) ) then
 
            ! Loop from surface through surface layer depth
@@ -365,19 +385,8 @@ contains
 
         ! as a place holder, have some debug tracer in the top few
         ! layers and zero below
-        !print * , shape(debugTracers)
-!            1         100       10001
-        ! set everything to zero
-        debugTracers(:,:,:) = 0.0_RKIND
-        ! if it is a correct debugger
-        if ( associated(debugTracers) ) then
-!          debugTracers(:,:,iCell) = 1.0_RKIND
-          ! does not work
-          ! debugTracers(index_tracer1, :, iCell) = 1.0_RKIND
-          ! I think it should be something like this:
-          debugTracers(:, layer_1:layer_2, iCell) = 1.0_RKIND
-        endif       
-    
+
+
         ! Set layerThickness
         do k = 1, nVertLevels
            layerThickness(k, iCell) = config_vertical_advection_bottom_depth * (interfaceLocations(k+1) - interfaceLocations(k))
@@ -466,20 +475,8 @@ contains
 ! Jamil edits for adding
 ! the C variable
 !--------------
-    print *, shape(debugTracers)
-    print *, shape(vertVelocityTop)
-    ! layer_1 = 25 , layer_2 = 50
-    ! debugTracer shape 1, 100, 10001
-    ! vertVelcoityTop shape 289600  , 100
-!    if ( associated(debugTracers) ) then
-!      debugTracers(:,:, iCell) = 0.0_RKIND
-!      debugTracers(:,layer_1:layer_2,  iCell) = 1.0_RKIND
-!    endif
-!    debugTracers(:,:) = 0.0_RKIND
-!    debugTracers(:, layer_1:layer_2, :) = 1.0_RKIND
-!    vertVelocityTop(:,:) = var 
 !    do iEdge=1, nEdgesSolve
-!      normalVelocity(:, iEdge) = ( cos(angleEdge(iEdge)) * config_vertical_advection_zonalC) + ( sin(angleEdge(iEdge)) * config_vertical_advection_meridionalC )    enddo
+!      normalVelocity(:, iEdge) = ( cos(angleEdge(iEdge)) * config_vertical_advection_zonalC) + ( sin(angleEdge(iEdge)) * config_vertical_advection_meridionalC )
 !    enddo
 !--------------
 ! end Jamil edit
