@@ -110,7 +110,7 @@
         <step executable="planar_hex">
             <argument flag="--nx">100</argument>
             <argument flag="--ny">100</argument>
-            <argument flag="--dc">100</argument>
+            <argument flag="--dc">5</argument>
             <argument flag="--outFileName">mesh.nc</argument>
         </step>
 
