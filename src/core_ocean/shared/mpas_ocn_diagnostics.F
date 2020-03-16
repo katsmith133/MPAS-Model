@@ -354,6 +354,10 @@ contains
       allocate(div_hu(nVertLevels),div_huTransport(nVertLevels),div_huGMBolus(nVertLevels))
 
       !$omp do schedule(runtime)
+      ! JAMIL EDITS
+      if (.not. config_debug_fix_vertical_velocity) then
+         allocate(div_hu(nVertLevels),div_huTransport(nVertLevels),div_huGMBolus(nVertLevels))
+
       do iCell = 1, nCells
          divergence(:, iCell) = 0.0_RKIND
          kineticEnergyCell(:, iCell) = 0.0_RKIND
@@ -2332,6 +2336,7 @@ contains
                end do
                call ocn_write_field_statistics(debugUnit, fieldName, minValue, maxValue)
             end if
+
          end if!}}}
 
          ! If there was a tracers NaN found, write out information about fields that affect tracers
@@ -2522,9 +2527,11 @@ contains
                end do
                call ocn_write_field_statistics(debugUnit, fieldName, minValue, maxValue)
             end if
+
          end if!}}}
 
          ! If an error was found, we need to close the file now.
+
          if ( thickNanFound .or. tracersNanFound .or. velNanFound ) then!{{{
             flush(debugUnit)
             close(debugUnit)
