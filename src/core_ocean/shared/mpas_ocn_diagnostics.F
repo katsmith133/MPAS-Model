@@ -355,9 +355,6 @@ contains
 
       !$omp do schedule(runtime)
       ! JAMIL EDITS
-      if (.not. config_debug_fix_vertical_velocity) then
-         allocate(div_hu(nVertLevels),div_huTransport(nVertLevels),div_huGMBolus(nVertLevels))
-
       do iCell = 1, nCells
          divergence(:, iCell) = 0.0_RKIND
          kineticEnergyCell(:, iCell) = 0.0_RKIND
