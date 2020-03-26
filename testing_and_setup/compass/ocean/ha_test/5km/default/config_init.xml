@@ -42,10 +42,10 @@
         <option name="config_horizontal_advection_mixed_layer_depth_salinity">0.0</option>
         <option name="config_horizontal_advection_mixed_layer_temperature_change">0.0</option>
         <option name="config_horizontal_advection_mixed_layer_salinity_change">0.0</option>
-                <option name="x_cent">215.0</option>
-                <option name="y_cent">250.0</option>
-                <option name="config_tracer_radius">100.0</option>
-                <option name="config_horizontal_advection_zonalC">0.1</option>
+                <option name="x_cent">250000.0</option>
+                <option name="y_cent">216506.35</option>
+                <option name="config_tracer_radius">50000.0</option>
+                <option name="config_horizontal_advection_zonalC">.1</option>
                 <option name="config_horizontal_advection_meridionalC">0</option>
 
 
@@ -110,7 +110,7 @@
         <step executable="planar_hex">
             <argument flag="--nx">100</argument>
             <argument flag="--ny">100</argument>
-            <argument flag="--dc">5</argument>
+            <argument flag="--dc">5000</argument>
             <argument flag="--outFileName">mesh.nc</argument>
         </step>
 
