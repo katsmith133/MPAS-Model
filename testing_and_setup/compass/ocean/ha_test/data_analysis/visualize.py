@@ -57,9 +57,10 @@ def main():
     quit()
 
   # set the proper bounds with alittle extra padding
-  plt.xlim(-10,500000)
-  plt.ylim(-10,434000)
+  plt.xlim(-10,data.xCell.shape[0]+10)
+  plt.ylim(-10,data.yCell.shape[0]+10)
   gif_frames = data.tracer1.shape[0]
+
   # make directory to save images in
   dir_name = "images"
   os.makedirs(dir_name, exist_ok=True)
@@ -71,7 +72,7 @@ def main():
     # updates progress bar
     printProgressBar(i+1, gif_frames, prefix = "Saving Frames", suffix = "Compleate", length=50)
  
-    plt.scatter(data.xCell, data.yCell, c=data.tracer1[i,:,99], vmin=0 , vmax=1)
+    plt.scatter(data.xCell, data.yCell, c=data.tracer1[i,:,99])
     plt.savefig(dir_name +"/"+ str(i)+".png")
 
   # new line for next progress bar
@@ -87,7 +88,7 @@ def main():
     printProgressBar(i+1, gif_frames+1, prefix = "Making Gif", suffix = "Compleate", length=50)
 
   # creates the gif
-  imageio.mimsave('25km_KPP_tracer1.gif', images)    
+  imageio.mimsave('KPP_tracer1.gif', images)    
   printProgressBar(gif_frames+1, gif_frames+1, prefix = "Making Gif", suffix = "Compleate", length=50)
 
 main()
