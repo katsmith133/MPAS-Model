@@ -39,64 +39,51 @@ def get_RMSE(folder_name):
   data = xr.open_dataset(KPP)
   last_frame = data.tracer1.shape[0] -1
 
-  # 10000, 100
-  print(data.tracer1[last_frame,:,:].shape)
-  # 10000
-  print(data.xCell.shape)
-  print(data.yCell.shape)
-  quit()
+
+  nCells = data.dims['nCells']
+  tracer_exact = np.zeros(nCells)
 
   
   # get points inside location
   inside_x = []
   inside_y = []
   inside_value = []
+  index = 0
   for i in zip(data.xCell.values, data.yCell.values):
     if is_inside(i, [simulated_center_location_x,simulated_center_location_y], radius):
       inside_x.append(i[0])
       inside_y.append(i[1])
+      tracer_exact[index] = 1
+  index = index + 1
 
+  rmse = np.sqrt(np.mean(tracer_exact - data.tracer1[last_frame,:,99].values)**2)
 
-  # plot parameters
-  real_x_left = simulated_center_location_x - radius
-  real_x_right = simulated_center_location_x + radius
-  real_y_bottom = simulated_center_location_y - radius
-  real_y_top = simulated_center_location_y + radius
-
-  plt.xlim(real_x_left  - 1 , real_x_right + 1)
-  plt.ylim(real_y_bottom -1 , real_y_top   + 1)
-
-
+  print("For  {} RMSE = {}".format(folder_name, rmse))
   # plot points
-#  plt.scatter(data.xCell, data.yCell, c=data.tracer1[last_frame,:, 99])
-  plt.scatter(inside_x, inside_y)
-  plt.scatter(simulated_x , simulated_y)
 
-  plt.savefig("../visualization/savefig.png")
+  plt.scatter(data.xCell, data.yCell, c=data.tracer1[last_frame,:,99])
+  plt.scatter(simulated_x, simulated_y)
+  plt.savefig("../visualization/"+str(folder_name)+"_plot.png")
 
-
-
-
-  quit()
-
-
-
-
-
-
-
-
-
-
-
-  plt.savefig("../visualization/"+str(folder_name)+"_tracer_sim.png")
-
+  return int(folder_name[0:folder_name.find("km")]) , rmse
   
 
 def main():
   folders = ["5km", "10km", "25km"]
-  
+  resolution = []
+  rmse = []
   for folder in folders:
-    get_RMSE(folder)
+    x,y = get_RMSE(folder)
+    resolution.append(x)
+    rmse.append(y)
+
+  print(resolution)
+  print(rmse)
+  plt.xlim(3,26)
+  plt.ylim(.02,.04)
+  plt.loglog()
+  plt.scatter(resolution,rmse)
+  plt.savefig("../visualization/rmse.png")
+
 
 main()

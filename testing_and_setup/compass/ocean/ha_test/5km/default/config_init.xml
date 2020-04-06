@@ -45,7 +45,7 @@
                 <option name="x_cent">250000.0</option>
                 <option name="y_cent">216506.35</option>
                 <option name="config_tracer_radius">50000.0</option>
-                <option name="config_horizontal_advection_zonalC">.1</option>
+                <option name="config_horizontal_advection_zonalC">1</option>
                 <option name="config_horizontal_advection_meridionalC">0</option>
 
 
