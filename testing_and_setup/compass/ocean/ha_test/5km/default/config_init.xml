@@ -32,7 +32,7 @@
         <option name="config_horizontal_advection_interior_salinity_restoring_rate">1.0e-6</option>
         <option name="config_horizontal_advection_temperature_gradient">0.0</option>
         <option name="config_horizontal_advection_salinity_gradient">0.0</option>
-        <option name="config_horizontal_advection_vertical_grid">'100layerE3SMv1'</option>
+        <option name="config_horizontal_advection_vertical_grid">'uniform'</option>
         <option name="config_horizontal_advection_bottom_depth">400.0</option>
         <option name="config_horizontal_advection_max_windstress">0.0</option>
         <option name="config_horizontal_advection_coriolis_parameter">0.0</option>

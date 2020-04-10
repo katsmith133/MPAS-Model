@@ -6,7 +6,7 @@ from matplotlib.image import imread
 import numpy as np
 
 def is_inside(point, center, radius):
-"""
+  """
 
   checks a given point to see if it is inside
   the circle at center with radius
@@ -15,7 +15,7 @@ def is_inside(point, center, radius):
   center = 2D list with x,y coordinants for center of circle
   radius = the lenght of the radius for the circle
 
-"""
+  """
   # grab X and Y values for point and center of circle
   x = point[0]
   y = point[1]
@@ -33,9 +33,9 @@ def is_inside(point, center, radius):
 
 
 def get_RMSE(folder_name):
-"""
+  """
   calculates the RMSE of a given resolution
-"""
+  """
   # the center and radius of the cylindars starting point
   simulated_center_location_x =  250000.58 
   simulated_center_location_y =  216506.35 
@@ -54,10 +54,10 @@ def get_RMSE(folder_name):
   # new x position
   simulated_center_location_x = simulated_center_location_x + distance
 
-  # generate points to plot the circle
-  theta = np.linspace(0, 2*np.pi, 100)
-  simulated_x = radius * np.cos(theta) + simulated_center_location_x
-  simulated_y = radius * np.sin(theta) + simulated_center_location_y
+  # generate the circle
+  #  theta = np.linspace(0, 2*np.pi, 100)
+  #  simulated_x = radius * np.cos(theta) + simulated_center_location_x
+  #  simulated_y = radius * np.sin(theta) + simulated_center_location_y
 
 
 
@@ -77,12 +77,15 @@ def get_RMSE(folder_name):
 
   
   # get points inside location
-  inside_value = []
   index = 0
+  inside_x = []
+  inside_y = []
 
   for i in zip(data.xCell.values, data.yCell.values):
     if is_inside(i, [simulated_center_location_x,simulated_center_location_y], radius):
       # if a point is inside the circle set its simulated value to 1
+      inside_x.append(i[0])
+      inside_y.append(i[1])
       tracer_exact[index] = 1
   index = index + 1
 
@@ -92,8 +95,8 @@ def get_RMSE(folder_name):
   print("For  {} RMSE = {}".format(folder_name, rmse))
 
   # plot the simulated circle over the actual values
-  plt.scatter(data.xCell, data.yCell, c=data.tracer1[last_frame,:,99])
-  plt.scatter(simulated_x, simulated_y)
+  plt.scatter(data.xCell, data.yCell, c=data.tracer1[last_frame,:,99], vmin=0, vmax=1)
+  plt.scatter(inside_x, inside_y)
   plt.savefig("../visualization/"+str(folder_name)+"_plot.png")
 
   # return the int(resolution) and the float(rmse)
@@ -111,9 +114,11 @@ def main():
 
   print(resolution)
   print(rmse)
-  plt.xlim(3,26)
-  plt.ylim(.02,.04)
+
+
   plt.yscale("log")
+  plt.xlim(0,26)
+  plt.ylim(.03, .04)
   plt.scatter(resolution,rmse)
   plt.savefig("../visualization/rmse.png")
 
