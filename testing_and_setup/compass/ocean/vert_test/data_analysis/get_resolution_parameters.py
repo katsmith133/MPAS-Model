@@ -24,10 +24,11 @@ Ny = 20
 dc = 25000 
 
 # I want to keep this the same
+#????If this is going from lvl 5 to bottom shouldnt it be negitive????
 vi = .05
 
 # based off user input (ie, 50, 25, 10, 5..)
-dz =  int(input("enter DZ"))
+dz =  int(input("enter DZ (m): ")) 
 
 # this doesnt change for vertical advection
 bottom_depth = 1000
@@ -59,10 +60,22 @@ dis_travel = round(Init_z_point + (runtime * vi) , 2)
 
 #---------------print results------------
 
-print("Location:\n\tx: {}\n\ty: {}\n\tz: {}".format(Init_x_point, Init_y_point, Init_z_point))
 
-print("\nradius: {}".format(radius))
-print("\ndz: {}\nbottom_depth: {}".format(dz, bottom_depth))
-print("\nradius = {}\nruntime = {} days\n".format(radius, runtime/86400 ))
+print("--nx: {}\n--ny: {}\n--dc: {}\n".format(Nx, Ny, dc))
 
-print("distance_travled = {} )".format(dis_travel))
+print("Location:\n\tx_cent: {}\n\ty_cent: {}\n\t??z??: {}".format(Init_x_point, Init_y_point, Init_z_point))
+
+
+print("\n??dz??: {}\nconfig_vertical_advection_bottom_depth: {}\n??vert_levels??: {}".format(dz, bottom_depth,vert_levels))
+
+print("layer_1: {}\nlayer_2: {}".format("--?--", "--?--"))
+
+print("\nconfig_tracer_radius: {}".format(radius))
+
+print("config_run_duration: {} days\n".format(runtime/86400 ))
+
+print("distance_travled = {} ".format(dis_travel))
+
+
+
+print("\n\n\ntracer will start in the z-axis @ {} and move up at a rate of {}\n its will run for {} days and stop at {}".format(Init_z_point, vi, runtime/86400, dis_travel))

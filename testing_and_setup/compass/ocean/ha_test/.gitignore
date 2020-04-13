@@ -1,0 +1,6 @@
+*km/defautl/forward
+*km/default/init_step
+*km/default/run_test.py
+*km/default/*.png
+*km/default/*.gif
+visualization/*

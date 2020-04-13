@@ -31,17 +31,3 @@ Original center is (5000, 7500) ; the new location is
   * This is outside the domain - push inside the domain (13640 % 10000) = 3640
   * New location = (3640 , 7500)
 
-
-with new x, y, rebuild cylinder based on radius
-xCell and yCell from MPAS
-
-tracer1_exact(:,:) = 0.0
-do i = 1, nCells
-   dist = sqrt((xCell[i] - x_new)**2 + (yCell[i] - y_new)**2)
-   if dist < radius
-      tracer1_exact(:,i) = 1
-enddo
-
-
-
-do the RMSE with MPAS data
