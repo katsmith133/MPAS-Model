@@ -357,13 +357,31 @@ contains
 
         ! as a place holder, have some debug tracer in the top few
         ! layers and zero below
-        if ( associated(debugTracers) ) then
-          r_pt = sqrt((xCell(iCell) - x_cent) ** 2 + (yCell(iCell)- y_cent)**2)
-          debugTracers(:,:,iCell) = 0.0_RKIND
-          if (r_pt < config_tracer_radius) then
-             debugTracers(index_tracer1, :, iCell) = 1.0_RKIND
+
+        if(associated(debugTracers)) then
+          if(config_horizontal_advection_zonalC .ne. 0) then
+             r_pt = xCell(iCell) - x_cent
+          elseif (config_horizontal_advection_meridionalC .ne. 0) then 
+             r_pt = yCell(iCell) - y_cent
+          else
+             print *, 'error: either meridC or zonalC must be zero.'
           endif
-       endif
+     
+          debugTracers(:,:,iCell) = 0.0_RKIND
+
+          if(r_pt < config_tracer_radius) then
+               debugTracers(:,:,iCell) = 1.0_RKIND
+           endif
+
+        endif
+
+!        if ( associated(debugTracers) ) then
+!          r_pt = xCell(iCell) - x_cent
+!          debugTracers(:,:,iCell) = 0.0_RKIND
+!          if (r_pt < config_tracer_radius) then
+!             debugTracers(:, :, iCell) = 1.0_RKIND
+!          endif
+!       endif
 
         ! Set layerThickness
         do k = 1, nVertLevels
