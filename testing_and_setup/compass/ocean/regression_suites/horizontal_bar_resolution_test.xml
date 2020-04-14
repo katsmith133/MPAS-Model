@@ -11,7 +11,7 @@ Energy (RPE), which is a measure of mixing. These tests are set to have zero
 horizontal and vertical tracer diffusion and zero surface fluxes, so all mixing
 measured by RPE is due to spurious numerical diffusion.
 -->
-<regression_suite name="Horizontal_advection_test_suite">
+<regression_suite name="Horizontal_advection_resolution_test">
 	<test name="Horizontal Advection 5km - Mesh Test" core="ocean" configuration="ha_test" resolution="5km" test="default">
 		<script name="run_test.py"/>
 	</test>

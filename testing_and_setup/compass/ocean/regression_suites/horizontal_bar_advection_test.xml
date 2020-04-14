@@ -12,7 +12,7 @@ horizontal and vertical tracer diffusion and zero surface fluxes, so all mixing
 measured by RPE is due to spurious numerical diffusion.
 -->
 
-<regression_suite name="Horizontal_advection_Zonal_Meridinal_test">
+<regression_suite name="Horizontal_Advection_Zonal_Meridinal_test">
 	<test name="Horizontal Advection Bar Zonal Test" core="ocean" configuration="horizontal_advection" resolution="planar" test="ZonalC_test">
 		<script name="run_test.py"/>
 	</test>
