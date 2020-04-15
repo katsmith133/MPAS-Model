@@ -144,7 +144,7 @@ contains
                                           config_horizontal_advection_mixed_layer_salinity_change,&
                                           config_horizontal_advection_zonalC, &
                                           config_horizontal_advection_meridionalC,&
-                                          config_horizontal_advection_x_cent , config_horizontal_advection_y_cent,config_tracer_radius
+                                          config_horizontal_advection_x_cent , config_horizontal_advection_y_cent,config_horizontal_advection_tracer_radius
       ! assume no error
       iErr = 0
 
@@ -206,7 +206,7 @@ contains
 
       call mpas_pool_get_config(domain % configs,'config_horizontal_advection_zonalC', config_horizontal_advection_zonalC)
       call mpas_pool_get_config(domain % configs,'config_horizontal_advection_meridionalC', config_horizontal_advection_meridionalC)
-      call mpas_pool_get_config(domain % configs,'config_tracer_radius', config_tracer_radius)
+      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_tracer_radius', config_horizontal_advection_tracer_radius)
       call mpas_pool_get_config(domain % configs, 'config_horizontal_advection_y_cent', config_horizontal_advection_y_cent)
       call mpas_pool_get_config(domain % configs, 'config_horizontal_advection_x_cent', config_horizontal_advection_x_cent)
 
@@ -369,7 +369,7 @@ contains
      
           debugTracers(:,:,iCell) = 0.0_RKIND
 
-          if(r_pt < config_tracer_radius) then
+          if(r_pt < config_horizontal_advection_tracer_radius) then
                debugTracers(:,:,iCell) = 1.0_RKIND
            endif
 
@@ -378,7 +378,7 @@ contains
 !        if ( associated(debugTracers) ) then
 !          r_pt = xCell(iCell) - config_horizontal_advection_x_cent
 !          debugTracers(:,:,iCell) = 0.0_RKIND
-!          if (r_pt < config_tracer_radius) then
+!          if (r_pt < config_horizontal_advection_tracer_radius) then
 !             debugTracers(:, :, iCell) = 1.0_RKIND
 !          endif
 !       endif
