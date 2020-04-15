@@ -25,7 +25,7 @@ def is_inside(point, center, radius):
 
 
   # calculates the distance from the point to the center
-  is_inside = np.sqrt( (x-center_x)**2 + (y-center_y)**2 )
+  is_inside = x - center_x
 
   # if the distance is <= radius; it is inside the circle
   return is_inside <= float(radius)
