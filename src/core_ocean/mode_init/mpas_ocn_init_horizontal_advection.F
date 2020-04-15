@@ -144,7 +144,7 @@ contains
                                           config_horizontal_advection_mixed_layer_salinity_change,&
                                           config_horizontal_advection_zonalC, &
                                           config_horizontal_advection_meridionalC,&
-                                          x_cent , y_cent,config_tracer_radius
+                                          config_horizontal_advection_x_cent , config_horizontal_advection_y_cent,config_tracer_radius
       ! assume no error
       iErr = 0
 
@@ -207,8 +207,8 @@ contains
       call mpas_pool_get_config(domain % configs,'config_horizontal_advection_zonalC', config_horizontal_advection_zonalC)
       call mpas_pool_get_config(domain % configs,'config_horizontal_advection_meridionalC', config_horizontal_advection_meridionalC)
       call mpas_pool_get_config(domain % configs,'config_tracer_radius', config_tracer_radius)
-      call mpas_pool_get_config(domain % configs, 'y_cent', y_cent)
-      call mpas_pool_get_config(domain % configs, 'x_cent', x_cent)
+      call mpas_pool_get_config(domain % configs, 'config_horizontal_advection_y_cent', config_horizontal_advection_y_cent)
+      call mpas_pool_get_config(domain % configs, 'config_horizontal_advection_x_cent', config_horizontal_advection_x_cent)
 
 
      !----------------
@@ -360,9 +360,9 @@ contains
 
         if(associated(debugTracers)) then
           if(config_horizontal_advection_zonalC .ne. 0) then
-             r_pt = xCell(iCell) - x_cent
+             r_pt = xCell(iCell) - config_horizontal_advection_x_cent
           elseif (config_horizontal_advection_meridionalC .ne. 0) then 
-             r_pt = yCell(iCell) - y_cent
+             r_pt = yCell(iCell) - config_horizontal_advection_y_cent
           else
              print *, 'error: either meridC or zonalC must be zero.'
           endif
@@ -376,7 +376,7 @@ contains
         endif
 
 !        if ( associated(debugTracers) ) then
-!          r_pt = xCell(iCell) - x_cent
+!          r_pt = xCell(iCell) - config_horizontal_advection_x_cent
 !          debugTracers(:,:,iCell) = 0.0_RKIND
 !          if (r_pt < config_tracer_radius) then
 !             debugTracers(:, :, iCell) = 1.0_RKIND
