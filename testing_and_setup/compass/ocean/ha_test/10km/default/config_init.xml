@@ -44,7 +44,7 @@
         <option name="config_horizontal_advection_mixed_layer_salinity_change">0.0</option>
                 <option name="config_horizontal_advection_x_cent">250000.0</option>
                 <option name="config_horizontal_advection_y_cent">216506.35</option>
-                <option name="config_tracer_radius">500.0</option>
+                <option name="config_horizontal_advection_tracer_radius">500.0</option>
                 <option name="config_horizontal_advection_zonalC">1</option>
                 <option name="config_horizontal_advection_meridionalC">0</option>
 
