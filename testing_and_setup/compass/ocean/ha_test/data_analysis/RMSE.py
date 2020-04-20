@@ -39,7 +39,7 @@ def get_RMSE(folder_name):
   # the center and radius of the cylindars starting point
   simulated_center_location_x =  250000.58 
   simulated_center_location_y =  216506.35 
-  radius = 50000.0
+  radius = 500.0
 
   # cylanders inital velocity
   vi = 1
