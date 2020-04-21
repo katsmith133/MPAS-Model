@@ -104,11 +104,6 @@
             possible_values="Any real number."
         />
 
-        <nml_option name="x_cent" type="real" default_value="400" units="m"
-            description="X value for center of tracer circule"
-            possible_values="Any real number greater than zero."
-        />
-
         <nml_option name="layer_1" type="real" default_value="400" units="m"
             description="layer1"
             possible_values="Any real number greater than zero."
@@ -117,22 +112,5 @@
             description="layer2"
             possible_values="Any real number greater than zero."
         />
-
-        <nml_option name="y_cent" type="real" default_value="400" units="m"
-            description="y value for center of tracer circule"
-            possible_values="Any real number greater than zero."
-        />
-        <nml_option name="config_tracer_radius" type="real" default_value="100" units="m"
-            description="Radus of tracer circule"
-            possible_values="Any real number greater than zero."
-        />
-        <nml_option name="config_vertical_advection_meridionalC" type="real" default_value=".5" units="m*s^{-1}"
-            description="Constant Meridional Velocity"
-            possible_values="Any real number greater than zero."                                           
-        />   
-        <nml_option name="config_vertical_advection_zonalC" type="real" default_value=".5" units="m*s^{-1}"
-            description="Constant zonal Velocity"
-            possible_values="Any real number greater than zero."                                           
-        />
-
+        
 </nml_record>

@@ -142,10 +142,7 @@ contains
                                           config_vertical_advection_mixed_layer_depth_salinity,&
                                           config_vertical_advection_mixed_layer_temperature_change,&
                                           config_vertical_advection_mixed_layer_salinity_change,&
-                                          config_vertical_advection_zonalC, &
-                                          config_vertical_advection_meridionalC,&
-                                          x_cent , y_cent,layer_1, layer_2, vertVelocityTopVar, &
-                                          config_tracer_radius
+                                          layer_1, layer_2, vertVelocityTopVar
       ! assume no error
       iErr = 0
 
@@ -205,13 +202,8 @@ contains
      !-----------
 
 
-      call mpas_pool_get_config(domain % configs,'config_vertical_advection_zonalC', config_vertical_advection_zonalC)
-      call mpas_pool_get_config(domain % configs,'config_vertical_advection_meridionalC', config_vertical_advection_meridionalC)
-      call mpas_pool_get_config(domain % configs,'config_tracer_radius', config_tracer_radius)
-      call mpas_pool_get_config(domain % configs, 'y_cent', y_cent)
       call mpas_pool_get_config(domain % configs, 'layer_1', layer_1)
       call mpas_pool_get_config(domain % configs, 'layer_2', layer_2)
-      call mpas_pool_get_config(domain % configs, 'x_cent', x_cent)
       call mpas_pool_get_config(domain % configs, 'vertVeclocityTopVar', vertVelocityTopVar )
 
      !----------------
@@ -293,18 +285,8 @@ contains
 
            if ( associated(debugTracers) ) then
             ! generates the region inside the circle
-            ! r_pt = sqrt((xCell(iCell) - x_cent) ** 2 + (yCell(iCell)- y_cent)**2)
-            ! if inside the region of the circle then set inside tracer to 1
-            ! if (r_pt < config_tracer_radius) then
-               ! JAMIL NOTE: 1 is for hortizontal advection: shape of debugTracers
-               ! is 1 100 10001 however in order to test out the output for simple
-               ! chages (see 2) no output is generated, just a purple screen.
-               ! leaving default to what is expected after talks with luke
-               !  1) debugTracers(index_tracer1, :, iCell) = 1.0_RKIND
-               !  2) debugTracers(index_tracer1, int(1):int(99), iCell) = 1.0_RKIND
                debugTracers(:, int(layer_1):int(layer_2), iCell) = 1.0_RKIND
-            ! endif
-          endif
+           endif
           ! JAMIL NOTE: using  shared/mpas_ocn_diagnostics.F as a reference
           ! print *, associated(vertVelocityTop)
           ! output: -364690528          32
@@ -471,16 +453,6 @@ contains
 
      block_ptr => block_ptr % next
    end do
-!--------------
-! Jamil edits for adding
-! the C variable
-!--------------
-!    do iEdge=1, nEdgesSolve
-!      normalVelocity(:, iEdge) = ( cos(angleEdge(iEdge)) * config_vertical_advection_zonalC) + ( sin(angleEdge(iEdge)) * config_vertical_advection_meridionalC )
-!    enddo
-!--------------
-! end Jamil edit
-!--------------
 
    deallocate(interfaceLocations)
 
