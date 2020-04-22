@@ -373,6 +373,12 @@ contains
         do k = 1, nVertLevels
            layerThickness(k, iCell) = config_vertical_advection_bottom_depth * (interfaceLocations(k+1) - interfaceLocations(k))
            restingThickness(k, iCell) = layerThickness(k, iCell)
+
+! JAMIL NOTES
+           if ( interfaceLocations(k) > bottomDepth(iCell) - config_vertical_advection_layer_thickness ) then
+               debug_tracer(:, k ,iCell) = 1.0_RKIND
+           endif
+
         end do
 
         ! Set surface temperature restoring value and rate

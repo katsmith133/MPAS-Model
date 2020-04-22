@@ -16,7 +16,7 @@
         <option name="config_use_activeTracers_interior_restoring">.true.</option>
         <option name="config_use_bulk_wind_stress">.true.</option>
         <option name="config_use_bulk_thickness_flux">.true.</option>
-        <option name="config_vertical_advection_vert_levels">100</option>
+        <option name="config_vertical_advection_vert_levels">20</option>
         <option name="config_vertical_advection_surface_temperature">20.0</option>
         <option name="config_vertical_advection_surface_salinity">35.0</option>
         <option name="config_vertical_advection_surface_restoring_temperature">15.0</option>
@@ -33,7 +33,7 @@
         <option name="config_vertical_advection_temperature_gradient">0.0</option>
         <option name="config_vertical_advection_salinity_gradient">0.0</option>
         <option name="config_vertical_advection_vertical_grid">'uniform'</option>
-        <option name="config_vertical_advection_bottom_depth">400.0</option>
+        <option name="config_vertical_advection_bottom_depth">1000.0</option>
         <option name="config_vertical_advection_max_windstress">0.0</option>
         <option name="config_vertical_advection_coriolis_parameter">0.0</option>
         <option name="config_vertical_advection_temperature_gradient_mixed_layer">0.0</option>
@@ -42,8 +42,7 @@
         <option name="config_vertical_advection_mixed_layer_depth_salinity">0.0</option>
         <option name="config_vertical_advection_mixed_layer_temperature_change">0.0</option>
         <option name="config_vertical_advection_mixed_layer_salinity_change">0.0</option>
-                <option name="layer_1">70</option>
-                <option name="layer_2">90</option>
+                <option name="config_vertical_advection_layer_thickness">100</option>
                 <option name="vertVelocityTopVar">.05</option>
 
 
