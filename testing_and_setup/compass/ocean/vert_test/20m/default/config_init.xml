@@ -42,9 +42,8 @@
         <option name="config_vertical_advection_mixed_layer_depth_salinity">0.0</option>
         <option name="config_vertical_advection_mixed_layer_temperature_change">0.0</option>
         <option name="config_vertical_advection_mixed_layer_salinity_change">0.0</option>
-                <option name="layer_1">70</option>
-                <option name="layer_2">90</option>
-                <option name="vertVelocityTopVar">.05</option>
+                    <option name="config_vertical_advection_layer_thickness">100</option>
+                    <option name="vertVelocityTopVar">.05</option>
 
 
     </namelist>
