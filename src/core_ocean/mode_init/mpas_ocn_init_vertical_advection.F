@@ -142,7 +142,7 @@ contains
                                           config_vertical_advection_mixed_layer_depth_salinity,&
                                           config_vertical_advection_mixed_layer_temperature_change,&
                                           config_vertical_advection_mixed_layer_salinity_change,&
-                                          layer_1, layer_2, vertVelocityTopVar
+                                          config_vertical_advection_layer_thickness, vertVelocityTopVar
       ! assume no error
       iErr = 0
 
@@ -202,8 +202,7 @@ contains
      !-----------
 
 
-      call mpas_pool_get_config(domain % configs, 'layer_1', layer_1)
-      call mpas_pool_get_config(domain % configs, 'layer_2', layer_2)
+      call mpas_pool_get_config(domain % configs,'config_vertical_advection_layer_thickness',config_vertical_advection_layer_thickness)
       call mpas_pool_get_config(domain % configs, 'vertVeclocityTopVar', vertVelocityTopVar )
 
      !----------------
@@ -283,10 +282,10 @@ contains
           
         do iCell = 1, nCellsSolve
 
-           if ( associated(debugTracers) ) then
-            ! generates the region inside the circle
-               debugTracers(:, int(layer_1):int(layer_2), iCell) = 1.0_RKIND
-           endif
+          ! if ( associated(debugTracers) ) then
+          !  ! generates the region inside the circle
+          !     debugTracers(:, int(layer_1):int(layer_2), iCell) = 1.0_RKIND
+          ! endif
           ! JAMIL NOTE: using  shared/mpas_ocn_diagnostics.F as a reference
           ! print *, associated(vertVelocityTop)
           ! output: -364690528          32
@@ -376,7 +375,8 @@ contains
 
 ! JAMIL NOTES
            if ( interfaceLocations(k) > bottomDepth(iCell) - config_vertical_advection_layer_thickness ) then
-               debug_tracer(:, k ,iCell) = 1.0_RKIND
+              debugTracers(:,k,iCell) = 1.0_RKIND
+
            endif
 
         end do
