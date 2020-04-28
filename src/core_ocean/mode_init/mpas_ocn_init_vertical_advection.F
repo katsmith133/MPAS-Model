@@ -373,10 +373,14 @@ contains
            layerThickness(k, iCell) = config_vertical_advection_bottom_depth * (interfaceLocations(k+1) - interfaceLocations(k))
            restingThickness(k, iCell) = layerThickness(k, iCell)
 
-! JAMIL NOTES
-           if ( interfaceLocations(k) > bottomDepth(iCell) - config_vertical_advection_layer_thickness ) then
-              debugTracers(:,k,iCell) = 1.0_RKIND
+           print *, interfaceLocations(k)
+           print *, bottomDepth(iCell)
+           print *, config_vertical_advection_layer_thickness
 
+
+           if ( interfaceLocations(k) > config_vertical_advection_bottom_depth - config_vertical_advection_layer_thickness ) then
+              debugTracers(:,k,iCell) = 1.0_RKIND
+              print *, "inside"
            endif
 
         end do
