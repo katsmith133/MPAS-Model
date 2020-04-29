@@ -68,14 +68,21 @@ def main():
     x,y = get_RMSE(folder)
     resolution.append(x)
     rmse.append(y)
-
+  
   print(resolution)
   print(rmse)
 
+  # find line of best fit
+  resolution = np.array(resolution)
+  rmse = np.array(rmse)
 
+  m,b = np.polyfit(resolution, rmse,1)
+  print("f(x) = m * x + B\n\tm: {}\n\tb: {}".format(m,b))
+
+  points = np.linspace(min(resolution), max(resolution),100)
+  plt.plot(points, m*points+b)
+  plt.title("y = {} x + {}".format(m,b))
   plt.yscale("log")
-  plt.xlim(0,26)
-  plt.ylim(.0045, .025)
   plt.scatter(resolution,rmse)
   plt.savefig("../visualization/rmse.png")
 
