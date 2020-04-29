@@ -21,13 +21,13 @@ measured by RPE is due to spurious numerical diffusion.
 	<test name="Vertical Advection 20km - Mesh Test" core="ocean" configuration="vert_test" resolution="20m" test="default">
 		<script name="run_test.py"/>
 	</test>
-        <test name="Vertical Advection 20km - Mesh Test" core="ocean" configuration="vert_test" resolution="25m" test="default">
+        <test name="Vertical Advection 25km - Mesh Test" core="ocean" configuration="vert_test" resolution="25m" test="default">
                 <script name="run_test.py"/>
         </test>
-        <test name="Vertical Advection 20km - Mesh Test" core="ocean" configuration="vert_test" resolution="50m" test="default">
+        <test name="Vertical Advection 50km - Mesh Test" core="ocean" configuration="vert_test" resolution="50m" test="default">
                 <script name="run_test.py"/>
         </test>
-        <test name="Vertical Advection 20km - Mesh Test" core="ocean" configuration="vert_test" resolution="100m" test="default">
+        <test name="Vertical Advection 100km - Mesh Test" core="ocean" configuration="vert_test" resolution="100m" test="default">
                 <script name="run_test.py"/>
         </test>
 
