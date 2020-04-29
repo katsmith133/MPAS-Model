@@ -25,7 +25,7 @@ def is_inside(point, center, radius):
 
 
   # calculates the distance from the point to the center
-  is_inside = x - center_x
+  is_inside = abs(x - center_x)
 
   # if the distance is <= radius; it is inside the circle
   return is_inside <= float(radius)
@@ -39,7 +39,7 @@ def get_RMSE(folder_name):
   # the center and radius of the cylindars starting point
   simulated_center_location_x =  250000.58 
   simulated_center_location_y =  216506.35 
-  radius = 500.0
+  radius = 50000
 
   # cylanders inital velocity
   vi = 1
@@ -55,11 +55,6 @@ def get_RMSE(folder_name):
   simulated_center_location_x = simulated_center_location_x + distance
 
   # generate the circle
-  #  theta = np.linspace(0, 2*np.pi, 100)
-  #  simulated_x = radius * np.cos(theta) + simulated_center_location_x
-  #  simulated_y = radius * np.sin(theta) + simulated_center_location_y
-
-
 
   # Grab the KPP file from the specific resolution study
   KPP = glob("../"+folder_name+"/default/forward/output/KPP*")
@@ -69,8 +64,9 @@ def get_RMSE(folder_name):
 
   # load data
   data = xr.open_dataset(KPP)
-  last_frame = data.tracer1.shape[0] -1
+  last_frame = data.tracer1.shape[0]-1
 
+  print(last_frame)
   # grab the number of cells
   nCells = data.dims['nCells']
   tracer_exact = np.zeros(nCells)
@@ -96,7 +92,7 @@ def get_RMSE(folder_name):
 
   # plot the simulated circle over the actual values
   plt.scatter(data.xCell, data.yCell, c=data.tracer1[last_frame,:,99], vmin=0, vmax=1)
-  plt.scatter(inside_x, inside_y)
+  plt.scatter(inside_x, inside_y,c="RED", alpha=.3)
   plt.savefig("../visualization/"+str(folder_name)+"_plot.png")
 
   # return the int(resolution) and the float(rmse)
@@ -118,7 +114,7 @@ def main():
 
   plt.yscale("log")
   plt.xlim(0,26)
-  plt.ylim(.03, .04)
+  plt.ylim(.17, .2)
   plt.scatter(resolution,rmse)
   plt.savefig("../visualization/rmse.png")
 
