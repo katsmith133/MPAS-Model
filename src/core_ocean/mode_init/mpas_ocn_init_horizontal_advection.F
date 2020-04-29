@@ -360,9 +360,9 @@ contains
 
         if(associated(debugTracers)) then
           if(config_horizontal_advection_zonalC .ne. 0) then
-             r_pt = xCell(iCell) - config_horizontal_advection_x_cent
+             r_pt = abs(xCell(iCell) - config_horizontal_advection_x_cent)
           elseif (config_horizontal_advection_meridionalC .ne. 0) then 
-             r_pt = yCell(iCell) - config_horizontal_advection_y_cent
+             r_pt = abs(yCell(iCell) - config_horizontal_advection_y_cent)
           else
              print *, 'error: either meridC or zonalC must be zero.'
           endif

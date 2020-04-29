@@ -33,7 +33,7 @@
         <option name="config_vertical_advection_temperature_gradient">0.0</option>
         <option name="config_vertical_advection_salinity_gradient">0.0</option>
         <option name="config_vertical_advection_vertical_grid">'uniform'</option>
-        <option name="config_vertical_advection_bottom_depth">400.0</option>
+        <option name="config_vertical_advection_bottom_depth">1000.0</option>
         <option name="config_vertical_advection_max_windstress">0.0</option>
         <option name="config_vertical_advection_coriolis_parameter">0.0</option>
         <option name="config_vertical_advection_temperature_gradient_mixed_layer">0.0</option>
@@ -43,7 +43,7 @@
         <option name="config_vertical_advection_mixed_layer_temperature_change">0.0</option>
         <option name="config_vertical_advection_mixed_layer_salinity_change">0.0</option>
                 <option name="config_vertical_advection_layer_thickness">100</option>
-                <option name="vertVelocityTopVar">.05</option>
+                <option name="config_vertical_advection_vert_velocity">.05</option>
 
 
     </namelist>
@@ -58,7 +58,8 @@
             <attribute name="clobber_mode">truncate</attribute>
             <attribute name="filename_template">ocean.nc</attribute>
             <add_contents>
-                <member name="input_init" type="stream"/>
+            <member name="input_init" type="stream"/>
+            <member name="vertAleTransportTop" type="var"/>
                 <member name="tracers" type="var_struct"/>
                 <member name="refZMid" type="var"/>
                 <member name="normalVelocity" type="var"/>

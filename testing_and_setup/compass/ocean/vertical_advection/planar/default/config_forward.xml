@@ -56,6 +56,7 @@
             <attribute name="clobber_mode">truncate</attribute>
             <attribute name="reference_time">0001-01-01_00:00:00</attribute>
             <add_contents>
+              <member name="vertAleTransportTop" type="var"/>
                 <member name="tracers" type="var_struct"/>
                 <member name="mesh" type="stream"/>
                 <member name="xtime" type="var"/>
