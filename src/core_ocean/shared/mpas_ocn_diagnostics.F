@@ -147,6 +147,7 @@ contains
       integer, pointer :: indexTemperature, indexSalinity
       logical, pointer :: config_use_cvmix_kpp
       logical, pointer :: config_use_wetting_drying
+      logical, pointer :: config_debug_fix_vertical_velocity 
       real (kind=RKIND), pointer :: config_apvm_scale_factor,  config_coef_3rd_order, config_cvmix_kpp_surface_layer_averaging
       character (len=StrKIND), pointer :: config_pressure_gradient_type
       character (len=StrKIND), pointer :: config_thickness_flux_type
@@ -168,6 +169,7 @@ contains
          timeLevel = 1
       end if
 
+      call mpas_pool_get_config(ocnConfigs, 'config_debug_fix_vertical_velocity', config_debug_fix_vertical_velocity)
       call mpas_pool_get_config(ocnConfigs, 'config_apvm_scale_factor', config_apvm_scale_factor)
       call mpas_pool_get_config(ocnConfigs, 'config_pressure_gradient_type', config_pressure_gradient_type)
       call mpas_pool_get_config(ocnConfigs, 'config_coef_3rd_order', config_coef_3rd_order)
@@ -353,8 +355,8 @@ contains
       !
       allocate(div_hu(nVertLevels),div_huTransport(nVertLevels),div_huGMBolus(nVertLevels))
 
+      if(.not. config_debug_fix_vertical_velocity) then
       !$omp do schedule(runtime)
-      ! JAMIL EDITS
       do iCell = 1, nCells
          divergence(:, iCell) = 0.0_RKIND
          kineticEnergyCell(:, iCell) = 0.0_RKIND
@@ -393,6 +395,7 @@ contains
          end do
       end do
       !$omp end do
+      endif
 
       deallocate(div_hu,div_huTransport,div_huGMBolus)
 
@@ -975,11 +978,11 @@ contains
       type (field2DReal), pointer :: ALE_ThicknessField, div_huField
 
       character (len=StrKIND), pointer :: config_vert_coord_movement
-
+      logical,pointer :: config_debug_fix_vertical_velocity
       err = 0
 
       call mpas_pool_get_config(ocnConfigs, 'config_vert_coord_movement', config_vert_coord_movement)
-
+      call mpas_pool_get_config(ocnConfigs, 'config_debug_fix_vertical_velocity', config_debug_fix_vertical_velocity)
       call mpas_pool_get_array(meshPool, 'nEdgesOnCell', nEdgesOnCell)
       call mpas_pool_get_array(meshPool, 'areaCell', areaCell)
       call mpas_pool_get_array(meshPool, 'edgesOnCell', edgesOnCell)
@@ -990,6 +993,8 @@ contains
 
       call mpas_pool_get_dimension(meshPool, 'nCellsArray', nCellsArray)
       call mpas_pool_get_dimension(meshPool, 'nVertLevels', nVertLevels)
+
+      if(config_debug_fix_vertical_velocity) return 
 
       if (config_vert_coord_movement.eq.'impermeable_interfaces') then
         vertAleTransportTop=0.0_RKIND

@@ -103,10 +103,12 @@
             description="Coriolis parameter for WSwSBF test case"
             possible_values="Any real number."
         />
-
+        <nml_option name="config_vertical_advection_vert_velocity" type="real" default_value="0.05" units="m s^{-1}"
+            description="constant vertical velocity for the test"
+            possible_values="Any positive real number"
+            />
         <nml_option name="config_vertical_advection_layer_thickness" type="real" default_value="100" units="m"
             description="config_vertical_advection_layer_thickness"
             possible_values="Any real number greater than zero."
         />
-        
 </nml_record>

@@ -102,7 +102,7 @@ contains
       real (kind=RKIND), dimension(:), pointer :: evaporationFlux,rainFlux
       real (kind=RKIND), dimension(:), pointer :: salinityRestore,bottomDepth, angleEdge
       real (kind=RKIND), dimension(:), pointer :: fCell, fEdge, fVertex,xCell, yCell
-      real (kind=RKIND), dimension(:, :), pointer :: layerThickness,restingThickness, normalVelocity, vertVelocityTop
+      real (kind=RKIND), dimension(:, :), pointer :: layerThickness,restingThickness, normalVelocity, vertAleTransportTop
       real (kind=RKIND), dimension(:, :, :), pointer :: activeTracers,debugTracers
       real (kind=RKIND), dimension(:, :), pointer ::activeTracersPistonVelocity, activeTracersSurfaceRestoringValue
       real (kind=RKIND), dimension(:, :, :), pointer ::activeTracersInteriorRestoringValue, activeTracersInteriorRestoringRate
@@ -142,7 +142,8 @@ contains
                                           config_vertical_advection_mixed_layer_depth_salinity,&
                                           config_vertical_advection_mixed_layer_temperature_change,&
                                           config_vertical_advection_mixed_layer_salinity_change,&
-                                          config_vertical_advection_layer_thickness, vertVelocityTopVar
+                                          config_vertical_advection_layer_thickness,          &
+                                          config_vertical_advection_vert_velocity
       ! assume no error
       iErr = 0
 
@@ -203,7 +204,7 @@ contains
 
 
       call mpas_pool_get_config(domain % configs,'config_vertical_advection_layer_thickness',config_vertical_advection_layer_thickness)
-      call mpas_pool_get_config(domain % configs, 'vertVeclocityTopVar', vertVelocityTopVar )
+      call mpas_pool_get_config(domain % configs, 'config_vertical_advection_vert_velocity', config_vertical_advection_vert_velocity )
 
      !----------------
      ! end Jamil edits
@@ -269,7 +270,7 @@ contains
         call mpas_pool_get_array(forcingPool, 'rainFlux', rainFlux)
 
         ! JAMIL NOTE: adding vertVelcoityTop to the code
-        call mpas_pool_get_array(diagnosticsPool, 'vertVelocityTop', vertVelocityTop)
+        call mpas_pool_get_array(diagnosticsPool, 'vertAleTransportTop', vertAleTransportTop)
         ! Set refBottomDepth and refBottomDepthTopOfCell
         do k = 1, nVertLevels
            refBottomDepth(k) = config_vertical_advection_bottom_depth *interfaceLocations(k+1)
@@ -279,7 +280,8 @@ contains
         ! Set vertCoordMovementWeights
         vertCoordMovementWeights(:) = 1.0_RKIND
         debugTracers(:,:,:) = 0.0_RKIND
-          
+        vertAleTransportTop(:,:) = 0.0_RKIND
+
         do iCell = 1, nCellsSolve
 
           ! if ( associated(debugTracers) ) then
@@ -287,12 +289,12 @@ contains
           !     debugTracers(:, int(layer_1):int(layer_2), iCell) = 1.0_RKIND
           ! endif
           ! JAMIL NOTE: using  shared/mpas_ocn_diagnostics.F as a reference
-          ! print *, associated(vertVelocityTop)
+          ! print *, associated(vertAleTransportTop)
           ! output: -364690528          32
           ! I think I am allocating vertVelcoityTop wrong? 
-          ! vertVelocityTop(:, iCell) = vertVelocityTopVar
-        
-
+          do k=1,nVertLevels+1
+            vertAleTransportTop(k, iCell) = config_vertical_advection_vert_velocity 
+          enddo
 
            if(associated(activeTracers) ) then
 
@@ -367,20 +369,16 @@ contains
         ! as a place holder, have some debug tracer in the top few
         ! layers and zero below
 
+        ! Set bottomDepth
+        bottomDepth(iCell) = config_vertical_advection_bottom_depth
 
         ! Set layerThickness
         do k = 1, nVertLevels
            layerThickness(k, iCell) = config_vertical_advection_bottom_depth * (interfaceLocations(k+1) - interfaceLocations(k))
            restingThickness(k, iCell) = layerThickness(k, iCell)
 
-           print *, interfaceLocations(k)
-           print *, bottomDepth(iCell)
-           print *, config_vertical_advection_layer_thickness
-
-
-           if ( interfaceLocations(k) > config_vertical_advection_bottom_depth - config_vertical_advection_layer_thickness ) then
+           if ( config_vertical_advection_bottom_depth * interfaceLocations(k) > bottomDepth(iCell) - config_vertical_advection_layer_thickness ) then
               debugTracers(:,k,iCell) = 1.0_RKIND
-              print *, "inside"
            endif
 
         end do
