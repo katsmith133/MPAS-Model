@@ -591,8 +591,6 @@ if __name__ == "__main__":
                 regression_script, regression_script_code = setup_suite(suite_root, args.work_dir, args.model_runtime,args.config_file, args.baseline_dir, args.verbose)
                 regression_script.write(regression_script_code)
 
-            print(data)
-
             if args.verbose:
                 cmd = ['cat',
                        args.work_dir + '/manage_regression_suite.py.out']
