@@ -231,7 +231,7 @@ def write_regression_local_parallel_bottom(local_parallel_code):
   local_parallel_code += "    os.chdir(data[0])\n"
   local_parallel_code += "    try:\n"
   local_parallel_code += "        subprocess.check_call(data[1], stdout=case_output, stderr=case_output)\n"
-  local_parallel_code += "        print('      PASS ' + str(data[0]))\n"
+  local_parallel_code += "        print('      PASSED: ' + str(data[0]))\n"
   local_parallel_code += "    except subprocess.CalledProcessError:\n"
   local_parallel_code += "        print('   ** FAIL '+ str(data[0])  + '(See case_outputs)')\n"
   local_parallel_code += "        test_failed = True\n"
@@ -239,9 +239,11 @@ def write_regression_local_parallel_bottom(local_parallel_code):
   local_parallel_code += "    os.chdir(base_path)\n"
   local_parallel_code += "\n\n\n"
   local_parallel_code += "# to prevent over subscription of prcosses we divide the number of cores we have by the max to ensure we always have enough cores\n"
-  local_parallel_code += "p = mp.Pool( int(mp.cpu_count() -"+ str(data["max_procs"][0]) + ") -len(datas) )\n"
+  local_parallel_code += "start_time = time.time()\n"
+  local_parallel_code += "p = mp.Pool( int(mp.cpu_count() -"+ str(data["max_procs"][0]) + ") )\n"
   local_parallel_code += "p.map(myProcess, datas)\n"
-
+  local_parallel_code += "end_time = time.time()\n"
+  local_parallel_code += "print('parallel run time: {} min'.format((end_time - start_time) / 60))\n"
   local_parallel_code = write_regression_script_data_bottom(local_parallel_code)
 
   return local_parallel_code
@@ -251,6 +253,7 @@ def write_regression_local_parallel_bottom(local_parallel_code):
 
 def write_regression_local_parallel_top(work_dir):
   local_parallel_code = "#!/usr/bin/env python\n\n\n"
+  local_parallel_code += "import time\n"
   local_parallel_code += "import sys\n"
   local_parallel_code += "import os\n"
   local_parallel_code += "import subprocess\n"
