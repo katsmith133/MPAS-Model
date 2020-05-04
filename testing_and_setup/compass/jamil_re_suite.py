@@ -215,7 +215,6 @@ def write_regression_local_parallel_data(local_parallel_code,work_dir):
   index = 0
   for key in list(data.keys()):
     if not "max" in key:
-      print("processing key {}:\n\t{}".format(key, data[key]))
       location = "/".join(data[key][:-1])
       local_parallel_code += "locations.append('"+location+"')\n"
       command = work_dir + "/" +  "/".join(data[key][:-1]) + "/run_test.py"
@@ -232,14 +231,15 @@ def write_regression_local_parallel_bottom(local_parallel_code):
   local_parallel_code += "    os.chdir(data[0])\n"
   local_parallel_code += "    try:\n"
   local_parallel_code += "        subprocess.check_call(data[1], stdout=case_output, stderr=case_output)\n"
-  local_parallel_code += "        print('      PASS')\n"
+  local_parallel_code += "        print('      PASS ' + str(data[0]))\n"
   local_parallel_code += "    except subprocess.CalledProcessError:\n"
-  local_parallel_code += "        print('   ** FAIL (See case_outputs/Horizontal_Advection_5km_-_Mesh_Test for more information)')\n"
+  local_parallel_code += "        print('   ** FAIL '+ str(data[0])  + '(See case_outputs)')\n"
   local_parallel_code += "        test_failed = True\n"
   local_parallel_code += "    case_output.close()\n"
   local_parallel_code += "    os.chdir(base_path)\n"
   local_parallel_code += "\n\n\n"
-  local_parallel_code += "p = mp.Pool()\n"
+  local_parallel_code += "# to prevent over subscription of prcosses we divide the number of cores we have by the max to ensure we always have enough cores\n"
+  local_parallel_code += "p = mp.Pool( int(mp.cpu_count() -"+ str(data["max_procs"][0]) + ") -len(datas) )\n"
   local_parallel_code += "p.map(myProcess, datas)\n"
 
   local_parallel_code = write_regression_script_data_bottom(local_parallel_code)
@@ -338,6 +338,7 @@ def setup_suite(suite_tag, work_dir, model_runtime, config_file, baseline_dir,
         open(work_dir + '/manage_regression_suite.py.out', 'w').close()
  
     regression_script_code = ""
+
 
     if not args.local_parallel:
         # Create regression suite run script
@@ -452,7 +453,6 @@ def summarize_suite(suite_tag):  #
 
                     config_tree = ET.parse(config_file)
                     config_root = config_tree.getroot()
-
                     if config_root.tag == 'config':
                         case = config_root.attrib['case']
                         if case in cases:
@@ -468,7 +468,8 @@ def summarize_suite(suite_tag):  #
                                     threads = int(threads_str)
                                 except (KeyError, ValueError):
                                     threads = 1
-
+                                print(config_root)
+                                print(model_run)
                                 cores = threads * procs
                                 if procs > max_procs:
                                     max_procs = procs
@@ -577,21 +578,18 @@ if __name__ == "__main__":
         # If setting up, set up the suite
         if args.setup:
             print("\n")
-            print("Setting Up Test Cases:")
-            #summarize_suite(suite_root)
+            summarize_suite(suite_root)
+            print("\n\nSetting Up Test Cases:")
             if args.local_parallel:
                  # write parallel thing #
                  local_parallel_script, local_parallel_code = local_parallel_setup_script(args.work_dir)
-                 print("writing")
                  local_parallel_script.write(local_parallel_code)
-                 print("done\n\n\n")
-                 print(data)
             else:
                 regression_script, regression_script_code = setup_suite(suite_root, args.work_dir, args.model_runtime,args.config_file, args.baseline_dir, args.verbose)
                 regression_script.write(regression_script_code)
 
+            print(data)
 
-            summarize_suite(suite_root)
             if args.verbose:
                 cmd = ['cat',
                        args.work_dir + '/manage_regression_suite.py.out']
