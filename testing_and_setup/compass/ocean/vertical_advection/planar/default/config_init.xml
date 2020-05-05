@@ -105,6 +105,8 @@
 
     <run_script name="run.py">
 
+        <model_run procs="8" threads="1" namelist="namelist.ocean" streams="streams.ocean"/>
+
         <step executable="planar_hex">
             <argument flag="--nx">100</argument>
             <argument flag="--ny">100</argument>
@@ -112,12 +114,12 @@
             <argument flag="--outFileName">mesh.nc</argument>
         </step>
 
-    <step executable="MpasMeshConverter.x">
-        <argument flag="">mesh.nc</argument>
-        <argument flag="">mesh2.nc</argument>
-    </step>
+        <step executable="MpasMeshConverter.x">
+           <argument flag="">mesh.nc</argument>
+           <argument flag="">mesh2.nc</argument>
+        </step>
      
-       <step executable="mpirun">
+        <step executable="mpirun">
             <argument flag="-n">1</argument>
             <argument flag="">./ocean_model</argument>
             <argument flag="-n">namelist.ocean</argument>
