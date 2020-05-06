@@ -29,6 +29,8 @@ module ocn_time_integration
    use mpas_spline_interpolation
    use mpas_timer
    use mpas_log
+   use ocn_gm
+   use ocn_config
 
    use ocn_constants
    use ocn_time_integration_rk4
@@ -96,12 +98,25 @@ module ocn_time_integration
       type (dm_info) :: dminfo
       type (block_type), pointer :: block
 
-      type (mpas_pool_type), pointer :: diagnosticsPool, statePool, meshPool
+      type (mpas_pool_type), pointer :: scratchPool, diagnosticsPool, statePool, meshPool
 
       character (len=StrKIND), pointer :: xtime
       real (kind=RKIND), pointer :: daysSinceStartOfSim
       character (len=StrKIND), pointer :: simulationStartTime
       type (MPAS_Time_type) :: xtime_timeType, simulationStartTime_timeType
+
+      if (config_use_Redi.or.config_use_GM) then
+      block => domain % blocklist
+      do while (associated(block))
+        call mpas_pool_get_subpool(block % structs, 'state', statePool)
+        call mpas_pool_get_subpool(block % structs, 'diagnostics', diagnosticsPool)
+        call mpas_pool_get_subpool(block % structs, 'mesh', meshPool)
+        call mpas_pool_get_subpool(block % structs, 'scatch', scratchPool)
+
+        call ocn_gm_compute_Bolus_velocity(statePool, diagnosticsPool, meshPool, scratchPool, timeLevelIn=1)
+        block_ptr => block_ptr%next
+      enddo
+    endif
 
 
       if (rk4On) then
