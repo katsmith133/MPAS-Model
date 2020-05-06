@@ -114,7 +114,7 @@ module ocn_time_integration
         call mpas_pool_get_subpool(block % structs, 'scatch', scratchPool)
 
         call ocn_gm_compute_Bolus_velocity(statePool, diagnosticsPool, meshPool, scratchPool, timeLevelIn=1)
-        block_ptr => block_ptr%next
+        block => block%next
       enddo
     endif
 
