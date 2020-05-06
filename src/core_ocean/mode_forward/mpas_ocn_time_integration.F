@@ -111,7 +111,7 @@ module ocn_time_integration
         call mpas_pool_get_subpool(block % structs, 'state', statePool)
         call mpas_pool_get_subpool(block % structs, 'diagnostics', diagnosticsPool)
         call mpas_pool_get_subpool(block % structs, 'mesh', meshPool)
-        call mpas_pool_get_subpool(block % structs, 'scatch', scratchPool)
+        call mpas_pool_get_subpool(block % structs, 'scratch', scratchPool)
 
         call ocn_gm_compute_Bolus_velocity(statePool, diagnosticsPool, meshPool, scratchPool, timeLevelIn=1)
         block => block%next
