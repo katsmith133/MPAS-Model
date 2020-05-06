@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 import time
 import sys
 import os
@@ -8,7 +7,10 @@ import subprocess
 import numpy as np
 from multiprocessing import Process
 out, err = subprocess.Popen(['nproc'],stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
-number_of_procs = int(out.split()[0])
+
+max_procs = int(out.split()[0])
+number_of_procs = max_procs
+
 print('Number of usable Processors: {}'.format(number_of_procs))
 os.environ['PYTHONUNBUFFERED'] = '1'
 test_failed=False
@@ -40,53 +42,56 @@ procs.append(8)
 datas.append([locations[2], commands[2]])
 
 
-def myProcess(data):
+def task(data):
     case_output = open('case_outputs/'+data[0].replace('/', '_'), 'w')
-    print(' Running case {}'.format(data[0]))
+    print(' Running case @ {}'.format(data[0]))
+    print(' Running command: {}'.format(data[1]))
     os.chdir(data[0])
-    try:
-        print("PROCESSING COMMAND: {}".format(data[1]))
-        subprocess.call(data[1],stdout=case_output, stderr=case_output)
-        print('      PASSED: ' + str(data[0]))
-    except subprocess.CalledProcessError:
-        print('   ** FAIL '+ str(data[0])  + '(See case_outputs)')
-        test_failed = True
-    case_output.close()
-    os.chdir(base_path)
-
-
+    subprocess.check_call(data[1])
 
 start_time = time.time()
-index  = 0
-max_procs = number_of_procs
-running =[]
+
+running = []
+index = 0
+
 while True:
+
   assert max_procs >= number_of_procs
 
-  if index-1 > len(datas) and len(running) == 0:
+  print("current index : {}".format(index))
+  print("number_of_procs processes: {}".format(number_of_procs))
+  if index > len(procs)-1:
     break ;
-  
-  print("number of procs: {}\nindex: {}".format(number_of_procs, index))
-  print("procs[index]: {}".format(procs[index]))
+
   if number_of_procs >= procs[index]:
+    print("we have {} number_of_procs, current task uses {} added to queue".format(number_of_procs, procs[index]))
     number_of_procs = number_of_procs - procs[index]
-    proc = Process(target=myProcess, args=(datas[index], ))
+    proc = Process(target=task, args=(datas[index],))
     running.append([proc, procs[index]])
     proc.start()
-    index = index + 1
-  else:
+    
+  
+  if index == len(procs)-1 or  number_of_procs < procs[index] :
+    print("not enough procs waiting till some finish or started all in queue")
     while True:
-      if number_of_procs >= data[index]:
-        break ;
+      if number_of_procs >= procs[index]:
+        break
       else:
-        for runner in running:
-          runner[0].wait()
-          if not running[0].is_alive():
-            number_of_procs += running[1]
-            running.remove(runner)
+        for proc in running:
+          proc[0].join()
+          if not proc[0].is_alive():
+            number_of_procs += proc[1]
+            running.remove(proc)
+
+   
+  index = index + 1   
+
+
 
 end_time = time.time()
 print('parallel run time: {} min'.format((end_time - start_time) / 60))
+quit()
+
 print('TEST RUNTIMES:')
 case_output = '/case_outputs/'
 totaltime = 0

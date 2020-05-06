@@ -1,7 +1,8 @@
 from multiprocessing import Process
 import time
 import subprocess
-available = 40
+max_procs = 40
+number_of_procs = 40
 tasks = [10,10,20,20,10]
 
 running = []
@@ -13,28 +14,29 @@ def task(message):
   print(single_proc.communicate()[0])
 
 while True:
+  assert max_procs >= number_of_procs
   print("current index : {}".format(index))
-  print("available processes: {}".format(available))
+  print("number_of_procs processes: {}".format(number_of_procs))
   if index >= len(tasks):
     break ;
 
-  if available >= tasks[index]:
-    print("we have {} available, current task uses {} added to queue".format(available, tasks[index]))
-    available = available - tasks[index]
-    command = "echo available {}, used {}".format(available, tasks[index])
+  if number_of_procs >= tasks[index]:
+    print("we have {} number_of_procs, current task uses {} added to queue".format(number_of_procs, tasks[index]))
+    number_of_procs = number_of_procs - tasks[index]
+    command = "echo number_of_procs {}, used {}".format(number_of_procs, tasks[index])
     proc = Process(target=task, args=(command,))
     running.append([proc, tasks[index]])
     proc.start()
     index = index + 1
   else:
     print("not enough procs waiting till some finish")
-    print("\tavailable: {}\n\tindex: {}\n\tnext task: {}".format(available, index, tasks[index]))
+    print("\tnumber_of_procs: {}\n\tindex: {}\n\tnext task: {}".format(number_of_procs, index, tasks[index]))
     while True:
-      if available >= tasks[index]:
+      if number_of_procs >= tasks[index]:
         break
       else:
         for proc in running:
           proc[0].join(timeout=0)
           if not proc[0].is_alive():
-            available += proc[1]
+            number_of_procs += proc[1]
 

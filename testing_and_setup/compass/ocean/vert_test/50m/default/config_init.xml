@@ -103,7 +103,7 @@
     </streams>
 
     <run_script name="run.py">
-        <model_run procs="8" threads="1" namelist="namelist.ocean" streams="streams.ocean"/>
+        <model_run procs="1" threads="1" namelist="namelist.ocean" streams="streams.ocean"/>
         <step executable="planar_hex">
             <argument flag="--nx">100</argument>
             <argument flag="--ny">100</argument>

@@ -377,7 +377,7 @@ contains
            layerThickness(k, iCell) = config_vertical_advection_bottom_depth * (interfaceLocations(k+1) - interfaceLocations(k))
            restingThickness(k, iCell) = layerThickness(k, iCell)
 
-           if ( config_vertical_advection_bottom_depth * interfaceLocations(k) > bottomDepth(iCell) - config_vertical_advection_layer_thickness ) then
+           if ( config_vertical_advection_bottom_depth * interfaceLocations(k) >= bottomDepth(iCell) - config_vertical_advection_layer_thickness ) then
               debugTracers(:,k,iCell) = 1.0_RKIND
            endif
 
