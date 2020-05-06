@@ -279,7 +279,7 @@ def write_regression_local_parallel_top(work_dir):
   local_parallel_code += "base_path = '"+ work_dir + "'\n"
   local_parallel_code += "os.chdir(base_path)\n"
   local_parallel_code += "locations = []\n"
-  local_parallel_code += "procs = []"
+  local_parallel_code += "procs = []\n"
   local_parallel_code += "commands = []\n"
   local_parallel_code += "datas = []\n\n\n"
 
