@@ -79,6 +79,10 @@
         <step executable="gpmetis">
             <argument flag="graph.info">8</argument>
         </step>
+
+        <model_run procs="8" threads="1" namelist="namelist.ocean" streams="streams.ocean"/>
+
+
         <step executable="mpirun">
             <argument flag="-n">8</argument>
             <argument flag="">./ocean_model</argument>
