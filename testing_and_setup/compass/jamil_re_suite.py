@@ -23,6 +23,7 @@ import xml.etree.ElementTree as ET
 import subprocess
 
 data = {}
+proc_data = {}
 suite_root = None
 
 def process_test_setup(test_tag, config_file, work_dir, model_runtime,
@@ -97,7 +98,7 @@ def process_test_setup(test_tag, config_file, work_dir, model_runtime,
 
     print("   -- Setup case '{}': -o {} -c {} -r {} -t {}".format(
         test_name, test_core, test_configuration, test_resolution, test_test))
-    data[test_name] = [test_core,  test_configuration, test_resolution, test_test, case_output_name,]
+    data[test_name] = [test_core,  test_configuration, test_resolution, test_test]
 
     # Write step into suite script to cd into the base of the regression suite
     regression_script_code += "os.chdir(base_path)\n"
@@ -201,11 +202,19 @@ def process_test_clean(test_tag, work_dir, suite_script):
 
     dev_null.close()
 
+def combine():
+  for key in list(data.keys()):
+    if not "max" in key:
+      value = "/".join(data[key])
+      data[key].append(proc_data[value])
+
+
 def local_parallel_setup_script(work_dir):
   local_parallel_script = open('{}'.format("temp_local_parallel.py"), 'w')
   local_parallel_code = write_regression_local_parallel_top(work_dir)
 
   setup_suite(suite_root, args.work_dir, args.model_runtime,args.config_file, args.baseline_dir, args.verbose)
+  combine()
   local_parallel_code = write_regression_local_parallel_data(local_parallel_code, work_dir)
   local_parallel_code = write_regression_local_parallel_bottom(local_parallel_code)
 
@@ -219,6 +228,7 @@ def write_regression_local_parallel_data(local_parallel_code,work_dir):
       local_parallel_code += "locations.append('"+location+"')\n"
       command = work_dir + "/" +  "/".join(data[key][:-1]) + "/run_test.py"
       local_parallel_code += "commands.append(['time' , '-p' , '"+command + "'])\n"
+      local_parallel_code += "procs.append("+str(data[key][-1])+")\n"
       local_parallel_code += "datas.append([locations[" +str(index)+"], commands["+str(index)+"]])\n\n\n"
       index += 1
   
@@ -259,6 +269,9 @@ def write_regression_local_parallel_top(work_dir):
   local_parallel_code += "import subprocess\n"
   local_parallel_code += "import numpy as np\n"
   local_parallel_code += "import multiprocessing as mp\n"
+  local_parallel_code += "out, err = subprocess.Popen(['nproc'],stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()\n"
+  local_parallel_code += "number_of_procs = int(out.split()[0])\n"
+  local_parallel_code += "print('Number of usable Processors: {}'.format(number_of_procs))\n"
   local_parallel_code += "os.environ['PYTHONUNBUFFERED'] = '1'\n"
   local_parallel_code += "test_failed=False\n"
   local_parallel_code += "if not os.path.exists('case_outputs'):\n"
@@ -266,6 +279,7 @@ def write_regression_local_parallel_top(work_dir):
   local_parallel_code += "base_path = '"+ work_dir + "'\n"
   local_parallel_code += "os.chdir(base_path)\n"
   local_parallel_code += "locations = []\n"
+  local_parallel_code += "procs = []"
   local_parallel_code += "commands = []\n"
   local_parallel_code += "datas = []\n\n\n"
 
@@ -453,7 +467,6 @@ def summarize_suite(suite_tag):  #
                 if fnmatch.fnmatch(file, '*.xml'):
                     # Build full file name
                     config_file = '{}/{}'.format(test_path, file)
-
                     config_tree = ET.parse(config_file)
                     config_root = config_tree.getroot()
                     if config_root.tag == 'config':
@@ -471,12 +484,11 @@ def summarize_suite(suite_tag):  #
                                     threads = int(threads_str)
                                 except (KeyError, ValueError):
                                     threads = 1
-                                print(config_root)
-                                print(model_run)
                                 cores = threads * procs
+                                proc_data[str(test_path)] = procs
                                 if procs > max_procs:
                                     max_procs = procs
-
+                                
                                 if threads > max_threads:
                                     max_threads = threads
 
@@ -491,10 +503,7 @@ def summarize_suite(suite_tag):  #
     print("      Maximum MPI tasks used: {:d}".format(max_procs))
     print("      Maximum OpenMP threads used: {:d}".format(max_threads))
     print("      Maximum Total Cores used: {:d}".format(max_cores))
-    data["max_procs"]   = [max_procs]
-    data["max_threads"] = [max_threads]
-    data["max_cores"]   = [max_cores]
-
+    data["max_procs"] = [max_procs]
 
 if __name__ == "__main__":
     # Define and process input arguments
@@ -590,7 +599,6 @@ if __name__ == "__main__":
             else:
                 regression_script, regression_script_code = setup_suite(suite_root, args.work_dir, args.model_runtime,args.config_file, args.baseline_dir, args.verbose)
                 regression_script.write(regression_script_code)
-
             if args.verbose:
                 cmd = ['cat',
                        args.work_dir + '/manage_regression_suite.py.out']
@@ -626,6 +634,5 @@ if __name__ == "__main__":
         history_file.write('**************************************************'
                            '*********************\n')
         history_file.close()
-
 
 # vim: foldmethod=marker ai ts=4 sts=4 et sw=4 ft=python
