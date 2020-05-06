@@ -9,7 +9,8 @@ index = 0
 
 def task(message):
   time.sleep(1)
-  print(message)
+  single_proc = subprocess.Popen([message],shell=True,stdout=subprocess.PIPE)
+  print(single_proc.communicate()[0])
 
 while True:
   print("current index : {}".format(index))
