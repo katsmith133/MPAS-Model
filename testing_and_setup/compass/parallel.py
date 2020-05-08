@@ -4,6 +4,7 @@ import time
 import sys
 import os
 import subprocess
+import psutil
 import numpy as np
 from multiprocessing import Process
 out, err = subprocess.Popen(['nproc'],stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
@@ -41,56 +42,72 @@ commands.append(['time' , '-p' , '/lustre/scratch4/turquoise/.mdt2/jamilg/MPAS-M
 procs.append(8)
 datas.append([locations[2], commands[2]])
 
-
-def task(data):
-    case_output = open('case_outputs/'+data[0].replace('/', '_'), 'w')
-    print(' Running case @ {}'.format(data[0]))
-    print(' Running command: {}'.format(data[1]))
-    os.chdir(data[0])
-    subprocess.check_call(data[1])
-
 start_time = time.time()
 
-running = []
+Queue_running = []
 index = 0
-
+continue_add = True
+Done = False
+print_index = 0
+base = os.getcwd()
 while True:
+  if continue_add and not Done:
+    print("-----------IN ADDING PHASE----------")
+    if number_of_procs >= procs[index]:
+      print("we have {} number_of_procs, current task uses {}\n\tAdding to queue".format(number_of_procs, procs[index]))
+      try:
+        case_output = open('case_outputs/'+datas[index][0].replace('/', '_'), 'w+')
+        #chdir_proc = "cd " + str(base) + "/"+str(datas[index][0]) + ";"
+        #chdir_base = "cd " + str(base) + ";"
+        #datas[index][1].insert(0, chdir_proc)
+        #datas[index][1].append(chdir_base)
+        print("processing command: {}".format(datas[index][1])) 
+        os.chdir(datas[index][0])
+        open_proc = subprocess.Popen(datas[index][1],  stdout=case_output, stderr=case_output)
+        os.chdir(base)
+        Queue_running.append([open_proc, procs[index], datas[index][1]])
+        number_of_procs = number_of_procs - procs[index]
+        print("\tNew number_of_procs: {}".format(number_of_procs))
+      except subprocess.CalledProcessError:
+        print("error for : " + str(data[1]))
+    elif number_of_procs < procs[index]:
+      print("NOT ENOUGH WAIT FOR PROCESSES")
+      continue_add = False
+    index = index + 1
+    if index > len(procs) -1:
+      print("No more to add moving to processing phase")
+      continue_add = False
 
-  assert max_procs >= number_of_procs
-
-  print("current index : {}".format(index))
-  print("number_of_procs processes: {}".format(number_of_procs))
-  if index > len(procs)-1:
-    break ;
-
-  if number_of_procs >= procs[index]:
-    print("we have {} number_of_procs, current task uses {} added to queue".format(number_of_procs, procs[index]))
-    number_of_procs = number_of_procs - procs[index]
-    proc = Process(target=task, args=(datas[index],))
-    running.append([proc, procs[index]])
-    proc.start()
-    
-  
-  if index == len(procs)-1 or  number_of_procs < procs[index] :
-    print("not enough procs waiting till some finish or started all in queue")
-    while True:
-      if number_of_procs >= procs[index]:
-        break
-      else:
-        for proc in running:
-          proc[0].join()
-          if not proc[0].is_alive():
-            number_of_procs += proc[1]
-            running.remove(proc)
-
-   
-  index = index + 1   
-
+  elif not continue_add and not Done:
+    if print_index % 10000000 == 0:
+      print("Cant add and not done")
+    for background_process in Queue_running:
+      print_index = print_index + 1
+      background_process[0].wait()
+      pid = background_process[0].pid
+      if not psutil.pid_exists(pid):
+        Queue_running.remove(background_process)
+        print(str(pid) +" compleated")
+        number_of_procs = number_of_procs + background_process[1]
+        if index < len(procs)-1:
+          print("STILL HAVE MORE TO PROCESS")
+          if number_of_procs >= procs[index]:
+            print("enough processor free; going to add stage")
+            continue_add = True
+            #break
+        else:
+          print("NO MORE TO ADD")
+          if len(Queue_running) == 0:
+            print("all running processes Done leaving")
+            Done = True
+            continue_add = False
+  elif Done and not continue_add:
+    print("done with all")
+    break 
 
 
 end_time = time.time()
 print('parallel run time: {} min'.format((end_time - start_time) / 60))
-quit()
 
 print('TEST RUNTIMES:')
 case_output = '/case_outputs/'
