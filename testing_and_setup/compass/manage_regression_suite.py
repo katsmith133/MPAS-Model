@@ -226,7 +226,7 @@ def local_parallel_setup_script(work_dir, suite_tag, verbose):
     # flush existing regression suite output file
     open(work_dir + '/manage_regression_suite.py.out', 'w').close()
 
-  regression_script_name = '{}/temp_{}.py'.format(work_dir, suite_name)
+  regression_script_name = '{}/parallel_{}.py'.format(work_dir, suite_name)
   local_parallel_script = open('{}'.format(regression_script_name), 'w')
   local_parallel_code = write_regression_local_parallel_top(work_dir)
 
