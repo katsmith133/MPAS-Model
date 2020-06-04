@@ -11,24 +11,25 @@
         <option name="config_dt">'00:01:00'</option>
         <option name="config_run_duration">'0000_05:00:00'</option>
         <option name="config_block_decomp_file_prefix">'graph.info.part.'</option>
-        <option name="config_time_integrator">'unsplit_explicit'</option>
-                <option name="config_disable_thick_all_tend">.true.</option>
-                <option name="config_disable_thick_hadv">.true.</option>
-                <option name="config_disable_thick_vadv">.true.</option>
-                <option name="config_disable_thick_sflux">.true.</option>
-                <option name="config_disable_vel_all_tend">.true.</option>
-                <option name="config_disable_vel_coriolis">.true.</option>
-                <option name="config_disable_vel_pgrad">.true.</option>
-                <option name="config_disable_vel_hmix">.true.</option>
-                <option name="config_disable_vel_surface_stress">.true.</option>
-                <option name="config_disable_vel_explicit_bottom_drag">.true.</option>
-                <option name="config_disable_vel_vmix">.true.</option>
-                <option name="config_disable_vel_vadv">.true.</option>
-                <option name="config_disable_tr_hmix">.true.</option>
-                <option name="config_disable_tr_vmix">.true.</option>
-                <option name="config_disable_tr_sflux">.true.</option>
-                <option name="config_disable_tr_nonlocalflux">.true.</option>
-                <option name="config_use_cvmix">.false.</option>
+        <option name="config_time_integrator">'RK4'</option>
+        <option name="config_debug_fix_vertical_velocity">.true.</option>
+        <option name="config_disable_thick_all_tend">.true.</option>
+        <option name="config_disable_thick_hadv">.true.</option>
+        <option name="config_disable_thick_vadv">.true.</option>
+        <option name="config_disable_thick_sflux">.true.</option>
+        <option name="config_disable_vel_all_tend">.true.</option>
+        <option name="config_disable_vel_coriolis">.true.</option>
+        <option name="config_disable_vel_pgrad">.true.</option>
+        <option name="config_disable_vel_hmix">.true.</option>
+        <option name="config_disable_vel_surface_stress">.true.</option>
+        <option name="config_disable_vel_explicit_bottom_drag">.true.</option>
+        <option name="config_disable_vel_vmix">.true.</option>
+        <option name="config_disable_vel_vadv">.true.</option>
+        <option name="config_disable_tr_hmix">.true.</option>
+        <option name="config_disable_tr_vmix">.true.</option>
+        <option name="config_disable_tr_sflux">.true.</option>
+        <option name="config_disable_tr_nonlocalflux">.true.</option>
+        <option name="config_use_cvmix">.false.</option>
         <option name="config_eos_type">'linear'</option>
         <option name="config_use_bulk_wind_stress">.false.</option>
         <option name="config_use_activeTracers_surface_restoring">.false.</option>
@@ -36,9 +37,7 @@
         <option name="config_use_bulk_thickness_flux">.false.</option>
         <option name="config_use_activeTracers">.true.</option>
         <option name="config_use_debugTracers">.true.</option>
-        <option name="config_use_activeTracers_surface_bulk_forcing">.true.</option>
-
-        <template file="mixed_layer_depths.xml" path_base="script_core_dir" path="templates/analysis_members"/>
+        <option name="config_use_activeTracers_surface_bulk_forcing">.false.</option>
     </namelist>
 
     <streams name="streams.ocean" keep="immutable" mode="forward">
@@ -69,10 +68,6 @@
                 <member name="relativeVorticityCell" type="var"/>
             </add_contents>
         </stream>
-        <template file="KPP_testing.xml" path_base="script_core_dir" path="templates/streams"/>
-        <template file="forcing_data.xml" path_base="script_core_dir" path="templates/streams"/>
-        <template file="mixed_layer_depths.xml" path_base="script_core_dir" path="templates/analysis_members"/>
-
     </streams>
 
     <run_script name="run.py">

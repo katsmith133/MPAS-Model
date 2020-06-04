@@ -1701,6 +1701,7 @@
 				immutable="true"
 				mode="forward;analysis">
 
+        <var name="vertAleTransportTop"/>
 			<stream name="mesh"/>
 			<var_struct name="tracers"/>
 			<var name="normalVelocity"/>

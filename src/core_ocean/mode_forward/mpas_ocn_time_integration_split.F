@@ -142,6 +142,7 @@ module ocn_time_integration_split
       logical, pointer :: config_use_tracerGroup
       logical, pointer :: config_compute_active_tracer_budgets
       logical, pointer :: config_use_tidal_potential_forcing
+      logical, pointer :: config_debug_fix_vertical_velocity
 
       character (len=StrKIND), pointer :: config_land_ice_flux_mode
 
@@ -249,7 +250,7 @@ module ocn_time_integration_split
       call mpas_pool_get_config(domain % configs, 'config_disable_tr_all_tend', config_disable_tr_all_tend)
       call mpas_pool_get_config(domain % configs, 'config_use_tidal_potential_forcing', config_use_tidal_potential_forcing)
       call mpas_pool_get_config(domain % configs, 'config_self_attraction_and_loading_beta',config_self_attraction_and_loading_beta)
-
+      call mpas_pool_get_config(domain % configs, 'config_debug_fix_vertical_velocity', config_debug_fix_vertical_velocity)
       call mpas_pool_get_config(domain % configs, 'config_prescribe_velocity', config_prescribe_velocity)
       call mpas_pool_get_config(domain % configs, 'config_prescribe_thickness', config_prescribe_thickness)
 
@@ -333,6 +334,7 @@ module ocn_time_integration_split
          end do
          !$omp end do
 
+         if(.not. config_debug_fix_vertical_velocity) then
          !$omp do schedule(runtime) private(k)
          do iCell = 1, nCells
             sshNew(iCell) = sshCur(iCell)
@@ -343,6 +345,7 @@ module ocn_time_integration_split
             end do
          end do
          !$omp end do
+         endif
 
          call mpas_pool_begin_iteration(tracersPool)
          do while ( mpas_pool_get_next_member(tracersPool, groupItr))
