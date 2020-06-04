@@ -102,7 +102,7 @@ contains
 
       integer :: iCell, iEdge, iVertex, k, kML
 
-      real (kind=RKIND) :: BLdepth, r_pt
+      real (kind=RKIND) :: gaussMean, BLdepth, r_pt
 
       character (len=StrKIND), pointer :: config_init_configuration, &
                                           config_vertical_advection_vertical_grid
@@ -136,10 +136,6 @@ contains
       call mpas_pool_get_config(domain % configs,'config_vertical_advection_layer_thickness',config_vertical_advection_layer_thickness)
       call mpas_pool_get_config(domain % configs, 'config_vertical_advection_vert_velocity', config_vertical_advection_vert_velocity )
 
-     !----------------
-     ! end Jamil edits
-     !---------------
-
       ! load data that required to initialize the ocean simulation
       block_ptr => domain % blocklist
       do while(associated(block_ptr))
@@ -166,7 +162,6 @@ contains
         call mpas_pool_get_array(meshPool, 'angleEdge', angleEdge)
         call mpas_pool_get_array(statePool, 'normalVelocity',normalVelocity)
         
-
         call mpas_pool_get_array(verticalMeshPool, 'refZMid', refZMid)
         call mpas_pool_get_array(verticalMeshPool, 'restingThickness',restingThickness)
 
@@ -208,12 +203,13 @@ contains
           do k = 1, nVertLevels
             layerThickness(k, iCell) = config_vertical_advection_bottom_depth * (interfaceLocations(k+1) - interfaceLocations(k))
             restingThickness(k, iCell) = layerThickness(k, iCell)
-
-            if ( config_vertical_advection_bottom_depth * interfaceLocations(k) >= bottomDepth(iCell) - config_vertical_advection_layer_thickness ) then
-              debugTracers(:,k,iCell) = 1.0_RKIND
-            endif
-
           end do
+
+          ! Set tracer based on gaussian distribution
+          do k = 1, nVertLevels
+            gaussMean = config_vertical_advection_bottom_depth -100.0_RKIND- config_vertical_advection_layer_thickness
+            debugTracers(:,k,iCell) = exp(-((refZMid(k) + gaussMean) / (config_vertical_advection_layer_thickness))**2)
+          enddo
 
           ! Set bottomDepth
           bottomDepth(iCell) = config_vertical_advection_bottom_depth
