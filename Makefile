@@ -149,7 +149,13 @@ pgi-lanl:
 	"FFLAGS_OMP = -mp" \
 	"CFLAGS_OMP = -mp" \
 	"LES_COPT = -Mpreprocess -D__netcdf -D__nopointers -D__lc" \
-	"CORE = $(CORE)" \
+	"FFLAGS_ACC = -acc -Mcuda -ta=tesla:cc60" \
+  "CFLAGS_ACC = -acc -Mcuda -ta=tesla:cc60" \
+  "LES_LDFLAGS_ACC = -ta=tesla:cc60,deepcopy -Minfo=accel -Mcuda -lcufft" \
+	"LES_FFLAGS_ACC = -ta=tesla:cc60,deepcopy -Minfo=accel -Mcuda -lcufft" \
+	"LDFLAGS_ACC = -ta=tesla:cc60,deepcopy -Minfo=accel -Mcuda -lcufft" \
+  "OPENACC = $(OPENACC)" \
+  "CORE = $(CORE)" \
 	"DEBUG = $(DEBUG)" \
 	"USE_PAPI = $(USE_PAPI)" \
 	"OPENMP = $(OPENMP)" \
