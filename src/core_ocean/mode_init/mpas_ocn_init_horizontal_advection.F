@@ -88,63 +88,33 @@ contains
       type (mpas_pool_type), pointer :: meshPool, verticalMeshPool,statePool
       type (mpas_pool_type), pointer :: diagnosticsPool, forcingPool
 
-      type (mpas_pool_type), pointer :: tracersPool, &
-                                        tracersSurfaceRestoringFieldsPool,&
-                                        tracersInteriorRestoringFieldsPool
+      type (mpas_pool_type), pointer :: tracersPool
 
-      integer, pointer :: nVertLevels, nVertLevelsP1, nCellsSolve,nEdgesSolve, nEdge, nVerticesSolve
+      integer, pointer :: nVertLevels, nVertLevelsP1, nCellsSolve,nEdgesSolve, nEdges, nVerticesSolve
       integer, pointer :: index_temperature, index_salinity,index_tracer1
 
       integer, dimension(:), pointer :: maxLevelCell
       real (kind=RKIND), dimension(:), pointer :: refBottomDepth,refZMid, vertCoordMovementWeights
-      real (kind=RKIND), dimension(:), pointer :: windStressZonal,windStressMeridional
-      real (kind=RKIND), dimension(:), pointer :: latentHeatFlux,sensibleHeatFlux, shortWaveHeatFlux
-      real (kind=RKIND), dimension(:), pointer :: evaporationFlux,rainFlux
-      real (kind=RKIND), dimension(:), pointer :: salinityRestore,bottomDepth, angleEdge
+      real (kind=RKIND), dimension(:), pointer :: bottomDepth, angleEdge
       real (kind=RKIND), dimension(:), pointer :: fCell, fEdge, fVertex,xCell, yCell
       real (kind=RKIND), dimension(:, :), pointer :: layerThickness,restingThickness, normalVelocity
       real (kind=RKIND), dimension(:, :, :), pointer :: activeTracers,debugTracers
-      real (kind=RKIND), dimension(:, :), pointer ::activeTracersPistonVelocity, activeTracersSurfaceRestoringValue
-      real (kind=RKIND), dimension(:, :, :), pointer ::activeTracersInteriorRestoringValue, activeTracersInteriorRestoringRate
-
-      real (kind=RKIND), dimension(:), pointer :: interfaceLocations
 
       integer :: iCell, iEdge, iVertex, k, kML
 
-      real (kind=RKIND) :: BLdepth, r_pt
+      real (kind=RKIND) :: xDist, yDist, r_pt
 
-      character (len=StrKIND), pointer :: config_init_configuration, &
-                                          config_horizontal_advection_vertical_grid
+      character (len=StrKIND), pointer :: config_init_configuration
 
-      integer, pointer ::                 config_horizontal_advection_vert_levels
 
-      real (kind=RKIND), pointer ::config_horizontal_advection_surface_temperature, &
-                                   config_horizontal_advection_surface_salinity,&
-                                          config_horizontal_advection_surface_restoring_temperature,&
-                                          config_horizontal_advection_surface_restoring_salinity,&
-                                          config_horizontal_advection_temperature_piston_velocity,&
-                                          config_horizontal_advection_salinity_piston_velocity,&
-                                          config_horizontal_advection_sensible_heat_flux,&
-                                          config_horizontal_advection_latent_heat_flux,&
-                                          config_horizontal_advection_shortwave_heat_flux,&
-                                          config_horizontal_advection_rain_flux, &
-                                          config_horizontal_advection_evaporation_flux,&
-                                          config_horizontal_advection_interior_temperature_restoring_rate,&
-                                          config_horizontal_advection_interior_salinity_restoring_rate,&
-                                          config_horizontal_advection_temperature_gradient,&
-                                          config_horizontal_advection_salinity_gradient,&
-                                          config_horizontal_advection_bottom_depth,&
-                                          config_horizontal_advection_max_windstress,&
-                                          config_horizontal_advection_coriolis_parameter,&
-                                          config_horizontal_advection_temperature_gradient_mixed_layer,&
-                                          config_horizontal_advection_salinity_gradient_mixed_layer,&
-                                          config_horizontal_advection_mixed_layer_depth_temperature,&
-                                          config_horizontal_advection_mixed_layer_depth_salinity,&
-                                          config_horizontal_advection_mixed_layer_temperature_change,&
-                                          config_horizontal_advection_mixed_layer_salinity_change,&
-                                          config_horizontal_advection_zonalC, &
-                                          config_horizontal_advection_meridionalC,&
-                                          config_horizontal_advection_x_cent , config_horizontal_advection_y_cent,config_horizontal_advection_tracer_radius
+      real (kind=RKIND), pointer ::config_horizontal_advection_temperature, &
+                                   config_horizontal_advection_salinity,&
+                                   config_horizontal_advection_zonalC, &
+                                   config_horizontal_advection_meridionalC,&
+                                   config_horizontal_advection_x_cent, &
+                                   config_horizontal_advection_y_cent, &
+                                   config_horizontal_advection_tracer_radius, &
+                                   config_horizontal_advection_gaussian_width
       ! assume no error
       iErr = 0
 
@@ -152,68 +122,17 @@ contains
       call mpas_pool_get_config(domain % configs,'config_init_configuration', config_init_configuration)
       if(config_init_configuration .ne. trim('horizontal_advection')) return
 
-      ! build the vertical grid
-      ! intent(out) is interfaceLocations. An array ranging from 0 to 1
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_vertical_grid', config_horizontal_advection_vertical_grid)
-      call mpas_pool_get_dimension(domain % blocklist % dimensions,'nVertLevelsP1', nVertLevelsP1)
-      allocate(interfaceLocations(nVertLevelsP1))
-      call ocn_generate_vertical_grid(config_horizontal_advection_vertical_grid,interfaceLocations)
-
       ! load the remaining configuration parameters
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_surface_temperature', &
-                                config_horizontal_advection_surface_temperature)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_surface_salinity', config_horizontal_advection_surface_salinity)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_surface_restoring_temperature', &
-                                config_horizontal_advection_surface_restoring_temperature)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_surface_restoring_salinity', &
-                                config_horizontal_advection_surface_restoring_salinity)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_temperature_piston_velocity', &
-                                config_horizontal_advection_temperature_piston_velocity)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_salinity_piston_velocity', &
-                                config_horizontal_advection_salinity_piston_velocity)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_sensible_heat_flux',config_horizontal_advection_sensible_heat_flux)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_latent_heat_flux', config_horizontal_advection_latent_heat_flux)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_shortwave_heat_flux', &
-                                config_horizontal_advection_shortwave_heat_flux)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_rain_flux', config_horizontal_advection_rain_flux)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_evaporation_flux', config_horizontal_advection_evaporation_flux)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_interior_temperature_restoring_rate', &
-                                config_horizontal_advection_interior_temperature_restoring_rate)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_interior_salinity_restoring_rate', &
-                                config_horizontal_advection_interior_salinity_restoring_rate)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_temperature_gradient', &
-                                config_horizontal_advection_temperature_gradient)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_salinity_gradient',config_horizontal_advection_salinity_gradient)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_bottom_depth', config_horizontal_advection_bottom_depth)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_max_windstress', config_horizontal_advection_max_windstress)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_coriolis_parameter',config_horizontal_advection_coriolis_parameter)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_temperature_gradient_mixed_layer', &
-                config_horizontal_advection_temperature_gradient_mixed_layer)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_salinity_gradient_mixed_layer', &
-                config_horizontal_advection_salinity_gradient_mixed_layer)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_mixed_layer_depth_temperature', &
-                config_horizontal_advection_mixed_layer_depth_temperature)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_mixed_layer_depth_salinity', &
-                config_horizontal_advection_mixed_layer_depth_salinity)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_mixed_layer_temperature_change', &
-                config_horizontal_advection_mixed_layer_temperature_change)
-      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_mixed_layer_salinity_change', &
-                config_horizontal_advection_mixed_layer_salinity_change)
-     !------------
-     ! Jamil  edits
-     !-----------
-
-
+      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_temperature', &
+                                config_horizontal_advection_temperature)
+      call mpas_pool_get_config(domain % configs,'config_horizontal_advection_salinity', config_horizontal_advection_salinity)
       call mpas_pool_get_config(domain % configs,'config_horizontal_advection_zonalC', config_horizontal_advection_zonalC)
       call mpas_pool_get_config(domain % configs,'config_horizontal_advection_meridionalC', config_horizontal_advection_meridionalC)
       call mpas_pool_get_config(domain % configs,'config_horizontal_advection_tracer_radius', config_horizontal_advection_tracer_radius)
       call mpas_pool_get_config(domain % configs, 'config_horizontal_advection_y_cent', config_horizontal_advection_y_cent)
       call mpas_pool_get_config(domain % configs, 'config_horizontal_advection_x_cent', config_horizontal_advection_x_cent)
-
-
-     !----------------
-     ! end Jamil edits
-     !---------------
+      call mpas_pool_get_config(domain % configs, 'config_horizontal_advection_gaussian_width', &
+                                config_horizontal_advection_gaussian_width)
 
       ! load data that required to initialize the ocean simulation
       block_ptr => domain % blocklist
@@ -225,12 +144,10 @@ contains
         call mpas_pool_get_subpool(block_ptr % structs, 'forcing',forcingPool)
 
         call mpas_pool_get_subpool(statePool, 'tracers', tracersPool)
-        call mpas_pool_get_subpool(forcingPool,'tracersSurfaceRestoringFields', tracersSurfaceRestoringFieldsPool)
-        call mpas_pool_get_subpool(forcingPool,'tracersInteriorRestoringFields', tracersInteriorRestoringFieldsPool)
 
         call mpas_pool_get_dimension(meshPool, 'nVertLevels',nVertLevels)
         call mpas_pool_get_dimension(meshPool, 'nCellsSolve',nCellsSolve)
-        call mpas_pool_get_dimension(meshPool, 'nEdge', nEdge)
+        call mpas_pool_get_dimension(meshPool, 'nEdges', nEdges)
         call mpas_pool_get_dimension(meshPool, 'nEdgesSolve',nEdgesSolve)
         call mpas_pool_get_dimension(meshPool, 'nVerticesSolve',nVerticesSolve)
 
@@ -238,247 +155,89 @@ contains
         call mpas_pool_get_dimension(tracersPool, 'index_salinity',index_salinity)
         call mpas_pool_get_dimension(tracersPool, 'index_tracer1',index_tracer1)
 
-        call mpas_pool_get_array(meshPool, 'refBottomDepth',refBottomDepth)
-        call mpas_pool_get_array(meshPool, 'vertCoordMovementWeights',vertCoordMovementWeights)
         call mpas_pool_get_array(meshPool, 'maxLevelCell', maxLevelCell)
         call mpas_pool_get_array(meshPool, 'bottomDepth', bottomDepth)
         call mpas_pool_get_array(meshPool, 'angleEdge', angleEdge)
-        call mpas_pool_get_array(statePool, 'normalVelocity',normalVelocity)
-        
+        call mpas_pool_get_array(statePool, 'normalVelocity',normalVelocity,1)
+
         call mpas_pool_get_array(meshPool, 'fCell', fCell)
         call mpas_pool_get_array(meshPool, 'fEdge', fEdge)
         call mpas_pool_get_array(meshPool, 'fVertex', fVertex)
         call mpas_pool_get_array(meshPool, 'xCell', xCell)
         call mpas_pool_get_array(meshPool, 'yCell', yCell)
 
-
         call mpas_pool_get_array(verticalMeshPool, 'refZMid', refZMid)
         call mpas_pool_get_array(verticalMeshPool, 'restingThickness',restingThickness)
+        call mpas_pool_get_array(meshPool, 'refBottomDepth', refBottomDepth)
 
         call mpas_pool_get_array(tracersPool, 'activeTracers',activeTracers, 1)
         call mpas_pool_get_array(tracersPool, 'debugTracers',debugTracers, 1)
         call mpas_pool_get_array(statePool, 'layerThickness',layerThickness, 1)
 
-        call mpas_pool_get_array(forcingPool, 'windStressZonal',windStressZonal, 1)
-        call mpas_pool_get_array(forcingPool, 'windStressMeridional',windStressMeridional, 1)
-        call mpas_pool_get_array(tracersSurfaceRestoringFieldsPool,'activeTracersPistonVelocity', activeTracersPistonVelocity, 1)
-        call mpas_pool_get_array(tracersSurfaceRestoringFieldsPool,'activeTracersSurfaceRestoringValue', &
-                                 activeTracersSurfaceRestoringValue, 1)
-        call mpas_pool_get_array(tracersInteriorRestoringFieldsPool,'activeTracersInteriorRestoringRate', &
-                                 activeTracersInteriorRestoringRate, 1)
-        call mpas_pool_get_array(tracersInteriorRestoringFieldsPool,'activeTracersInteriorRestoringValue', &
-                                 activeTracersInteriorRestoringValue, 1)
-        call mpas_pool_get_array(forcingPool, 'latentHeatFlux',latentHeatFlux)
-        call mpas_pool_get_array(forcingPool, 'sensibleHeatFlux',sensibleHeatFlux)
-        call mpas_pool_get_array(forcingPool, 'shortWaveHeatFlux',shortWaveHeatFlux)
-        call mpas_pool_get_array(forcingPool, 'evaporationFlux',evaporationFlux)
-        call mpas_pool_get_array(forcingPool, 'rainFlux', rainFlux)
-
-
         ! Set refBottomDepth and refBottomDepthTopOfCell
         do k = 1, nVertLevels
-           refBottomDepth(k) = config_horizontal_advection_bottom_depth *interfaceLocations(k+1)
-           refZMid(k) = - 0.5_RKIND * config_horizontal_advection_bottom_depth *(interfaceLocations(k) + interfaceLocations(k+1))
+           refBottomDepth(k) = 300.0_RKIND 
         end do
 
-        ! Set vertCoordMovementWeights
-        vertCoordMovementWeights(:) = 1.0_RKIND
+        refZMid(1) = -50.0_RKIND
+        do k = 2, nVertLevels
+          refZMid(k) = refZMid(k-1) - 100.0_RKIND
+        enddo
 
         do iCell = 1, nCellsSolve
            if(associated(activeTracers) ) then
-
-           ! Loop from surface through surface layer depth
-           k=1
-
-           do while (k .le. nVertLevels .and. refZMid(k) > -config_horizontal_advection_mixed_layer_depth_temperature)
-              temperature = config_horizontal_advection_surface_temperature +refZMid(k) *  &
-                            config_horizontal_advection_temperature_gradient_mixed_layer
-              activeTracers(index_temperature, k, iCell) = temperature
-              k = k + 1
-           enddo
-
-           ! the value of k is now the first layer below the surface
-           ! layer
-           if ( k > 1 ) then
-              temperature = activeTracers(index_temperature, k-1, iCell) + config_horizontal_advection_mixed_layer_temperature_change
-              activeTracers(index_temperature, k, iCell) = temperature
-              BLdepth = refZMid(k)
-           else
-              activeTracers(index_temperature, k, iCell) = config_horizontal_advection_surface_temperature
-              BLdepth = 0.0_RKIND
-           endif
-
-           ! find the first level below the mixed layer
-           kML = k + 1
-
-           ! now loop from the bottom of the mixed layer thru to the
-           ! bottom of the domain
-           do k = kML, nVertLevels
-              temperature = activeTracers(index_temperature, kML-1, iCell) + (refZMid(k) - BLdepth) * &
-              config_horizontal_advection_temperature_gradient
-              activeTracers(index_temperature, k, iCell) = temperature
-           enddo
-
-           !
-           ! next compute the salinity profile
-           !
-
-           ! Loop from surface through surface layer depth
-           k=1
-           do while (k .le. nVertLevels .and. refZMid(k) > - config_horizontal_advection_mixed_layer_depth_salinity)
-              salinity = config_horizontal_advection_surface_salinity + refZMid(k) * config_horizontal_advection_salinity_gradient_mixed_layer
-              activeTracers(index_salinity, k, iCell) = salinity
-              k = k + 1
-           enddo
-
-           ! the value of k is now the first layer below the surface
-           ! layer
-            if ( k > 1 ) then
-               salinity = activeTracers(index_salinity, k-1, iCell) + config_horizontal_advection_mixed_layer_salinity_change
-               activeTracers(index_salinity, k, iCell) = salinity
-               BLdepth = refZMid(k)
-            else
-               activeTracers(index_salinity, k, iCell) = config_horizontal_advection_surface_salinity
-               BLdepth = 0.0_RKIND
-            endif
-
-            ! find the first level below the mixed layer
-            kML = k + 1
-
-            ! now loop from the bottom of the mixed layer thru to the
-            ! bottom of the domain
-            do k = kML, nVertLevels
-               salinity = activeTracers(index_salinity, kML-1, iCell) + (refZMid(k) - BLdepth) *  &
-               config_horizontal_advection_salinity_gradient
-               activeTracers(index_salinity, k, iCell) = salinity
-            enddo
-
-        endif ! if (associated(activeTracer))
+              activeTracers(index_temperature,:,iCell) = config_horizontal_advection_temperature
+              activeTracers(index_salinity,:,iCell) = config_horizontal_advection_salinity
+           endif ! if (associated(activeTracer))
 
         ! as a place holder, have some debug tracer in the top few
         ! layers and zero below
 
         if(associated(debugTracers)) then
-          if(config_horizontal_advection_zonalC .ne. 0) then
-             r_pt = abs(xCell(iCell) - config_horizontal_advection_x_cent)
-          elseif (config_horizontal_advection_meridionalC .ne. 0) then 
-             r_pt = abs(yCell(iCell) - config_horizontal_advection_y_cent)
+          if(config_horizontal_advection_gaussian_width > 0) then
+            !use a gaussian hill for the tracer
+            xDist = xCell(iCell) - config_horizontal_advection_x_cent
+            yDist = yCell(iCell) - config_horizontal_advection_y_cent
+            debugTracers(:,:,iCell) = exp(-config_horizontal_advection_gaussian_width*(xDist**2.0 + yDist**2.0))
           else
-             print *, 'error: either meridC or zonalC must be zero.'
+            !Use the bar tracer distribution
+            if(config_horizontal_advection_zonalC .ne. 0) then
+              r_pt = abs(xCell(iCell) - config_horizontal_advection_x_cent)
+            elseif (config_horizontal_advection_meridionalC .ne. 0) then 
+              r_pt = abs(yCell(iCell) - config_horizontal_advection_y_cent)
+            else
+              print *, 'error: either meridC or zonalC must be zero.'
+            endif
+            debugTracers(:,:,iCell) = 0.0_RKIND
+
+            if(r_pt < config_horizontal_advection_tracer_radius) then
+              debugTracers(:,:,iCell) = 1.0_RKIND
+            endif
           endif
-     
-          debugTracers(:,:,iCell) = 0.0_RKIND
-
-          if(r_pt < config_horizontal_advection_tracer_radius) then
-               debugTracers(:,:,iCell) = 1.0_RKIND
-           endif
-
         endif
-
-!        if ( associated(debugTracers) ) then
-!          r_pt = xCell(iCell) - config_horizontal_advection_x_cent
-!          debugTracers(:,:,iCell) = 0.0_RKIND
-!          if (r_pt < config_horizontal_advection_tracer_radius) then
-!             debugTracers(:, :, iCell) = 1.0_RKIND
-!          endif
-!       endif
 
         ! Set layerThickness
         do k = 1, nVertLevels
-           layerThickness(k, iCell) = config_horizontal_advection_bottom_depth * (interfaceLocations(k+1) - interfaceLocations(k))
+           layerThickness(k, iCell) = 100.0_RKIND 
            restingThickness(k, iCell) = layerThickness(k, iCell)
         end do
-
-        ! Set surface temperature restoring value and rate
-        ! Value in units of C, piston velocity in units of m/s
-        if ( associated(activeTracersSurfaceRestoringValue) ) then
-           activeTracersSurfaceRestoringValue(index_temperature, iCell) = config_horizontal_advection_surface_restoring_temperature
-        end if
-        if ( associated(activeTracersPistonVelocity) ) then
-           activeTracersPistonVelocity(index_temperature, iCell) = config_horizontal_advection_temperature_piston_velocity
-        end if
-
-        ! Set surface salinity restoring value and rate
-        ! Value in units of PSU, piston velocity in units of m/s
-        if ( associated(activeTracersSurfaceRestoringValue) ) then
-           activeTracersSurfaceRestoringValue(index_salinity, iCell) = config_horizontal_advection_surface_restoring_salinity
-        end if
-        if ( associated(activeTracersPistonVelocity) ) then
-           activeTracersPistonVelocity(index_salinity, iCell) = config_horizontal_advection_salinity_piston_velocity
-        end if
-
-        ! Set sensible heat flux
-        sensibleHeatFlux(iCell) = config_horizontal_advection_sensible_heat_flux
-
-        ! Set latent heat flux
-        latentHeatFlux(iCell) = config_horizontal_advection_latent_heat_flux
-
-        ! Set shortwave heat flux
-        shortWaveHeatFlux(iCell) = config_horizontal_advection_shortwave_heat_flux
-
-        ! Set precipation and evaporation
-        rainFlux(iCell) = config_horizontal_advection_rain_flux
-        evaporationFlux(iCell) = config_horizontal_advection_evaporation_flux
-
-        ! Set interior temperature restoring value and rate
-        do k = 1, nVertLevels
-           if ( associated(activeTracersInteriorRestoringValue) ) then
-              activeTracersInteriorRestoringValue(index_temperature, k, iCell) = activeTracers(index_temperature, k, iCell)
-           end if
-           if ( associated(activeTracersInteriorRestoringRate) ) then
-              activeTracersInteriorRestoringRate(index_temperature, k, iCell) = &
-                                config_horizontal_advection_interior_temperature_restoring_rate
-           end if
-        enddo
-
-        ! Set interior salinity restoring value and rate
-        do k = 1, nVertLevels
-           if ( associated(activeTracersInteriorRestoringValue) ) then
-              activeTracersInteriorRestoringValue(index_salinity, k, iCell) = activeTracers(index_salinity, k, iCell)
-           end if
-           if ( associated(activeTracersInteriorRestoringRate) ) then
-              activeTracersInteriorRestoringRate(index_salinity, k,iCell) = config_horizontal_advection_interior_salinity_restoring_rate
-           end if
-        enddo
-
         ! Set Coriolis parameter
-        fCell(iCell) = config_horizontal_advection_coriolis_parameter
+        fCell(iCell) = 0.0_RKIND 
 
         ! Set bottomDepth
-        bottomDepth(iCell) = config_horizontal_advection_bottom_depth
+        bottomDepth(iCell) = 300.0_RKIND 
 
         ! Set maxLevelCell
         maxLevelCell(iCell) = nVertLevels
 
      end do  ! do iCell
 
-     do iCell = 1, nCellsSolve
-        windStressZonal(iCell) = config_horizontal_advection_max_windstress
-        windStressMeridional(iCell) = 0.0_RKIND
+     do iEdge=1, nEdgesSolve
+        normalVelocity(:, iEdge) = ( cos(angleEdge(iEdge)) * config_horizontal_advection_zonalC) + &
+                                   ( sin(angleEdge(iEdge)) * config_horizontal_advection_meridionalC )
      enddo
-
-     do iEdge = 1, nEdgesSolve
-        fEdge(iEdge) = config_horizontal_advection_coriolis_parameter
-     end do
-
-     do iVertex=1, nVerticesSolve
-        fVertex(iVertex) = config_horizontal_advection_coriolis_parameter
-     end do
-
      block_ptr => block_ptr % next
    end do
-!--------------
-! Jamil edits for adding
-! the C variable
-!--------------
-    do iEdge=1, nEdgesSolve
-      normalVelocity(:, iEdge) = ( cos(angleEdge(iEdge)) * config_horizontal_advection_zonalC) + ( sin(angleEdge(iEdge)) * config_horizontal_advection_meridionalC )
-    enddo
-!--------------
-! end Jamil edit
-!--------------
-
-   deallocate(interfaceLocations)
 
    !--------------------------------------------------------------------
 
@@ -517,15 +276,8 @@ contains
       if(config_init_configuration .ne. trim('horizontal_advection')) return
 
       call mpas_pool_get_config(configPool, 'config_vert_levels',config_vert_levels)
-      call mpas_pool_get_config(configPool,'config_horizontal_advection_vert_levels', config_horizontal_advection_vert_levels)
 
-      if(config_vert_levels <= 0 .and. config_horizontal_advection_vert_levels > 0) then
-         config_vert_levels = config_horizontal_advection_vert_levels
-      else if(config_vert_levels <= 0) then
-         call mpas_log_write( 'Validation failed for CVMix WSwSBF unittest case. Not given a usable value for ' &
-                          // 'vertical levels.', MPAS_LOG_CRIT)
-         iErr = 1
-      end if
+      config_vert_levels = 3
 
    !--------------------------------------------------------------------
 
