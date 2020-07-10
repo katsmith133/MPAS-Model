@@ -5,6 +5,11 @@ module ocn_adc_mixing
   use ocn_turbulence
   use mpas_log
   use ocn_config
+  use mpas_timer
+!   Need to use ifdef (below line compiles only if -Mcuda compile flag is used)
+#if defined( __cudaProfiler )
+  use cudafor
+#endif
 
   implicit none
 
@@ -17,7 +22,7 @@ module ocn_adc_mixing
   contains
 
   subroutine swap_time_levels
-
+    call mpas_timer_start('swap_time_levels',.false.)
     if(i1 == 1) then
       i1 = 2
     else
@@ -29,7 +34,7 @@ module ocn_adc_mixing
     else
       i2 = 1
     endif
-
+    call mpas_timer_stop('swap_time_levels')
   end subroutine swap_time_levels
 
   subroutine build_diagnostic_arrays(nCells,nVertLevels,BVF,wtsfc,wssfc, &
@@ -44,6 +49,7 @@ module ocn_adc_mixing
     logical :: first
     real :: maximum, Q, KE
 
+    call mpas_timer_start('build_diagnostic_arrays',.false.)
     first = .true.
 
     do iCell=1,nCells
@@ -78,7 +84,8 @@ module ocn_adc_mixing
       KE = 0.5*(u2(i1,1,iCell) + v2(i1,1,iCell))
       eps(:,1,iCell) = KE**1.5/(0.5*(ze(1,iCell) - ze(2,iCell) + 1.0E-10_RKIND))
     enddo
-
+    call mpas_timer_stop('build_diagnostic_arrays')
+    
   end subroutine build_diagnostic_arrays
 
   subroutine dissipation_lengths2(nCells,nVertLevels,activeTracers,alphaT,betaS)
@@ -94,6 +101,7 @@ module ocn_adc_mixing
 
     !NOTE: will need to convert to some form of displaced density in the mpas framework soon
     !possibly go back to a more traditional length scale formulation
+    call mpas_timer_start('dissipation_lengths2',.false.)
     do i=1,nCells
        tke(:) = 0.5*(u2(i2,:,i) + v2(i2,:,i) + w2(i2,:,i))
        do k=1,nVertLevels
@@ -199,6 +207,7 @@ module ocn_adc_mixing
 
    length(1,:) = 0.55_RKIND
    length(nVertLevels+1,:) = 0.55_RKIND
+   call mpas_timer_stop('dissipation_lengths2')
 
   end subroutine dissipation_lengths2
 
@@ -218,6 +227,7 @@ module ocn_adc_mixing
 
     integer :: k,iCell
 
+    call mpas_timer_start('build_length_from_dissipation_eq',.false.)
     do iCell=1,nCells
       epstend(1) = 0.0_RKIND
       do k=2,nVertLevels
@@ -262,6 +272,7 @@ module ocn_adc_mixing
       length(nVertLevels+1,iCell) = 1e-15_RKIND
       length(1,iCell) = length(2,iCell) !1e-1
     enddo
+    call mpas_timer_stop('build_length_from_dissipation_eq')
 
   end subroutine build_length_from_dissipation_eq 
 
@@ -279,6 +290,7 @@ module ocn_adc_mixing
 
     integer :: k,iCell
 
+    call mpas_timer_start('build_dissipation_lengths',.false.)
     do iCell=1,nCells
 
       sfcBuoy = grav*(alphaT(1,iCell)*wtsfc(iCell) - betaS(1,iCell)*wssfc(iCell))
@@ -337,7 +349,8 @@ module ocn_adc_mixing
       length(nVertLevels+1,iCell) = 1e-15_RKIND
       length(1,iCell) = length(2,iCell) !1e-1
     enddo
-
+    call mpas_timer_stop('build_dissipation_lengths')
+    
   end subroutine build_dissipation_lengths
 
   subroutine build_areaFraction_updraft_properties(nCells,nVertLevels)
@@ -347,6 +360,7 @@ module ocn_adc_mixing
   integer :: iCell, k
   real :: Sw, w3av, lareaFraction, wtav, wsav
 
+  call mpas_timer_start('build_areaFraction_updraft_properties',.false.)
   do iCell = 1,nCells
     tumd(1,iCell) = 0.0_RKIND
     wumd(1,iCell) = 0.0_RKIND
@@ -368,7 +382,8 @@ module ocn_adc_mixing
         areaFraction(k,iCell)) * wumd(k,iCell)
     enddo
   enddo
-
+  call mpas_timer_stop('build_areaFraction_updraft_properties') 
+ 
   end subroutine build_areaFraction_updraft_properties
 
   subroutine calc_scalar_updraft_properties(nCells,nVertLevels,wtsfc, wssfc, alphaT,  &
@@ -381,6 +396,7 @@ module ocn_adc_mixing
     real :: wtav, McAv, sigav, tumdav, wumdav, sumdav, wb, bld, wstar
     integer :: iCell,k
 
+    call mpas_timer_start('calc_scalar_updraft_properties',.false.)
     do iCell=1,nCells
       do k=2,nVertLevels
 
@@ -419,6 +435,8 @@ module ocn_adc_mixing
       enddo
 
     enddo
+    call mpas_timer_stop('calc_scalar_updraft_properties')
+
   end subroutine calc_scalar_updraft_properties
 
   subroutine calc_subplume_fluxes(nCells,nVertLevels,activeTracers,uvel,vvel,BVF,   &
@@ -438,6 +456,7 @@ module ocn_adc_mixing
 
   integer :: iCell, k
 
+  call mpas_timer_start('calc_subplume_fluxes',.false.)
   do iCell = 1,nCells
 
     lenspsU(1,iCell) = 0.0_RKIND
@@ -526,6 +545,7 @@ module ocn_adc_mixing
       KspsD(k,iCell) = KspsD(k,iCell) + dt*KspsDtend(k,iCell)
     enddo
   enddo
+  call mpas_timer_stop('calc_subplume_fluxes')  
 
   end subroutine calc_subplume_fluxes
 
@@ -546,6 +566,7 @@ module ocn_adc_mixing
     real :: dz, dzmid, tumdav, Ksps
     integer :: iCell, k
 
+    call mpas_timer_start('diagnose_momentum_fluxes',.false.)
     do iCell=1,nCells
       !compute the TOMs first.
       do k=1,nVertLevels
@@ -748,6 +769,7 @@ module ocn_adc_mixing
       enddo
 
     enddo
+    call mpas_timer_stop('diagnose_momentum_fluxes')
 
   end subroutine diagnose_momentum_fluxes
 
@@ -768,6 +790,7 @@ module ocn_adc_mixing
 
     integer :: iCell, k
 
+    call mpas_timer_start('predict_turbulent_quantities',.false.)
     do iCell = 1,nCells
       do k=1,nVertLevels
         Eav = 0.5*(Entrainment(k+1,iCell) + Entrainment(k,iCell))
@@ -901,6 +924,7 @@ module ocn_adc_mixing
         endif
       enddo
     enddo
+    call mpas_timer_stop('predict_turbulent_quantities')
 
   end subroutine predict_turbulent_quantities
 
@@ -915,6 +939,7 @@ module ocn_adc_mixing
     real :: utemp, vtemp
     integer :: iCell,k
 
+    call mpas_timer_start('update_mean_fields',.false.)
     do iCell = 1,nCells
       do k = 1,nVertLevels
         utemp = uvel(k,iCell)
@@ -931,6 +956,7 @@ module ocn_adc_mixing
           ws(i2,k+1,iCell)) / (ze(k,iCell) - ze(k+1,iCell))
       enddo
     enddo
+    call mpas_timer_stop('update_mean_fields')
 
   end subroutine update_mean_fields
 
@@ -949,6 +975,7 @@ module ocn_adc_mixing
 
     real :: dt_small
 
+    call mpas_timer_start('ADC_main_loop',.false.)
     dt_small = config_adc_timestep
     niter = dt / dt_small
 
@@ -972,6 +999,7 @@ module ocn_adc_mixing
       call update_mean_fields(dt_small,nCells,nVertLevels, 2, uvel,vvel,activeTracers,fCell)
       call swap_time_levels
     enddo
+    call mpas_timer_stop('ADC_main_loop')`
   end subroutine ADC_main_loop
 
 end module ocn_adc_mixing
