@@ -393,7 +393,7 @@ module ocn_adc_mixing_fused
               KE = 0.5_RKIND*(u2(2,k,iCell) + v2(2,k,iCell) + w2(2,k,iCell))
               KEp1 = 0.5_RKIND*(u2(2,k+1,iCell) + v2(2,k+1,iCell) + w2(2,k+1,iCell))
               lenav = 0.5_RKIND*(length(k,iCell) + length(k+1,iCell))
-              diff = C_mom * sqrt(0.5_RKIND*(KE + KEp1)) / lenav
+              diff = C_mom * sqrt(0.5_RKIND*(KE + KEp1)) / (1.0E-10_RKIND + lenav)
               dz = ze(k,iCell) - ze(k+1,iCell)
               uw2(k,iCell) = -diff*(uw(2,k,iCell) - uw(2,k+1,iCell)) / dz
               vw2(k,iCell) = -diff*(vw(2,k,iCell) - vw(2,k+1,iCell)) / dz
@@ -401,7 +401,7 @@ module ocn_adc_mixing_fused
               v2w(k,iCell) = -diff*(v2(2,k,iCell) - v2(2,k+1,iCell)) / dz
               uvw(k,iCell) = -diff*(uv(2,k,iCell) - uv(2,k+1,iCell)) / dz
 
-              diff = C_therm*sqrt(0.5*(KE + KEp1)) / lenav
+              diff = C_therm*sqrt(0.5*(KE + KEp1)) / (1.0E-10_RKIND + lenav)
               uwt(k,iCell) = -diff*(ut(2,k,iCell) - ut(2,k+1,iCell)) / dz
               vwt(k,iCell) = -diff*(vt(2,k,iCell) - vt(2,k+1,iCell)) / dz
               uws(k,iCell) = -diff*(us(2,k,iCell) - us(2,k+1,iCell)) / dz
