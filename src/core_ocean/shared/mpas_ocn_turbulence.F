@@ -686,13 +686,122 @@ module ocn_turbulence
       !at some point for production runs
       !should not ever need an update device no quantities get calculated on host
 
-      !$acc update host(KspsD,    &
-      !$acc                   nCells,   &
-      !$acc                   nVertLevels,  &
+      call mpas_pool_get_subpool(block % structs, 'mesh', meshPool)
+      call mpas_pool_get_dimension(meshPool, 'nVertLevels', nVertLevels)
+      call mpas_pool_get_dimension(meshPool, 'nVertLevelsP1', nVertLevelsP1)
+      call mpas_pool_get_dimension(meshPool, 'nCellsArray', nCellsArray)
+
+      nCells = nCellsArray( size(nCellsArray) )
+
+      call mpas_pool_get_subpool(block % structs, 'adcDiagnosticArrays', adcDiagnosticsPool)
+      call mpas_pool_get_subpool(block % structs, 'adcTendArrays', adcTendPool)
+      call mpas_pool_get_subpool(block % structs, 'adcPrognosticArrays', adcPrognosticsPool)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'ze', zeTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'zm', zmTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'epsSPS', epsSPSTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'length', lengthTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'lenup', lenupTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'lendn', lendnTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'lenspsD', lenspsDTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'lenspsU', lenspsUTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'KhU', KhUTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'KhD', KhDTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'KmU', KmUTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'KmD', KmDTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'wt_spsU', wt_spsUTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'wt_spsD', wt_spsDTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'ws_spsU', ws_spsUTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'ws_spsD', ws_spsDTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'uw2', uw2Tmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'vw2', vw2Tmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'u2w', u2wTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'v2w', v2wTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'w2t', w2tTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'w2s', w2sTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'wts', wtsTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'uvw', uvwTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'uwt', uwtTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'vwt', vwtTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'uws', uwsTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'vws', vwsTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'ws2', ws2Tmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'wt2', wt2Tmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'areaFraction', areaFractionTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'Entrainment', EntrainmentTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'Detrainment', DetrainmentTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'tumd', tumdTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'sumd', sumdTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'wumd', wumdTmp)
+      call mpas_pool_get_array(adcDiagnosticsPool, 'Mc', McTmp)
+
+      call mpas_pool_get_array(adcTendPool, 'w2tend1', w2tend1Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w2tend2', w2tend2Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w2tend3', w2tend3Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w2tend4', w2tend4Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w2tend5', w2tend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w3tend1', w3tend1Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w3tend2', w3tend2Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w3tend3', w3tend3Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w3tend4', w3tend4Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w3tend5', w3tend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'wttend1', wttend1Tmp)
+      call mpas_pool_get_array(adcTendPool, 'wttend2', wttend2Tmp)
+      call mpas_pool_get_array(adcTendPool, 'wttend3', wttend3Tmp)
+      call mpas_pool_get_array(adcTendPool, 'wttend4', wttend4Tmp)
+      call mpas_pool_get_array(adcTendPool, 'wttend5', wttend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'wstend1', wstend1Tmp)
+      call mpas_pool_get_array(adcTendPool, 'wstend2', wstend2Tmp)
+      call mpas_pool_get_array(adcTendPool, 'wstend3', wstend3Tmp)
+      call mpas_pool_get_array(adcTendPool, 'wstend4', wstend4Tmp)
+      call mpas_pool_get_array(adcTendPool, 'wstend5', wstend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'uwtend1', uwtend1Tmp)
+      call mpas_pool_get_array(adcTendPool, 'uwtend2', uwtend2Tmp)
+      call mpas_pool_get_array(adcTendPool, 'uwtend3', uwtend3Tmp)
+      call mpas_pool_get_array(adcTendPool, 'uwtend4', uwtend4Tmp)
+      call mpas_pool_get_array(adcTendPool, 'uwtend5', uwtend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'vwtend1', vwtend1Tmp)
+      call mpas_pool_get_array(adcTendPool, 'vwtend2', vwtend2Tmp)
+      call mpas_pool_get_array(adcTendPool, 'vwtend3', vwtend3Tmp)
+      call mpas_pool_get_array(adcTendPool, 'vwtend4', vwtend4Tmp)
+      call mpas_pool_get_array(adcTendPool, 'vwtend5', vwtend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'u2tend1', u2tend1Tmp)
+      call mpas_pool_get_array(adcTendPool, 'u2tend2', u2tend2Tmp)
+      call mpas_pool_get_array(adcTendPool, 'u2tend3', u2tend3Tmp)
+      call mpas_pool_get_array(adcTendPool, 'u2tend4', u2tend4Tmp)
+      call mpas_pool_get_array(adcTendPool, 'u2tend5', u2tend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'v2tend1', v2tend1Tmp)
+      call mpas_pool_get_array(adcTendPool, 'v2tend2', v2tend2Tmp)
+      call mpas_pool_get_array(adcTendPool, 'v2tend3', v2tend3Tmp)
+      call mpas_pool_get_array(adcTendPool, 'v2tend4', v2tend4Tmp)
+      call mpas_pool_get_array(adcTendPool, 'v2tend5', v2tend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'u2cliptend', u2cliptendTmp)
+      call mpas_pool_get_array(adcTendPool, 'v2cliptend', v2cliptendTmp)
+      call mpas_pool_get_array(adcTendPool, 'w2cliptend', w2cliptendTmp)
+      call mpas_pool_get_array(adcPrognosticsPool, 'KspsD', KspsDTmp,1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'KspsU', KspsUTmp,1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'u2', u2Tmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'v2', v2Tmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'w2', w2Tmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'wt', wtTmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'ws', wsTmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'uw', uwTmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'vw', vwTmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'w3', w3Tmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'uv', uvTmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 't2', t2Tmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'ut', utTmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'vt', vtTmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'us', usTmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'vs', vsTmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'ts', tsTmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 's2', s2Tmp, 1)
+      call mpas_pool_get_array(adcPrognosticsPool, 'eps', epsTmp, 1)
+
+      !$acc update host(kspsd,    &
       !$acc                   sigmat,       &
       !$acc                   grav,         &
       !$acc                   epsilon,      &
-      !$acc                   Ko,           &
+      !$acc                   ko,           &
       !$acc                   gamma1,       &
       !$acc                   beta5,        &
       !$acc                   c1,           &
@@ -703,8 +812,8 @@ module ocn_turbulence
       !$acc                   alpha1,       &
       !$acc                   alpha2,       &
       !$acc                   alpha3,       &
-      !$acc                   B1,           &
-      !$acc                   Kt,           &
+      !$acc                   b1,           &
+      !$acc                   kt,           &
       !$acc                   c_1,          &
       !$acc                   c_2,          &
       !$acc                   c_mom,        &
@@ -713,29 +822,29 @@ module ocn_turbulence
       !$acc                   c_pt,         &
       !$acc                   c_ps,         &
       !$acc                   c_pv,         &
-      !$acc                   Cww_D,        &
-      !$acc                   Cww_E,        &
-      !$acc                   kappa_FL,     &
-      !$acc                   kappa_VAR,    &
+      !$acc                   cww_d,        &
+      !$acc                   cww_e,        &
+      !$acc                   kappa_fl,     &
+      !$acc                   kappa_var,    &
       !$acc                   kappa_w3,     &
-      !$acc                   iterCount,    &
-      !$acc                  KspsU,    &
+      !$acc                   itercount,    &
+      !$acc                  kspsu,    &
       !$acc                  ze,       &
       !$acc                  zm,       &
-      !$acc                  epsSPS,      &
+      !$acc                  epssps,      &
       !$acc                  length,   &
       !$acc                  lenup,    &
       !$acc                  lendn,    &
-      !$acc                  lenspsD,  &
-      !$acc                  lenspsU,  &
-      !$acc                  KhU,      &
-      !$acc                  KhD,      &
-      !$acc                  KmU,      &
-      !$acc                  KmD,      &
-      !$acc                  wt_spsU,  &
-      !$acc                  wt_spsD,  &
-      !$acc                  ws_spsU,  &
-      !$acc                  ws_spsD,  &
+      !$acc                  lenspsd,  &
+      !$acc                  lenspsu,  &
+      !$acc                  khu,      &
+      !$acc                  khd,      &
+      !$acc                  kmu,      &
+      !$acc                  kmd,      &
+      !$acc                  wt_spsu,  &
+      !$acc                  wt_spsd,  &
+      !$acc                  ws_spsu,  &
+      !$acc                  ws_spsd,  &
       !$acc                  uw2,      &
       !$acc                  vw2,      &
       !$acc                  u2w,      &
@@ -750,9 +859,9 @@ module ocn_turbulence
       !$acc                  vws,      &
       !$acc                  ws2,      &
       !$acc                  wt2,      &
-      !$acc                  areaFraction,    &
-      !$acc                  Entrainment, &
-      !$acc                  Detrainment, &
+      !$acc                  areafraction,    &
+      !$acc                  entrainment, &
+      !$acc                  detrainment, &
       !$acc                  tumd,        &
       !$acc                  sumd,        &
       !$acc                  wumd,        &
@@ -817,54 +926,6 @@ module ocn_turbulence
       !$acc                  s2,          &
       !$acc                  eps)
 
-     call mpas_pool_get_subpool(block % structs, 'mesh', meshPool)
-      call mpas_pool_get_dimension(meshPool, 'nVertLevels', nVertLevels)
-      call mpas_pool_get_dimension(meshPool, 'nVertLevelsP1', nVertLevelsP1)
-      call mpas_pool_get_dimension(meshPool, 'nCellsArray', nCellsArray)
-
-      nCells = nCellsArray( size(nCellsArray) )
-
-      call mpas_pool_get_subpool(block % structs, 'adcDiagnosticArrays', adcDiagnosticsPool)
-      call mpas_pool_get_subpool(block % structs, 'adcTendArrays', adcTendPool)
-      call mpas_pool_get_subpool(block % structs, 'adcPrognosticArrays', adcPrognosticsPool)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'ze', zeTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'zm', zmTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'epsSPS', epsSPSTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'length', lengthTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'lenup', lenupTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'lendn', lendnTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'lenspsD', lenspsDTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'lenspsU', lenspsUTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'KhU', KhUTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'KhD', KhDTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'KmU', KmUTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'KmD', KmDTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'wt_spsU', wt_spsUTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'wt_spsD', wt_spsDTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'ws_spsU', ws_spsUTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'ws_spsD', ws_spsDTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'uw2', uw2Tmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'vw2', vw2Tmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'u2w', u2wTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'v2w', v2wTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'w2t', w2tTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'w2s', w2sTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'wts', wtsTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'uvw', uvwTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'uwt', uwtTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'vwt', vwtTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'uws', uwsTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'vws', vwsTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'ws2', ws2Tmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'wt2', wt2Tmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'areaFraction', areaFractionTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'Entrainment', EntrainmentTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'Detrainment', DetrainmentTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'tumd', tumdTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'sumd', sumdTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'wumd', wumdTmp)
-      call mpas_pool_get_array(adcDiagnosticsPool, 'Mc', McTmp)
-
       McTmp = Mc
       zeTmp = ze
       zmTmp = zm
@@ -902,50 +963,6 @@ module ocn_turbulence
       tumdTmp = tumd
       sumdTmp = sumd
       wumdTmp = wumd
-
-      call mpas_pool_get_array(adcTendPool, 'w2tend1', w2tend1Tmp)
-      call mpas_pool_get_array(adcTendPool, 'w2tend2', w2tend2Tmp)
-      call mpas_pool_get_array(adcTendPool, 'w2tend3', w2tend3Tmp)
-      call mpas_pool_get_array(adcTendPool, 'w2tend4', w2tend4Tmp)
-      call mpas_pool_get_array(adcTendPool, 'w2tend5', w2tend5Tmp)
-      call mpas_pool_get_array(adcTendPool, 'w3tend1', w3tend1Tmp)
-      call mpas_pool_get_array(adcTendPool, 'w3tend2', w3tend2Tmp)
-      call mpas_pool_get_array(adcTendPool, 'w3tend3', w3tend3Tmp)
-      call mpas_pool_get_array(adcTendPool, 'w3tend4', w3tend4Tmp)
-      call mpas_pool_get_array(adcTendPool, 'w3tend5', w3tend5Tmp)
-      call mpas_pool_get_array(adcTendPool, 'wttend1', wttend1Tmp)
-      call mpas_pool_get_array(adcTendPool, 'wttend2', wttend2Tmp)
-      call mpas_pool_get_array(adcTendPool, 'wttend3', wttend3Tmp)
-      call mpas_pool_get_array(adcTendPool, 'wttend4', wttend4Tmp)
-      call mpas_pool_get_array(adcTendPool, 'wttend5', wttend5Tmp)
-      call mpas_pool_get_array(adcTendPool, 'wstend1', wstend1Tmp)
-      call mpas_pool_get_array(adcTendPool, 'wstend2', wstend2Tmp)
-      call mpas_pool_get_array(adcTendPool, 'wstend3', wstend3Tmp)
-      call mpas_pool_get_array(adcTendPool, 'wstend4', wstend4Tmp)
-      call mpas_pool_get_array(adcTendPool, 'wstend5', wstend5Tmp)
-      call mpas_pool_get_array(adcTendPool, 'uwtend1', uwtend1Tmp)
-      call mpas_pool_get_array(adcTendPool, 'uwtend2', uwtend2Tmp)
-      call mpas_pool_get_array(adcTendPool, 'uwtend3', uwtend3Tmp)
-      call mpas_pool_get_array(adcTendPool, 'uwtend4', uwtend4Tmp)
-      call mpas_pool_get_array(adcTendPool, 'uwtend5', uwtend5Tmp)
-      call mpas_pool_get_array(adcTendPool, 'vwtend1', vwtend1Tmp)
-      call mpas_pool_get_array(adcTendPool, 'vwtend2', vwtend2Tmp)
-      call mpas_pool_get_array(adcTendPool, 'vwtend3', vwtend3Tmp)
-      call mpas_pool_get_array(adcTendPool, 'vwtend4', vwtend4Tmp)
-      call mpas_pool_get_array(adcTendPool, 'vwtend5', vwtend5Tmp)
-      call mpas_pool_get_array(adcTendPool, 'u2tend1', u2tend1Tmp)
-      call mpas_pool_get_array(adcTendPool, 'u2tend2', u2tend2Tmp)
-      call mpas_pool_get_array(adcTendPool, 'u2tend3', u2tend3Tmp)
-      call mpas_pool_get_array(adcTendPool, 'u2tend4', u2tend4Tmp)
-      call mpas_pool_get_array(adcTendPool, 'u2tend5', u2tend5Tmp)
-      call mpas_pool_get_array(adcTendPool, 'v2tend1', v2tend1Tmp)
-      call mpas_pool_get_array(adcTendPool, 'v2tend2', v2tend2Tmp)
-      call mpas_pool_get_array(adcTendPool, 'v2tend3', v2tend3Tmp)
-      call mpas_pool_get_array(adcTendPool, 'v2tend4', v2tend4Tmp)
-      call mpas_pool_get_array(adcTendPool, 'v2tend5', v2tend5Tmp)
-      call mpas_pool_get_array(adcTendPool, 'u2cliptend', u2cliptendTmp)
-      call mpas_pool_get_array(adcTendPool, 'v2cliptend', v2cliptendTmp)
-      call mpas_pool_get_array(adcTendPool, 'w2cliptend', w2cliptendTmp)
 
       w2tend1Tmp = w2tend1
       w2tend2Tmp = w2tend2
@@ -991,25 +1008,6 @@ module ocn_turbulence
       v2cliptendTmp = v2cliptend
       w2cliptendTmp = w2cliptend
 
-      call mpas_pool_get_array(adcPrognosticsPool, 'KspsD', KspsDTmp,1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'KspsU', KspsUTmp,1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'u2', u2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'v2', v2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'w2', w2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'wt', wtTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ws', wsTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'uw', uwTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vw', vwTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'w3', w3Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'uv', uvTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 't2', t2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ut', utTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vt', vtTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'us', usTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vs', vsTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ts', tsTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 's2', s2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'eps', epsTmp, 1)
 
       epsTmp(:,:nCells) = eps(1,:,:nCells)
       u2Tmp(:,:nCells) = u2(1,:,:nCells)
@@ -1050,6 +1048,23 @@ module ocn_turbulence
       call mpas_pool_get_array(adcPrognosticsPool, 'ts', tsTmp, 2)
       call mpas_pool_get_array(adcPrognosticsPool, 's2', s2Tmp, 2)
       call mpas_pool_get_array(adcPrognosticsPool, 'eps', epsTmp, 2)
+      !$acc update host(u2,          &
+      !$acc                  v2,          &
+      !$acc                  w2,          &
+      !$acc                  wt,          &
+      !$acc                  ws,          &
+      !$acc                  uw,          &
+      !$acc                  vw,          &
+      !$acc                  w3,          &
+      !$acc                  uv,          &
+      !$acc                  t2,          &
+      !$acc                  ut,          &
+      !$acc                  vt,          &
+      !$acc                  us,          &
+      !$acc                  vs,          &
+      !$acc                  ts,          &
+      !$acc                  s2,          &
+      !$acc                  eps)
 
       KspsUTmp(:,:nCells) = KspsU(1,:,:nCells)
       KspsDTmp(:,:nCells) = KspsD(1,:,:nCells)
