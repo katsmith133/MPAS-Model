@@ -5,6 +5,7 @@ module ocn_adc_mixing_fused
   use ocn_turbulence
   use mpas_log
   use ocn_config
+  use mpas_timer
 
   implicit none
 
@@ -15,10 +16,10 @@ module ocn_adc_mixing_fused
   contains
 
   subroutine swap_time_levels
-
+    call mpas_timer_start('swap_time_levels_fused',.false.)
     i1 = mod(iterCount - 1, 2) + 1
     i2 = mod(iterCount, 2) + 1
-
+    call mpas_timer_stop('swap_time_levels_fused')
   end subroutine swap_time_levels
 
   subroutine dissipation_lengths2(nCells,nVertLevels,activeTracers,alphaT,betaS)
@@ -34,6 +35,7 @@ module ocn_adc_mixing_fused
 
     !NOTE: will need to convert to some form of displaced density in the mpas framework soon
     !possibly go back to a more traditional length scale formulation
+    call mpas_timer_start('dissipation_lengths2_fused',.false.)
     do i=1,nCells
        tke(:) = 0.5*(u2(2,:,i) + v2(2,:,i) + w2(2,:,i))
        do k=1,nVertLevels
@@ -131,6 +133,7 @@ module ocn_adc_mixing_fused
 
    length(1,:) = 0.55_RKIND
    length(nVertLevels+1,:) = 0.55_RKIND
+   call mpas_timer_stop('dissipation_lengths2_fused')   
 
   end subroutine dissipation_lengths2
 
@@ -147,6 +150,7 @@ module ocn_adc_mixing_fused
     logical :: first
     real :: coeff, maximum, Q, KE
 
+    call mpas_timer_start('build_diagnostic_arrays_fused',.false.)
     first = .true.
 
     do iCell=1,nCells
@@ -167,6 +171,7 @@ module ocn_adc_mixing_fused
       KE = 0.5*(u2(2,1,iCell) + v2(2,1,iCell))
       eps(:,1,iCell) = KE**1.5/(0.5*(ze(1,iCell) - ze(2,iCell) + 1.0E-10_RKIND))
     enddo
+    call mpas_timer_stop('build_diagnostic_arrays_fused')
 
   end subroutine build_diagnostic_arrays
 
@@ -181,6 +186,7 @@ module ocn_adc_mixing_fused
       real :: Sw, w3av, lareaFraction, wsav
       integer :: iCell,k
 
+      call mpas_timer_start('build_areaFraction_properties_fused',.false.)
       do iCell = 1,nCells
         tumd(1,iCell) = 0.0_RKIND
         wumd(1,iCell) = 0.0_RKIND
@@ -234,7 +240,8 @@ module ocn_adc_mixing_fused
           w2s(k,iCell) = sigav*(1.0_RKIND - sigav)*(1.0_RKIND - 2.0_RKIND*sigav)*wumdav**2.0_RKIND*sumdav
         enddo
       enddo !iCell loop end
-
+      call mpas_timer_stop('build_areaFraction_properties_fused')
+      
   end subroutine build_areaFraction_properties
 
   subroutine compute_ADC_tends(nCells,nVertLevels, nTracers, dt,activeTracers, uvel, vvel, BVF,  &
@@ -271,7 +278,8 @@ module ocn_adc_mixing_fused
         uttend, vttend, ustend, vstend, uvtend
       real,dimension(nVertLevels) :: epstend
       real,dimension(nVertLevels+1,nCells) :: KspsUtend, KspsDtend
-
+    
+      call mpas_timer_start('compute_ADC_tends_fused',.false.)
       dt_small = config_adc_timestep
       niter = dt / dt_small
 
@@ -772,6 +780,8 @@ module ocn_adc_mixing_fused
             ws(2,k+1,iCell)) / (ze(k,iCell) - ze(k+1,iCell))
       enddo
     enddo
+
+    call mpas_timer_stop('compute_ADC_tends_fused')
 
   end subroutine compute_ADC_tends
 end module ocn_adc_mixing_fused
