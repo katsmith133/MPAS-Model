@@ -797,7 +797,7 @@ module ocn_turbulence
       call mpas_pool_get_array(adcPrognosticsPool, 's2', s2Tmp, 1)
       call mpas_pool_get_array(adcPrognosticsPool, 'eps', epsTmp, 1)
 
-      !$acc update host(kspsd,    &
+      !$acc update host(KspsD,    &
       !$acc                   sigmat,       &
       !$acc                   grav,         &
       !$acc                   epsilon,      &
@@ -828,7 +828,7 @@ module ocn_turbulence
       !$acc                   kappa_var,    &
       !$acc                   kappa_w3,     &
       !$acc                   itercount,    &
-      !$acc                  kspsu,    &
+      !$acc                  KspsU,    &
       !$acc                  ze,       &
       !$acc                  zm,       &
       !$acc                  epssps,      &
@@ -859,9 +859,9 @@ module ocn_turbulence
       !$acc                  vws,      &
       !$acc                  ws2,      &
       !$acc                  wt2,      &
-      !$acc                  areafraction,    &
-      !$acc                  entrainment, &
-      !$acc                  detrainment, &
+      !$acc                  areaFraction,    &
+      !$acc                  Entrainment, &
+      !$acc                  Detrainment, &
       !$acc                  tumd,        &
       !$acc                  sumd,        &
       !$acc                  wumd,        &
