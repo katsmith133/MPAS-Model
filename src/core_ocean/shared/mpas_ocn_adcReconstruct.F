@@ -231,6 +231,7 @@ module ocn_adc_mixing_fused
           sumd(k,iCell) = ws(tlev,k,iCell) / (1.0E-12_RKIND + Mc(k,iCell))
         enddo
 
+        areaFraction(nVertLevels+1, iCell) = areaFraction(nVertLevels, iCell)
         do k=2,nVertLevels
           sigav = 0.5_RKIND*(areaFraction(k,iCell) + areaFraction(k+1,iCell))
           tumdav = 0.5_RKIND*(tumd(k,iCell) + tumd(k+1,iCell))

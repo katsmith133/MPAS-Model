@@ -117,8 +117,8 @@ pgi-lanl:
 	"CXXFLAGS_DEBUG = -O0 -g -traceback" \
 	"LDFLAGS_DEBUG = -O0 -g -Mbounds -Mchkptr -Ktrap=divz,fp,inv,ovf -traceback" \
 	"FFLAGS_OMP = -mp" \
-  "FFLAGS_ACC = -acc -Mcuda -ta=tesla:cc60 -D__cudaProfiler" \
-  "CFLAGS_ACC = -acc -Mcuda -ta=tesla:cc60 -D__cudaProfiler" \
+  "FFLAGS_ACC = -acc -Mcuda -Minfo=accel -ta=tesla:cc60 -D__cudaProfiler" \
+  "CFLAGS_ACC = -acc -Mcuda -Minfo=accel -ta=tesla:cc60 -D__cudaProfiler" \
   "LDFLAGS_ACC = -ta=tesla:cc60,deepcopy -Minfo=accel -D__cudaProfiler" \
   "OPENACC = $(OPENACC)" \
 	"CORE = $(CORE)" \

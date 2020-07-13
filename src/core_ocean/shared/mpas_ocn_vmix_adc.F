@@ -302,6 +302,7 @@ contains
 
          ze(1,iCell) = 0.0_RKIND
          zm(1,iCell) = -layerThickness(1,iCell)/2.0_RKIND
+
          do k=2,maxLevelCell(iCell)
             ze(k,iCell) = ze(k-1,iCell) - layerThickness(k-1,iCell)
             zm(k,iCell) = ze(k, iCell) - layerThickness(k,iCell)/2.0_RKIND
@@ -315,6 +316,7 @@ contains
 
      enddo
      !$omp end do
+
      !call the individual ADC function and pass the array members maybe?  probably not
      !this will update T in place, so verify it sends time level n+1
      ntracers = size(activeTracers, dim=1)

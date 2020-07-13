@@ -797,6 +797,7 @@ module ocn_turbulence
       call mpas_pool_get_array(adcPrognosticsPool, 's2', s2Tmp, 1)
       call mpas_pool_get_array(adcPrognosticsPool, 'eps', epsTmp, 1)
 
+      if(config_adc_run_on_device) then
       !$acc update host(KspsD,    &
       !$acc                   sigmat,       &
       !$acc                   grav,         &
@@ -925,6 +926,7 @@ module ocn_turbulence
       !$acc                  ts,          &
       !$acc                  s2,          &
       !$acc                  eps)
+      endif
 
       McTmp = Mc
       zeTmp = ze
