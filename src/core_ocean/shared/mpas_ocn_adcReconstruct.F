@@ -179,31 +179,20 @@ module ocn_adc_mixing_fused
      ! call swap_time_levels
       i1 = mod(iterCount - 1, 2) + 1
       i2 = mod(iterCount, 2) + 1
-      print*,"iterCount= ",iterCount,", niter = ",niter
-      !$acc enter data copyin(i1,i2,alphaT,wtsfc,betaS,wssfc,boundaryLayerDepth,BVF,fCell,    &
+      !print*,"iterCount= ",iterCount,", niter = ",niter
+      !$acc enter data copyin(alphaT,wtsfc,betaS,wssfc,boundaryLayerDepth,BVF,fCell,    &
       !$acc uwsfc,vwsfc,uvel,vvel,activeTracers,lscale_flag) create(w2tend,w3tend,taupt,taups,taupv,      &
       !$acc wttend,wstend,uwtend,vwtend,u2tend,v2tend,uttend,vttend,ustend,vstend,uvtend,     &
       !$acc epstend,KspsUtend,KspsDtend)
     
-      !a$acc update device(tumd,wumd,areaFraction,Mc,w2t,w2s,length,u2,v2,uw,vw,wt,ws,eps,iterCount)
-
-      !$acc update device(tumd,wumd,areaFraction,Mc,w2t,w2s,sumd,epsilon,Entrainment,           &
+      !$acc update device(areaFraction,sumd,Entrainment,           &
       !$acc Detrainment,zm,length,uw2,vw2,u2w,v2w,uvw,uwt,vwt,uws,vws)
       !$acc update device(ze,KspsU,KspsD,eps,u2,v2,w2,ut,vt,wt,us,vs,ws,w3,uw,vw,t2,s2,uv,ts)
 
       !on further examination build_diagnostics array can live outside the iter loop
-      !$acc parallel present(grav,alphaT,wtsfc,betaS,wssfc,boundaryLayerDepth,tumd,wumd,sumd,       &
-      !$acc areaFraction,Mc,w2t,w2s,length,ze,u2,uwsfc,v2,uw,vw,vwsfc,wt,ws,eps,w2,w3,u2cliptend,   &
-      !$acc v2cliptend,w2cliptend,Entrainment,Detrainment,KspsU,KspsD,w3tend1,w3tend2,w3tend3,      &
-      !$acc w3tend4,w3tend5,w3tend,zm,uw2,vw2,u2w,v2w,uvw,uv,uwt,ut,vwt,vt,uws,us,vws,vs,uvel,vvel, &
-      !$acc activeTracers,w2tend1,w2tend2,w2tend3,w2tend4,w2tend5,w2tend,taupt,taups,taupv,wttend1, &
-      !$acc wttend2,wttend3,t2,ts,wttend4,wttend5,wttend,wstend1,wstend2,wstend3,s2,wstend4,wstend5,&
-      !$acc wstend,uwtend1,uwtend2,uwtend3,uwtend4,uwtend5,uwtend,vwtend,uvtend,u2tend1,u2tend2,    &
-      !$acc u2tend3,u2tend4,u2tend5,u2tend,v2tend1,v2tend2,v2tend3,v2tend4,v2tend5,v2tend,uttend,   &
-      !$acc vttend,ustend,vstend,epstend,BVF,lenspsU,lenspsD,KmU,KhU,wt_spsU,ws_spsU,KmD,KhD,       &
-      !$acc wt_spsD,ws_spsD,KspsUtend,KspsDtend,iterCount,i1,i2,lscale_flag)
-
-      !$acc loop
+      !$acc parallel present(alphaT,wtsfc,betaS,wssfc,boundaryLayerDepth,tumd,wumd,sumd,areaFraction,   &
+      !$acc Mc,w2t,w2s,length,ze,u2,uwsfc,v2,uw,vw,vwsfc,wt,ws,eps)
+      !$acc loop gang
       do iCell=1,nCells
         Q = grav*(alphaT(1,iCell)*wtsfc(iCell) - betaS(1,iCell)*wssfc(iCell))* &
             boundaryLayerDepth(iCell)
@@ -234,15 +223,25 @@ module ocn_adc_mixing_fused
           eps(k,1,iCell) = KE**1.5/(0.5*(ze(1,iCell) - ze(2,iCell) + 1.0E-10_RKIND))
         enddo
       enddo
-      !a$acc end parallel
+      !$acc end parallel
+
       !a$acc update self(tumd(1,:),wumd(1,:),areaFraction(1,:),Mc(1,:),w2t(1,:),w2s(1,:),&
       !a$acc length(1,:),length(nVertLevels+1,:),u2(1:2,1,:),v2(1:2,1,:),uw(1:2,1,:),vw(1:2,1,:),wt(1:2,1,:),ws(1:2,1,:)&
       !a$acc ,eps(1:2,1,:))
 
-      !$acc loop seq
       do iIter=1,niter
         ! We should test the use of this value versus the one above
 
+        !$acc parallel present(w2,w2t,areaFraction,wt,w3,wumd,Mc,tumd,sumd,ws,w2s,u2cliptend,    &
+        !$acc v2cliptend,w2cliptend,Entrainment,Detrainment,u2,v2,KspsU,KspsD,length,ze,w3tend1, &
+        !$acc w3tend2,w3tend3,w3tend4,w3tend5,w3tend,w3,alphaT,betaS,zm,uw2,uw,vw2,vw,u2w,v2w,   &
+        !$acc uvw,uv,uwt,ut,vwt,vt,uws,us,vws,vs,uvel,vvel,activeTracers,w2tend1,w2tend2,w2tend3,&
+        !$acc w2tend4,w2tend5,w2tend,taupt,taups,taupv,wttend1,wttend2,wttend3,t2,ts,wttend4,    &
+        !$acc wttend5,wttend,wstend1,wstend2,wstend3,s2,wstend4,wstend5,wstend,uwtend1,uwtend2,  &
+        !$acc uwtend3,uwtend4,uwtend5,uwtend,vwtend,uvtend,u2tend1,u2tend2,u2tend3,u2tend4,      &
+        !$acc u2tend5,eps,u2tend,v2tend1,v2tend2,v2tend3,v2tend4,v2tend5,v2tend,uttend,vttend,   &
+        !$acc ustend,vstend,epstend,BVF,lenspsU,lenspsD,KmU,KhU,wt_spsU,ws_spsU,KmD,KhD,wt_spsD, &
+        !$acc ws_spsD,KspsUtend,KspsDtend)
         ! present(w2,w2t,areaFraction,wt)
         !$acc loop
         do iCell=1,nCells
@@ -255,7 +254,7 @@ module ocn_adc_mixing_fused
 
         !Kernel 1 inlined versions of the base arrays, needed for later to make them collapsible
         ! present(w3,w2,areaFraction,wumd,Mc,tumd,wt,Mc,sumd,ws)
-        !$acc loop
+        !$acc loop collapse(2)
         do iCell=1,nCells
           do k=2,nVertLevels
             w3av = 0.5_RKIND*(w3(i1,k-1,iCell) + w3(i1,k,iCell))
@@ -278,7 +277,7 @@ module ocn_adc_mixing_fused
         enddo
 
         ! present(areaFraction,tumd,sumd,wumd,w2t,w2s,u2cliptend,v2cliptend,w2cliptend)
-        !$acc loop
+        !$acc loop collapse(2)
         do iCell = 1,nCells
           do k=2,nVertLevels
             sigav = 0.5_RKIND*(areaFraction(k,iCell) + areaFraction(k+1,iCell))
@@ -298,7 +297,7 @@ module ocn_adc_mixing_fused
         ! present(Entrainment,Detrainment,u2,v2,w2,areaFraction,wumd,tumd,sumd,KspsU,KspsD,Mc,length,       &
         ! ze,w3tend1,w3tend2,w3tend3,w3tend4,w3tend5,w3tend,w3,alphaT,w2t,betaS,w2s,zm,uw2,uw,vw2,vw,u2w,   &
         ! v2w,uvw,uv,uwt,ut,vwt,vt,uws,us,vws,vs)
-        !$acc loop
+        !$acc loop collapse(2)
         do iCell = 1,nCells
             do k=1,nVertLevels
               Eav = 0.5*(Entrainment(k+1,iCell) + Entrainment(k,iCell))
@@ -401,7 +400,8 @@ module ocn_adc_mixing_fused
           ! u2tend4,u2tend5,eps,u2tend,v2tend1,v2w,v2tend2,v2tend3,v2tend4,v2tend5,v2tend,uttend,uwt,   &
           ! vttend,vwt,ustend,uws,vstend,vws,t2,s2,ts,epstend,BVF,lenspsU,lenspsD,KmU,KhU,wt_spsU,      &
           ! ws_spsU,KmD,KhD,wt_spsD,ws_spsD,Entrainment,Detrainment,KspsUtend,KspsDtend)
-          !$acc loop
+
+          !$acc loop collapse(2)
           do iCell=1,nCells
             do k=2,nVertLevels
               dzmid = (zm(k-1,iCell) - zm(k,iCell))
@@ -642,7 +642,7 @@ module ocn_adc_mixing_fused
           ! uw,uwtend,vw,vwtend,uv,uvtend,ut,uttend,wt,wttend,taupt,vt,vttend,us,       &
           ! ustend,vs,vstend,ws,wstend,taups,eps,epstend,length,KspsU,KspsUtend,        &
           ! KspsD,KspsDtend)
-          !$acc loop
+          !$acc loop collapse(2)
           do iCell = 1,nCells
             do k=2,nVertLevels
                 !update second order moment tendency here
@@ -721,7 +721,7 @@ module ocn_adc_mixing_fused
 
           ! update the third order w3 and mean fields
           ! present(w2,w3,w3tend)
-          !$acc loop
+          !$acc loop collapse(2)
           do iCell = 1,nCells
             do k=1,nVertLevels
               w3check = (w2(i2,k,iCell) + w2(i2,k+1,iCell))**1.5
@@ -734,6 +734,7 @@ module ocn_adc_mixing_fused
               endif
             enddo
           enddo
+        !$acc end parallel
       iterCount = iterCount + 1
       print*,"iterCount = ",iterCount
       !call swap_time_levels !probably a better way to do this, with supercycling maybe
@@ -744,7 +745,7 @@ module ocn_adc_mixing_fused
     !now that substepping is done, apply computed fluxes to update mean fields.
     !you can collapse this loop too.
     !a$acc update device(uvel,vvel,uw,ze,vw,activeTracers,wt,ws)
-    !a$acc parallel present(uvel,vvel,uw,ze,vw,activeTracers,wt,ws)
+    !$acc parallel present(uvel,vvel,uw,ze,vw,activeTracers,wt,ws)
     ! present(uvel,vvel,uw,ze,vw,activeTracers,wt,ws)
     !$acc loop collapse(2)
     do iCell = 1, nCells
@@ -769,7 +770,7 @@ module ocn_adc_mixing_fused
     !$acc update self(KspsU,KspsD,eps,u2,v2,w2,ut,vt,wt,us,vs,ws,w3,uw,vw,t2,s2,uv,ts,  & 
     !$acc areaFraction,wumd,sumd,tumd,u2cliptend,v2cliptend,Entrainment,Detrainment,length,zm,ze,KmU, &
     !$acc KhU,KmD,KhD,wt_spsU,wt_spsD,ws_spsU,ws_spsD,Mc,lenspsU,lenspsD,uw2,vw2,uwt,vwt,uws,vws,uvw, &
-    !$acc u2w,v2w,uvel,vvel,activeTracers,iterCount)
+    !$acc u2w,v2w,uvel,vvel,activeTracers)
 
     !$acc exit data delete(i1,i2,alphaT,wtsfc,betaS,wssfc,boundaryLayerDepth,BVF,fCell,    &
     !$acc uwsfc,vwsfc,uvel,vvel,activeTracers,w2tend,w3tend,taupt,taups,taupv,              &
