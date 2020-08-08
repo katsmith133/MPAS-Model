@@ -180,16 +180,17 @@ module ocn_adc_mixing_fused
       i1 = mod(iterCount - 1, 2) + 1
       i2 = mod(iterCount, 2) + 1
       !print*,"iterCount= ",iterCount,", niter = ",niter
-      !$acc enter data copyin(alphaT,wtsfc,betaS,wssfc,boundaryLayerDepth,BVF,fCell,    &
+      !$acc enter data copyin(i1,i2,alphaT,wtsfc,betaS,wssfc,boundaryLayerDepth,BVF,fCell,    &
       !$acc uwsfc,vwsfc,uvel,vvel,activeTracers,lscale_flag) create(w2tend,w3tend,taupt,taups,taupv,      &
       !$acc wttend,wstend,uwtend,vwtend,u2tend,v2tend,uttend,vttend,ustend,vstend,uvtend,     &
       !$acc epstend,KspsUtend,KspsDtend)
-    
+
       !$acc update device(areaFraction,sumd,Entrainment,           &
       !$acc Detrainment,zm,length,uw2,vw2,u2w,v2w,uvw,uwt,vwt,uws,vws)
       !$acc update device(ze,KspsU,KspsD,eps,u2,v2,w2,ut,vt,wt,us,vs,ws,w3,uw,vw,t2,s2,uv,ts)
 
       !on further examination build_diagnostics array can live outside the iter loop
+
       !$acc parallel present(alphaT,wtsfc,betaS,wssfc,boundaryLayerDepth,tumd,wumd,sumd,areaFraction,   &
       !$acc Mc,w2t,w2s,length,ze,u2,uwsfc,v2,uw,vw,vwsfc,wt,ws,eps)
       !$acc loop gang
@@ -224,10 +225,6 @@ module ocn_adc_mixing_fused
         enddo
       enddo
       !$acc end parallel
-
-      !a$acc update self(tumd(1,:),wumd(1,:),areaFraction(1,:),Mc(1,:),w2t(1,:),w2s(1,:),&
-      !a$acc length(1,:),length(nVertLevels+1,:),u2(1:2,1,:),v2(1:2,1,:),uw(1:2,1,:),vw(1:2,1,:),wt(1:2,1,:),ws(1:2,1,:)&
-      !a$acc ,eps(1:2,1,:))
 
       do iIter=1,niter
         ! We should test the use of this value versus the one above
@@ -400,7 +397,6 @@ module ocn_adc_mixing_fused
           ! u2tend4,u2tend5,eps,u2tend,v2tend1,v2w,v2tend2,v2tend3,v2tend4,v2tend5,v2tend,uttend,uwt,   &
           ! vttend,vwt,ustend,uws,vstend,vws,t2,s2,ts,epstend,BVF,lenspsU,lenspsD,KmU,KhU,wt_spsU,      &
           ! ws_spsU,KmD,KhD,wt_spsD,ws_spsD,Entrainment,Detrainment,KspsUtend,KspsDtend)
-
           !$acc loop collapse(2)
           do iCell=1,nCells
             do k=2,nVertLevels
@@ -744,7 +740,6 @@ module ocn_adc_mixing_fused
 
     !now that substepping is done, apply computed fluxes to update mean fields.
     !you can collapse this loop too.
-    !a$acc update device(uvel,vvel,uw,ze,vw,activeTracers,wt,ws)
     !$acc parallel present(uvel,vvel,uw,ze,vw,activeTracers,wt,ws)
     ! present(uvel,vvel,uw,ze,vw,activeTracers,wt,ws)
     !$acc loop collapse(2)
@@ -765,7 +760,6 @@ module ocn_adc_mixing_fused
       enddo
     enddo
     !$acc end parallel
-    !a$acc update self(uvel,vvel,activeTracers)
 
     !$acc update self(KspsU,KspsD,eps,u2,v2,w2,ut,vt,wt,us,vs,ws,w3,uw,vw,t2,s2,uv,ts,  & 
     !$acc areaFraction,wumd,sumd,tumd,u2cliptend,v2cliptend,Entrainment,Detrainment,length,zm,ze,KmU, &
