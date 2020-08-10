@@ -150,9 +150,6 @@ module ocn_adc_mixing_fused
 
       real :: dt_small
 
-      real,dimension(nVertLevels+1,nCells) :: w2tend
-      real,dimension(nVertLevels,nCells) :: w3tend
-
       real :: Sw, St, Ss, Eav, Dav, sigav, sigavp1, wumdAv, tumdAv, sumdAv, wumdAvp1, tumdAvp1, sumdAvp1
       real :: Swup, KspsUav, KspsDav, KspsUavp1, KspsDavp1, KE, Mcav, lenav,u2av,v2av,w2av
       real :: w3temp, w3check, mval, KEsps, Uz, Vz, dz
@@ -164,11 +161,6 @@ module ocn_adc_mixing_fused
       real :: B, Cval, diff, wtav, dzmid, Ksps, Sz, Tz
       real :: lareaFraction, wstar, Q, w3av, tempMoment
 
-      real,dimension(nVertLevels,nCells) :: taupt, taups, taupv
-      real,dimension(nVertLevels+1,nCells) :: wttend, wstend, uwtend, vwtend, u2tend, v2tend, &
-        uttend, vttend, ustend, vstend, uvtend
-      real,dimension(nVertLevels,nCells) :: epstend
-      real,dimension(nVertLevels+1,nCells) :: KspsUtend, KspsDtend
       logical :: lscale_flag
 
       call mpas_timer_start('compute_ADC_tends',.false.)
@@ -181,9 +173,7 @@ module ocn_adc_mixing_fused
       i2 = mod(iterCount, 2) + 1
 
       !$acc enter data copyin(i1,i2,alphaT,wtsfc,betaS,wssfc,boundaryLayerDepth,BVF,fCell,    &
-      !$acc uwsfc,vwsfc,uvel,vvel,activeTracers,lscale_flag) create(w2tend,w3tend,taupt,taups,taupv,      &
-      !$acc wttend,wstend,uwtend,vwtend,u2tend,v2tend,uttend,vttend,ustend,vstend,uvtend,     &
-      !$acc epstend,KspsUtend,KspsDtend)
+      !$acc uwsfc,vwsfc,uvel,vvel,activeTracers,lscale_flag) 
 
       !$acc update device(areaFraction,sumd,Entrainment,           &
       !$acc Detrainment,zm,length,uw2,vw2,u2w,v2w,uvw,uwt,vwt,uws,vws)
@@ -378,6 +368,16 @@ module ocn_adc_mixing_fused
               vwt(k,iCell) = -diff*(vt(i1,k,iCell) - vt(i1,k+1,iCell)) / dz
               uws(k,iCell) = -diff*(us(i1,k,iCell) - us(i1,k+1,iCell)) / dz
               vws(k,iCell) = -diff*(vs(i1,k,iCell) - vs(i1,k+1,iCell)) / dz
+
+              KmU(k,iCell) = 0.1_RKIND*lenspsU(k,iCell)*sqrt( KspsU(i1,k,iCell) )
+              KhU(k,iCell) = ( 1.0_RKIND+2.0_RKIND*lenspsU(k,iCell)/dz)*KmU(k,iCell)
+              wt_spsU(k,iCell) =  -KhU(k,iCell)*Tz
+              ws_spsU(k,iCell) =  -KhU(k,iCell)*Sz
+
+              KmD(k,iCell) = 0.1_RKIND*lenspsD(k,iCell)*sqrt( KspsD(i1,k,iCell) )
+              KhD(k,iCell) = ( 1.0_RKIND+2.0_RKIND*lenspsD(k,iCell)/dz)*KmD(k,iCell)
+              wt_spsD(k,iCell) = -KhD(k,iCell)*Tz
+              ws_spsD(k,iCell) = -KhD(k,iCell)*Sz
 
             enddo !nVertLevels
           enddo !nCells
@@ -584,16 +584,6 @@ module ocn_adc_mixing_fused
                 lenspsU(k,iCell) = min(dz,0.76_RKIND*sqrt(KspsU(i1,k,iCell)/BVF(k,iCell)))
                 lenspsD(k,iCell) = min(dz,0.76_RKIND*sqrt(KspsD(i1,k,iCell)/BVF(k,iCell)))
               endif
-
-              KmU(k,iCell) = 0.1_RKIND*lenspsU(k,iCell)*sqrt( KspsU(i1,k,iCell) )
-              KhU(k,iCell) = ( 1.0_RKIND+2.0_RKIND*lenspsU(k,iCell)/dz)*KmU(k,iCell)
-              wt_spsU(k,iCell) =  -KhU(k,iCell)*Tz
-              ws_spsU(k,iCell) =  -KhU(k,iCell)*Sz
-
-              KmD(k,iCell) = 0.1_RKIND*lenspsD(k,iCell)*sqrt( KspsD(i1,k,iCell) )
-              KhD(k,iCell) = ( 1.0_RKIND+2.0_RKIND*lenspsD(k,iCell)/dz)*KmD(k,iCell)
-              wt_spsD(k,iCell) = -KhD(k,iCell)*Tz
-              ws_spsD(k,iCell) = -KhD(k,iCell)*Sz
 
               Entrainment(k,iCell) = Cww_E*areaFraction(k,iCell)*(1.0_RKIND- &
                 areaFraction(k,iCell))*Mc(k,iCell) / ( lenspsD(k,iCell) + EPSILON )

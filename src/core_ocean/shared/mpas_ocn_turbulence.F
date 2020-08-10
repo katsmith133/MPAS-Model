@@ -67,7 +67,10 @@ module ocn_turbulence
                        vwtend3, vwtend4, vwtend5, u2tend1, u2tend2,   &
                        u2tend3, u2tend4, u2tend5, v2tend1, v2tend2,   &
                        v2tend3, v2tend4, v2tend5, u2cliptend,         &
-                       v2cliptend, w2cliptend
+                       v2cliptend, w2cliptend, w2tend, w3tend,        &
+                       taupt, taups, taupv, wttend, wstend, uwtend,   &
+                       vwtend, u2tend, v2tend, uttend, vttend, ustend, &
+                       vstend, uvtend, epstend, KspsUtend, KspsDtend
 
    real(kind=RKIND), public, dimension(:,:,:), allocatable :: u2, v2, w2, t2, s2, &
                        uw, vw, wt, ws, w3, uv, ut, vt, us, vs, ts, eps, KspsU, KspsD
@@ -230,6 +233,16 @@ module ocn_turbulence
       allocate( Entrainment( nVertLevelsP1, nCells ), Detrainment( nVertLevelsP1, nCells ))
       allocate( tumd( nVertLevelsP1, nCells ), sumd( nVertLevelsP1, nCells ))
       allocate( wumd( nVertLevelsP1, nCells ), Mc( nVertLevelsP1, nCells ))
+      allocate( taupt( nVertLevels, nCells ) , taups( nVertLevels, nCells ))
+      allocate( taupv( nVertLevels, nCells ), epstend( nVertLevels, nCells ))
+      allocate( wttend( nVertLevelsP1, nCells ), wstend( nVertLevelsP1, nCells ))
+      allocate( uwtend( nVertLevelsP1, nCells ), vwtend( nVertLevelsP1, nCells ))
+      allocate( u2tend( nVertLevelsP1, nCells ), v2tend( nVertLevelsP1, nCells ))
+      allocate( uttend( nVertLevelsP1, nCells ), vttend( nVertLevelsP1, nCells ))
+      allocate( ustend( nVertLevelsP1, nCells ), vstend( nVertLevelsP1, nCells ))
+      allocate( uvtend( nVertLevelsP1, nCells ), KspsUtend( nVertLevelsP1, nCells ))
+      allocate( KspsDtend( nVertLevelsP1, nCells ), w2tend( nVertLevelsP1, nCells ))
+      allocate( w3tend( nVertLevels, nCells ))
 
       ze = zeTmp
       zm = zmTmp
@@ -636,7 +649,26 @@ module ocn_turbulence
       !$acc                  ts,          &
       !$acc                  s2,          &
       !$acc                  eps,         &
-      !$acc                  Mc)
+      !$acc                  Mc,          &
+      !$acc                  taupt,       &
+      !$acc                  taups,       &
+      !$acc                  taupv,       &
+      !$acc                  wttend,      &
+      !$acc                  wstend,      &
+      !$acc                  uwtend,      &
+      !$acc                  vwtend,      &
+      !$acc                  u2tend,      &
+      !$acc                  v2tend,      &
+      !$acc                  w2tend,      &
+      !$acc                  w3tend,      &
+      !$acc                  uttend,      &
+      !$acc                  vttend,      &
+      !$acc                  ustend,      &
+      !$acc                  vstend,      &
+      !$acc                  uvtend,      &
+      !$acc                  epstend,     &
+      !$acc                  KspsUtend,   &
+      !$acc                  KspsDtend)
 
 
    end subroutine ocn_turbulenceCreate
@@ -1243,7 +1275,26 @@ endif
       !$acc                  ts,          &
       !$acc                  s2,          &
       !$acc                  eps,         &
-      !$acc                  Mc)
+      !$acc                  Mc,          &
+      !$acc                  taupt,       &
+      !$acc                  taups,       &
+      !$acc                  taupv,       &
+      !$acc                  wttend,      &
+      !$acc                  wstend,      &
+      !$acc                  uwtend,      &
+      !$acc                  vwtend,      &
+      !$acc                  u2tend,      &
+      !$acc                  v2tend,      &
+      !$acc                  w2tend,      &
+      !$acc                  w3tend,      &
+      !$acc                  uttend,      &
+      !$acc                  vttend,      &
+      !$acc                  ustend,      &
+      !$acc                  vstend,      &
+      !$acc                  uvtend,      &
+      !$acc                  epstend,     &
+      !$acc                  KspsUtend,   &
+      !$acc                  KspsDtend)
 
       deallocate(KspsD,    &
                  KspsU,    &
@@ -1342,7 +1393,26 @@ endif
                  vs,          &
                  ts,          &
                  s2,          &
-                 eps)
+                 eps,         &
+                 w2tend,      &
+                 w3tend,      &
+                 taupt,       &
+                 taups,       &
+                 taupv,       &
+                 wttend,      &
+                 wstend,      &
+                 uwtend,      &
+                 vwtend,      &
+                 u2tend,      &
+                 v2tend,      &
+                 uttend,      &
+                 vttend,      &
+                 ustend,      &
+                 vstend,      &
+                 uvtend,      &
+                 epstend,     &
+                 KspsUtend,   &
+                 KspsDtend)
 
    end subroutine ocn_turbulenceDestroy
 
