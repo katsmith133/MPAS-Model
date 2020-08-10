@@ -179,7 +179,7 @@ module ocn_adc_mixing_fused
      ! call swap_time_levels
       i1 = mod(iterCount - 1, 2) + 1
       i2 = mod(iterCount, 2) + 1
-      !print*,"iterCount= ",iterCount,", niter = ",niter
+
       !$acc enter data copyin(i1,i2,alphaT,wtsfc,betaS,wssfc,boundaryLayerDepth,BVF,fCell,    &
       !$acc uwsfc,vwsfc,uvel,vvel,activeTracers,lscale_flag) create(w2tend,w3tend,taupt,taups,taupv,      &
       !$acc wttend,wstend,uwtend,vwtend,u2tend,v2tend,uttend,vttend,ustend,vstend,uvtend,     &
