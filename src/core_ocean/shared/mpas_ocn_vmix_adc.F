@@ -470,6 +470,10 @@ contains
                vs(:,k,iCell) = 0.0_RKIND
                eps(:,k,iCell) = 1.0E-13_RKIND
                ws(:,k,iCell) = 0.0_RKIND
+               KmU(k,iCell) = 0.0_RKIND
+               KmD(k,iCell) = 0.0_RKIND
+               KhU(k,iCell) = 0.0_RKIND
+               KhD(k,iCell) = 0.0_RKIND
             enddo
             length(1,iCell) = 0.5_RKIND*layerThickness(1,iCell)
             do k=2,nVertLevels
