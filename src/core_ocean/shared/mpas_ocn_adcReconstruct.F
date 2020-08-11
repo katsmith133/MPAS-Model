@@ -11,8 +11,6 @@ module ocn_adc_mixing_fused
 
   logical :: defineFirst, stopflag
 
-  integer :: i1,i2
-
   contains
 
   subroutine swap_time_levels
@@ -22,9 +20,9 @@ module ocn_adc_mixing_fused
 
   end subroutine swap_time_levels
 
-  subroutine dissipation_lengths2(iCell,nCells,nVertLevels,activeTracers,alphaT,betaS)
+  subroutine dissipation_lengths2(iCell,nCells,nVertLevels,tracersMixing,alphaT,betaS)
     integer,intent(in) :: iCell, nVertLevels, nCells
-    real,dimension(2,nVertLevels,nCells),intent(in) :: activeTracers
+    real,dimension(2,nVertLevels,nCells),intent(in) :: tracersMixing
     real,dimension(nVertLevels,nCells),intent(in) :: alphaT, betaS
     integer :: i,k, ij
 
@@ -38,17 +36,17 @@ module ocn_adc_mixing_fused
 !    do i=1,nCells
        tke(:) = 0.5*(u2(i1,:,iCell) + v2(i1,:,iCell) + w2(i1,:,iCell))
        do k=1,nVertLevels
-          B(k) = -9.806*(-alphaT(k,i)*(activeTracers(1,k,iCell) - 15.0_RKIND) + betaS(k,iCell)*   &
-                    (activeTracers(2,k,iCell) - 35.0_RKIND))
+          B(k) = -9.806*(-alphaT(k,i)*(tracersMixing(1,k,iCell) - 15.0_RKIND) + betaS(k,iCell)*   &
+                    (tracersMixing(2,k,iCell) - 35.0_RKIND))
 
           sav = 0.5_RKIND*(areaFraction(k,iCell) + areaFraction(k+1,iCell))
           tudav = 0.5_RKIND*(tumd(k,iCell) + tumd(k+1,iCell))
           sudav = 0.5*(sumd(k,iCell) + sumd(k+1,iCell))
 
-          Tup = activeTracers(1,k,iCell) + (1.0_RKIND - sav)*tudav
-          Tdo = activeTracers(1,k,iCell) - sav*tudav
-          Sup = activeTracers(2,k,iCell) + (1.0_RKIND - sav)*sudav
-          Sdo = activeTracers(2,k,iCell) - sav*sudav
+          Tup = tracersMixing(1,k,iCell) + (1.0_RKIND - sav)*tudav
+          Tdo = tracersMixing(1,k,iCell) - sav*tudav
+          Sup = tracersMixing(2,k,iCell) + (1.0_RKIND - sav)*sudav
+          Sdo = tracersMixing(2,k,iCell) - sav*sudav
 
           Bup(k) = -9.806*(-alphaT(k,iCell)*(Tup - 15.0) + betaS(k,iCell)*(Sup - 35.0))
           Bdo(k) = -9.806*(-alphaT(k,iCell)*(Tdo - 15.0) + betaS(k,iCell)*(Sdo - 35.0))
@@ -135,17 +133,17 @@ module ocn_adc_mixing_fused
 
   end subroutine dissipation_lengths2
 
-  subroutine compute_ADC_tends(nCells,nVertLevels, nTracers, dt,activeTracers, uvel, vvel, BVF,  &
-                  uwsfc, vwsfc, wtsfc, wssfc, alphaT, betaS, fCell, boundaryLayerDepth)
+  subroutine compute_ADC_tends(nCells,nVertLevels, nTracers, dt)!,tracersMixing, uvel, vvel, BVF,  &
+!                  uwsfc, vwsfc, wtsfc, wssfc, alphaT, betaS, fCell_local, BLD)
 
       integer,intent(in) :: nCells, nVertLevels, nTracers
       real,intent(in) :: dt
 
-      real,dimension(nTracers,nVertLevels,nCells),intent(inout) :: activeTracers
-      real,dimension(nVertLevels,nCells),intent(inout) :: uvel, vvel, alphaT, betaS
-      real,dimension(nCells),intent(in) :: uwsfc, vwsfc, wtsfc, wssfc, fCell
-      real,dimension(nCells),intent(inout) :: boundaryLayerDepth
-      real,dimension(nVertLevels,nCells),intent(inout) :: BVF
+!      real,dimension(nTracers,nVertLevels,nCells),intent(inout) :: tracersMixing
+!      real,dimension(nVertLevels,nCells),intent(inout) :: uvel, vvel, alphaT, betaS
+!      real,dimension(nCells),intent(in) :: uwsfc, vwsfc, wtsfc, wssfc, fCell_local
+!      real,dimension(nCells),intent(inout) :: BLD
+!      real,dimension(nVertLevels,nCells),intent(inout) :: BVF
       integer :: niter, iIter,iCell,k, supercycle
 
       real :: dt_small
@@ -161,32 +159,24 @@ module ocn_adc_mixing_fused
       real :: B, Cval, diff, wtav, dzmid, Ksps, Sz, Tz
       real :: lareaFraction, wstar, Q, w3av, tempMoment
 
-      logical :: lscale_flag
-
       call mpas_timer_start('compute_ADC_tends',.false.)
       dt_small = config_adc_timestep
       niter = dt / dt_small
-      lscale_flag = config_adc_use_old_length_scale
-
      ! call swap_time_levels
       i1 = mod(iterCount - 1, 2) + 1
       i2 = mod(iterCount, 2) + 1
 
-      !$acc enter data copyin(i1,i2,alphaT,wtsfc,betaS,wssfc,boundaryLayerDepth,BVF,fCell,    &
-      !$acc uwsfc,vwsfc,uvel,vvel,activeTracers,lscale_flag) 
-
-      !$acc update device(areaFraction,sumd,Entrainment,           &
-      !$acc Detrainment,zm,length,uw2,vw2,u2w,v2w,uvw,uwt,vwt,uws,vws)
-      !$acc update device(ze,KspsU,KspsD,eps,u2,v2,w2,ut,vt,wt,us,vs,ws,w3,uw,vw,t2,s2,uv,ts)
+      !$acc update device(alphaT,wtsfc,betaS,wssfc,BLD,BVF,fCell_local,    &
+      !$acc uwsfc,vwsfc,uvel,vvel,tracersMixing,ze,zm) 
 
       !on further examination build_diagnostics array can live outside the iter loop
 
-      !$acc parallel present(alphaT,wtsfc,betaS,wssfc,boundaryLayerDepth,tumd,wumd,sumd,areaFraction,   &
-      !$acc Mc,w2t,w2s,length,ze,u2,uwsfc,v2,uw,vw,vwsfc,wt,ws,eps)
+      !$acc parallel present(alphaT,wtsfc,betaS,wssfc,BLD,tumd,wumd,sumd,areaFraction,   &
+      !$acc Mc,w2t,w2s,length,ze,u2,uwsfc,v2,uw,vw,vwsfc,wt,ws,eps) 
       !$acc loop gang
       do iCell=1,nCells
         Q = grav*(alphaT(1,iCell)*wtsfc(iCell) - betaS(1,iCell)*wssfc(iCell))* &
-            boundaryLayerDepth(iCell)
+            BLD(iCell)
         if(Q > 0) then
           wstar = abs(0.4_RKIND*Q)**(1.0/3.0)
         else
@@ -222,7 +212,7 @@ module ocn_adc_mixing_fused
         !$acc parallel present(w2,w2t,areaFraction,wt,w3,wumd,Mc,tumd,sumd,ws,w2s,u2cliptend,    &
         !$acc v2cliptend,w2cliptend,Entrainment,Detrainment,u2,v2,KspsU,KspsD,length,ze,w3tend1, &
         !$acc w3tend2,w3tend3,w3tend4,w3tend5,w3tend,w3,alphaT,betaS,zm,uw2,uw,vw2,vw,u2w,v2w,   &
-        !$acc uvw,uv,uwt,ut,vwt,vt,uws,us,vws,vs,uvel,vvel,activeTracers,w2tend1,w2tend2,w2tend3,&
+        !$acc uvw,uv,uwt,ut,vwt,vt,uws,us,vws,vs,uvel,vvel,tracersMixing,w2tend1,w2tend2,w2tend3,&
         !$acc w2tend4,w2tend5,w2tend,taupt,taups,taupv,wttend1,wttend2,wttend3,t2,ts,wttend4,    &
         !$acc wttend5,wttend,wstend1,wstend2,wstend3,s2,wstend4,wstend5,wstend,uwtend1,uwtend2,  &
         !$acc uwtend3,uwtend4,uwtend5,uwtend,vwtend,uvtend,u2tend1,u2tend2,u2tend3,u2tend4,      &
@@ -263,7 +253,10 @@ module ocn_adc_mixing_fused
           enddo
         enddo
 
-        ! present(areaFraction,tumd,sumd,wumd,w2t,w2s,u2cliptend,v2cliptend,w2cliptend)
+        do iCell=1,nCells
+          areaFraction(nVertLevels+1,iCell) = areaFraction(nVertLevels,iCell)
+        enddo
+          ! present(areaFraction,tumd,sumd,wumd,w2t,w2s,u2cliptend,v2cliptend,w2cliptend)
         !$acc loop collapse(2)
         do iCell = 1,nCells
           do k=2,nVertLevels
@@ -283,7 +276,7 @@ module ocn_adc_mixing_fused
         !This cell loop computes w3Tend and TOMs for later tendencies.  Should be okay to collapse loops here
         ! present(Entrainment,Detrainment,u2,v2,w2,areaFraction,wumd,tumd,sumd,KspsU,KspsD,Mc,length,       &
         ! ze,w3tend1,w3tend2,w3tend3,w3tend4,w3tend5,w3tend,w3,alphaT,w2t,betaS,w2s,zm,uw2,uw,vw2,vw,u2w,   &
-        ! v2w,uvw,uv,uwt,ut,vwt,vt,uws,us,vws,vs)
+        ! v2w,uvw,uv,uwt,ut,vwt,vt,uws,us,vws,vs,tracersMixing,KmU,kmD,KhU,KhD)
         !$acc loop collapse(2)
         do iCell = 1,nCells
             do k=1,nVertLevels
@@ -300,7 +293,7 @@ module ocn_adc_mixing_fused
               KspsUav = 0.5*(KspsU(i1,k,iCell) + KspsU(i1,k+1,iCell))
               KspsDav = 0.5*(KspsD(i1,k,iCell) + KspsD(i1,k+1,iCell))
               Mcav = 0.5*(Mc(k,iCell) + Mc(k+1,iCell))
-              lenav = 0.5*(length(k,iCell) + length(k+1,iCell))
+              lenav = 0.5*(length(k,iCell) + length(k+1,iCell)) + 1.0E-2
               if(k==nVertLevels) then
                 sigavp1 = 0.5*(areaFraction(k,iCell))
                 wumdAvp1 = 0.5*(wumd(k,iCell))
@@ -335,7 +328,7 @@ module ocn_adc_mixing_fused
                     wumd(k,iCell)**2.0_RKIND - (1.0_RKIND -                                &
                     2.0_RKIND*areaFraction(k+1,iCell))*wumd(k+1,iCell)**2.0_RKIND) / dz
               w3tend4(k,iCell) = 3.0_RKIND*(1.0_RKIND - 2.0_RKIND*sigav)*Mcav*wumdav*Swup -          &
-                    C_mom_w3*KE / (1E-15_RKIND+ sqrt(2.0_RKIND)*lenAv)*w3(i1,k,iCell)
+                    C_mom_w3*KE / (1E-2_RKIND+ sqrt(2.0_RKIND)*lenAv)*w3(i1,k,iCell)
               w3tend5(k,iCell) = 3.0_RKIND*grav*(alphaT(k,iCell)*w2t(k,iCell) - &
                     betaS(k,iCell)*w2s(k,iCell))*0.9_RKIND
 
@@ -354,7 +347,7 @@ module ocn_adc_mixing_fused
                 KspsD(i1,k+1,iCell)))
               KE = 0.5_RKIND*(u2(i1,k,iCell) + v2(i1,k,iCell) + w2(i1,k,iCell))
               KEp1 = 0.5_RKIND*(u2(i1,k+1,iCell) + v2(i1,k+1,iCell) + w2(i1,k+1,iCell))
-              lenav = 0.5_RKIND*(length(k,iCell) + length(k+1,iCell))
+              lenav = 0.5_RKIND*(length(k,iCell) + length(k+1,iCell)) + 1e-2
               diff = C_mom * sqrt(0.5_RKIND*(KE + KEp1)) / lenav
               dz = ze(k,iCell) - ze(k+1,iCell)
               uw2(k,iCell) = -diff*(uw(i1,k,iCell) - uw(i1,k+1,iCell)) / dz
@@ -369,15 +362,19 @@ module ocn_adc_mixing_fused
               uws(k,iCell) = -diff*(us(i1,k,iCell) - us(i1,k+1,iCell)) / dz
               vws(k,iCell) = -diff*(vs(i1,k,iCell) - vs(i1,k+1,iCell)) / dz
 
-              KmU(k,iCell) = 0.1_RKIND*lenspsU(k,iCell)*sqrt( KspsU(i1,k,iCell) )
-              KhU(k,iCell) = ( 1.0_RKIND+2.0_RKIND*lenspsU(k,iCell)/dz)*KmU(k,iCell)
-              wt_spsU(k,iCell) =  -KhU(k,iCell)*Tz
-              ws_spsU(k,iCell) =  -KhU(k,iCell)*Sz
+              dzmid = (zm(k,iCell) - zm(k+1,iCell))
+              Tz = (tracersMixing(1,k,iCell) - tracersMixing(1,k+1,iCell)) / dzmid
+              Sz = (tracersMixing(2,k,iCell) - tracersMixing(2,k+1,iCell)) / dzmid
 
-              KmD(k,iCell) = 0.1_RKIND*lenspsD(k,iCell)*sqrt( KspsD(i1,k,iCell) )
-              KhD(k,iCell) = ( 1.0_RKIND+2.0_RKIND*lenspsD(k,iCell)/dz)*KmD(k,iCell)
-              wt_spsD(k,iCell) = -KhD(k,iCell)*Tz
-              ws_spsD(k,iCell) = -KhD(k,iCell)*Sz
+              KmU(k+1,iCell) = 0.1_RKIND*lenspsU(k+1,iCell)*sqrt( KspsU(i1,k+1,iCell) )
+              KhU(k+1,iCell) = ( 1.0_RKIND+2.0_RKIND*lenspsU(k+1,iCell)/dz)*KmU(k+1,iCell)
+              wt_spsU(k+1,iCell) =  -KhU(k+1,iCell)*Tz
+              ws_spsU(k+1,iCell) =  -KhU(k+1,iCell)*Sz
+
+              KmD(k+1,iCell) = 0.1_RKIND*lenspsD(k+1,iCell)*sqrt( KspsD(i1,k+1,iCell) )
+              KhD(k+1,iCell) = ( 1.0_RKIND+2.0_RKIND*lenspsD(k+1,iCell)/dz)*KmD(k+1,iCell)
+              wt_spsD(k+1,iCell) = -KhD(k+1,iCell)*Tz
+              ws_spsD(k+1,iCell) = -KhD(k+1,iCell)*Sz
 
             enddo !nVertLevels
           enddo !nCells
@@ -385,12 +382,12 @@ module ocn_adc_mixing_fused
           ! Ashwath -- I'm removing this possibility from this branch since it will be near impossible to 
           ! parallelize well.  It's a loop over k with an inner loop expanding underneath.
 !          if(lscale_flag)then
-!								   call dissipation_lengths2(iCell,nCells,nVertLevels,activeTracers,alphaT,betaS)
+!								   call dissipation_lengths2(iCell,nCells,nVertLevels,tracersMixing,alphaT,betaS)
 !          endif
 
           !next all second order moment tendencies also apply tendencies
           ! present(zm,ze,alphaT,wt,betaS,ws,areaFraction,wumd,tumd,sumd,KspsU,KspsD,Mc,uvel,vvel,      &
-          ! activeTracers,u2,v2,w2,w2tend1,Entrainment,Detrainment,w2tend2,w3,w2tend3,length,w2tend4,   &
+          ! tracersMixing,u2,v2,w2,w2tend1,Entrainment,Detrainment,w2tend2,w3,w2tend3,length,w2tend4,   &
           ! w2tend5,uw,vw,w2tend,taupt,taups,taupv,wttend1,w2t,wttend2,wttend3,t2,ts,wttend4,ut,vt,     &
           ! wttend5,wttend,wstend1,w2s,wstend2,wstend3,s2,wstend4,us,vs,wstend5,wstend,uwtend1,uw2,      &
           ! uwtend2,uwtend3,uv,uwtend4,uwtend5,uwtend,vwtend,vw2,uvtend,uvw,u2tend1,u2w,u2tend2,u2tend3, &
@@ -418,8 +415,8 @@ module ocn_adc_mixing_fused
 
               Uz = (uvel(k-1,iCell) - uvel(k,iCell)) / dzmid
               Vz = (vvel(k-1,iCell) - vvel(k,iCell)) / dzmid
-              Tz = (activeTracers(1,k-1,iCell) - activeTracers(1,k,iCell)) / dzmid
-              Sz = (activeTracers(2,k-1,iCell) - activeTracers(2,k,iCell)) / dzmid
+              Tz = (tracersMixing(1,k-1,iCell) - tracersMixing(1,k,iCell)) / dzmid
+              Sz = (tracersMixing(2,k-1,iCell) - tracersMixing(2,k,iCell)) / dzmid
 
               KEsps = areaFraction(k,iCell)*KspsU(i1,k,iCell) +  &
                         (1.0_RKIND-areaFraction(k,iCell))*KspsD(i1,k,iCell)
@@ -446,9 +443,9 @@ module ocn_adc_mixing_fused
               w2tend(k,iCell) = w2tend1(k,iCell) + w2tend2(k,iCell) + &
                 w2tend3(k,iCell) + w2tend4(k,iCell) + w2tend5(k,iCell)
 
-              taupt(k,iCell) = KE / (sqrt(2.0)*c_pt*length(k,iCell))
-              taups(k,iCell) = KE / (sqrt(2.0)*c_ps*length(k,iCell))
-              taupv(k,iCell) = KE / (c_pv*length(k,iCell))
+              taupt(k,iCell) = KE / (sqrt(2.0)*c_pt*(length(k,iCell)+1e-2))
+              taups(k,iCell) = KE / (sqrt(2.0)*c_ps*(length(k,iCell)+1e-2))
+              taupv(k,iCell) = KE / (c_pv*(length(k,iCell) + 1e-2))
 
               wttend1(k,iCell) = -(w2t(k-1,iCell) - w2t(k,iCell)) / dzmid
 
@@ -662,6 +659,7 @@ module ocn_adc_mixing_fused
                 ut(i2,k,iCell) = ut(i1,k,iCell) + dt_small*uttend(k,iCell)
                 wt(i2,k,iCell) = (wt(i1,k,iCell) + dt_small*wttend(k,iCell)) / &
                   (1.0_RKIND + dt_small*taupt(k,iCell))
+
                 vt(i2,k,iCell) = vt(i1,k,iCell) + dt_small*vttend(k,iCell)
                 us(i2,k,iCell) = us(i1,k,iCell) + dt_small*ustend(k,iCell)
                 vs(i2,k,iCell) = vs(i1,k,iCell) + dt_small*vstend(k,iCell)
@@ -691,14 +689,14 @@ module ocn_adc_mixing_fused
                    print*,"ERROR: v2 out of range, v2 = ",v2(i2,k,iCell),", location = ",k,", ",iCell
                 endif
 
-                if(.not. lscale_flag)then
+!                if(.not. lscale_flag)then
                    eps(i2,k,iCell) = eps(i1,k,iCell) + dt_small*epstend(k,iCell)
                    if (eps(i2,k,iCell) < 1.0E-10_RKIND) then
                       eps(i2,k,iCell) = 1.0E-10_RKIND
                    endif
                    KE = 0.5_RKIND*(u2(i2,k,iCell) + v2(i2,k,iCell) + w2(i2,k,iCell))
                    length(k,iCell) = KE**1.5 / eps(i2,k,iCell)
-								endif
+!								endif
                 KspsU(i2,k,iCell) = max(epsilon,KspsU(i1,k,iCell) + dt_small*KspsUtend(k,iCell))
                 KspsD(i2,k,iCell) = max(epsilon,KspsD(i1,k,iCell) + dt_small*KspsDtend(k,iCell))
 
@@ -722,7 +720,6 @@ module ocn_adc_mixing_fused
           enddo
         !$acc end parallel
       iterCount = iterCount + 1
-      print*,"iterCount = ",iterCount
       !call swap_time_levels !probably a better way to do this, with supercycling maybe
       i1 = mod(iterCount - 1, 2) + 1
       i2 = mod(iterCount, 2) + 1
@@ -730,36 +727,28 @@ module ocn_adc_mixing_fused
 
     !now that substepping is done, apply computed fluxes to update mean fields.
     !you can collapse this loop too.
-    !$acc parallel present(uvel,vvel,uw,ze,vw,activeTracers,wt,ws)
-    ! present(uvel,vvel,uw,ze,vw,activeTracers,wt,ws)
+    !$acc parallel present(uvel,vvel,uw,ze,vw,tracersMixing,wt,ws)
+    ! present(uvel,vvel,uw,ze,vw,tracersMixing,wt,ws)
     !$acc loop collapse(2)
     do iCell = 1, nCells
       do k=1,nVertLevels
           utemp = uvel(k,iCell)
           vtemp = vvel(k,iCell)
           uvel(k,iCell) = uvel(k,iCell) - dt*(uw(i1,k,iCell) - uw(i1,k+1,iCell)) /  &
-                    (ze(k,iCell) - ze(k+1,iCell)) !+ dt_small*fCell(iCell)*vtemp
+                    (ze(k,iCell) - ze(k+1,iCell)) !+ dt_small*fCell_local(iCell)*vtemp
 
           vvel(k,iCell) = vvel(k,iCell) - dt*(vw(i1,k,iCell) - vw(i1,k+1,iCell)) /  &
-                    (ze(k,iCell) - ze(k+1,iCell)) !- dt_small*fCell(iCell)*utemp
+                    (ze(k,iCell) - ze(k+1,iCell)) !- dt_small*fCell_local(iCell)*utemp
 
-          activeTracers(1,k,iCell) = activeTracers(1,k,iCell) - dt*(wt(i1,k,iCell) - &
+          tracersMixing(1,k,iCell) = tracersMixing(1,k,iCell) - dt*(wt(i1,k,iCell) - &
             wt(i1,k+1,iCell)) / (ze(k,iCell) - ze(k+1,iCell))
-          activeTracers(2,k,iCell) = activeTracers(2,k,iCell) - dt*(ws(i1,k,iCell) - &
+          tracersMixing(2,k,iCell) = tracersMixing(2,k,iCell) - dt*(ws(i1,k,iCell) - &
             ws(i1,k+1,iCell)) / (ze(k,iCell) - ze(k+1,iCell))
       enddo
     enddo
     !$acc end parallel
 
-    !$acc update self(KspsU,KspsD,eps,u2,v2,w2,ut,vt,wt,us,vs,ws,w3,uw,vw,t2,s2,uv,ts,  & 
-    !$acc areaFraction,wumd,sumd,tumd,u2cliptend,v2cliptend,Entrainment,Detrainment,length,zm,ze,KmU, &
-    !$acc KhU,KmD,KhD,wt_spsU,wt_spsD,ws_spsU,ws_spsD,Mc,lenspsU,lenspsD,uw2,vw2,uwt,vwt,uws,vws,uvw, &
-    !$acc u2w,v2w,uvel,vvel,activeTracers)
-
-    !$acc exit data delete(i1,i2,alphaT,wtsfc,betaS,wssfc,boundaryLayerDepth,BVF,fCell,    &
-    !$acc uwsfc,vwsfc,uvel,vvel,activeTracers,w2tend,w3tend,taupt,taups,taupv,              &
-    !$acc wttend,wstend,uwtend,vwtend,u2tend,v2tend,uttend,vttend,ustend,vstend,uvtend,     &
-    !$acc epstend,KspsUtend,KspsDtend)
+    !$acc update host(uvel,vvel,tracersMixing)
 
     call mpas_timer_stop('compute_ADC_tends')
 

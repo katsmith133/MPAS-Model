@@ -152,8 +152,7 @@ contains
       integer, pointer :: nVertLevels, nVertLevelsP1
       integer, dimension(:), pointer :: nCellsArray, nEdgesArray
       integer, dimension(:,:), pointer :: cellsOnEdge
-     real (kind=RKIND), dimension(:), allocatable :: zonalAverage, meridionalAverage, uw_sfc, &
-                           vw_sfc, ws_sfc, wt_sfc
+     real (kind=RKIND),dimension(:), allocatable :: zonalAverage, meridionalAverage
 
       real (kind=RKIND) :: fac, dep1, dep2, fracAbsorbed, fracAbsorbedRunoff,  &
                            etime
@@ -238,7 +237,7 @@ contains
       nCells = nCellsArray( 2 )
       nEdges = nEdgesArray( 1 )
 
-      allocate(uw_sfc(nCells), vw_sfc(nCells), ws_sfc(nCells), wt_sfc(nCells))
+      !allocate(uw_sfc(nCells), vw_sfc(nCells), ws_sfc(nCells), wt_sfc(nCells))
       !$omp do schedule(runtime)
       do iEdge=1,nEdges
          surfaceStress(iEdge) = 0.0_RKIND
@@ -285,33 +284,54 @@ contains
          fracAbsorbedRunoff = 1.0_RKIND - exp( max(-layerThickness(1, iCell) / config_flux_attenuation_coefficient_runoff, &
                               -100.0_RKIND) )
 
-         wt_sfc(iCell) = tracerGroupSurfaceFlux(indexTemperature, iCell) - fracAbsorbed * surfaceThicknessFlux(iCell) * &
+         wtsfc(iCell) = -(tracerGroupSurfaceFlux(indexTemperature, iCell) - fracAbsorbed * surfaceThicknessFlux(iCell) * &
                         activeTracers(indexTemperature,1,iCell) + tracerGroupSurfaceFluxRunoff(indexTemperature,iCell) * &
-                        fracAbsorbedRunoff
+                        fracAbsorbedRunoff)
 
-         ws_sfc(iCell) = tracerGroupSurfaceFlux(indexSalinity, iCell) - fracAbsorbed * surfaceThicknessFlux(iCell) *  &
+         wssfc(iCell) = tracerGroupSurfaceFlux(indexSalinity, iCell) - fracAbsorbed * surfaceThicknessFlux(iCell) *  &
                         activeTracers(indexSalinity,1,iCell)
 
-         uw_sfc(iCell) = stressZonal(iCell) / rho_sw
+         uwsfc(iCell) = stressZonal(iCell) / rho_sw
 
          if(abs(stressMeridional(iCell)) < 1e-6_RKIND) then
                  stressMeridional(iCell) = 0.0_RKIND
          endif
 
-         vw_sfc(iCell) = stressMeridional(iCell) / rho_sw
+         vwsfc(iCell) = stressMeridional(iCell) / rho_sw
+
+         uvel(1,iCell) = velocityZonal(1,iCell)
+         vvel(1,iCell) = velocityMeridional(1,iCell)
+         tracersMixing(:,1,iCell) = activeTracers(:,1,iCell)
+         BVF(1,iCell) = BruntVaisalaFreqTop(1,iCell)
+         BLD(iCell) = dThreshMLD(iCell)
+         alphaT(1,iCell) = inSituThermalExpansionCoeff(1,iCell)
+         betaS(1,iCell) = inSituSalineContractionCoeff(1,iCell)
+         fCell_local(iCell) = fCell(iCell)
 
          ze(1,iCell) = 0.0_RKIND
          zm(1,iCell) = -layerThickness(1,iCell)/2.0_RKIND
          do k=2,maxLevelCell(iCell)
             ze(k,iCell) = ze(k-1,iCell) - layerThickness(k-1,iCell)
             zm(k,iCell) = ze(k, iCell) - layerThickness(k,iCell)/2.0_RKIND
-         enddo
+            uvel(k,iCell) = velocityZonal(k,iCell)
+            vvel(k,iCell) = velocityMeridional(k,iCell)
+            tracersMixing(:,k,iCell) = activeTracers(:,k,iCell)
+            BVF(k,iCell) = BruntVaisalaFreqTop(k,iCell)
+            alphaT(k,iCell) = inSituThermalExpansionCoeff(k,iCell)
+            betaS(k,iCell) = inSituSalineContractionCoeff(k,iCell)
+        enddo
          k = maxLevelCell(iCell)+1
          ze(k,iCell) = ze(k-1,iCell) - layerThickness(k-1,iCell)
          do k = maxLevelCell(iCell) + 1, nVertLevels
             ze(k+1,iCell) = ze(maxLevelCell(iCell)+1,iCell)
             zm(k,iCell) = ze(maxLevelCell(iCell)+1,iCell)
-         enddo
+            uvel(k,iCell) = velocityZonal(k,iCell)
+            vvel(k,iCell) = velocityMeridional(k,iCell)
+            tracersMixing(:,k,iCell) = activeTracers(:,k,iCell)
+            BVF(k,iCell) = BruntVaisalaFreqTop(k,iCell)
+            alphaT(k,iCell) = inSituThermalExpansionCoeff(k,iCell)
+            betaS(k,iCell) = inSituSalineContractionCoeff(k,iCell)
+        enddo
 
      enddo
      !$omp end do
@@ -325,9 +345,9 @@ contains
        local_nCells = nCells
      endif
 
-     call compute_ADC_tends(local_nCells, nVertLevels, ntracers, dt, activeTracers, velocityZonal, velocityMeridional, &
-          BruntVaisalaFreqTop, uw_sfc, vw_sfc, -wt_sfc, ws_sfc, inSituThermalExpansionCoeff,        &
-          inSituSalineContractionCoeff, fCell, dThreshMLD)
+     call compute_ADC_tends(local_nCells, nVertLevels, ntracers, dt)!, activeTracers, velocityZonal, velocityMeridional, &
+!          BruntVaisalaFreqTop, uw_sfc, vw_sfc, -wt_sfc, ws_sfc, inSituThermalExpansionCoeff,        &
+!          inSituSalineContractionCoeff, fCell, dThreshMLD)
 
         !need to add interpolation back to N. Velocity!
      if ( config_adc_use_single_column ) THEN
@@ -341,20 +361,25 @@ contains
      end if
 
      !$omp do schedule(runtime)
+     do iCell = 1,nCells
+       activeTracers(:,:,ICell) = tracersMixing(:,:,iCell)
+     enddo
+     !$omp end do
+
+     !$omp do schedule(runtime)
      do iEdge = 1,nEdges
        cell1 = cellsOnEdge(1,iEdge)
        cell2 = cellsOnEdge(2,iEdge)
 
-       zonalAverage = 0.5_RKIND*(velocityZonal(:,cell1) + velocityZonal(:,cell2))
-       meridionalAverage = 0.5_RKIND*(velocityMeridional(:,cell1) + velocityMeridional(:,cell2))
+       zonalAverage = 0.5_RKIND*(uvel(:,cell1) + uvel(:,cell2))
+       meridionalAverage = 0.5_RKIND*(vvel(:,cell1) + vvel(:,cell2))
 
        normalVelocity(:,iEdge) = cos(angleEdge(iEdge)) * zonalAverage + sin(angleEdge(iEdge))  &
                                     * meridionalAverage
      end do
      !$omp end do
 
-     deallocate(zonalAverage, meridionalAverage, uw_sfc)
-     deallocate(vw_sfc, ws_sfc, wt_sfc)
+     deallocate(zonalAverage, meridionalAverage)
          !--------------------------------------------------------------------
 
    end subroutine ocn_vmix_adc_mix!}}}
@@ -492,27 +517,7 @@ contains
 
      integer, intent(out) :: ierr
 
-     deallocate(KspsU, KspsD, ze, zm,          &
-                eps, length, lenspsD, lenspsU, &
-                KhU, KhD, KmU, KmD,            &
-                wt_spsU, wt_spsD, ws_spsU, ws_spsD, &
-                uw2, vw2, u2w, v2w, w2t,  &
-                w2s, wts, uvw, uwt, vwt,  &
-                ws2, wt2, areaFraction, Entrainment, &
-                Detrainment, tumd, sumd, wumd,       &
-                w2tend1, w2tend2, w2tend3, w2tend4,  &
-                w2tend5, wttend1, wttend2, wttend3,  &
-                wttend4, wttend5, wstend1, wstend2,  &
-                wstend3, wstend4, wstend5, uwtend1,  &
-                uwtend2, uwtend3, uwtend4, uwtend5,  &
-                vwtend1, vwtend2, vwtend3, vwtend4,  &
-                vwtend5, u2tend1, u2tend2, u2tend3,  &
-                u2tend4, u2tend5, v2tend1, v2tend2,  &
-                v2tend3, v2tend4, v2tend5, u2cliptend, &
-                v2cliptend, w2cliptend, u2, v2,      &
-                w2, wt, ws, uw, vw,        &
-                w3, uv, t2, s2, ut,        &
-                vt, us, vs, ts)
+      call ocn_turbulenceDestroy(ierr)
 
    end subroutine ocn_vmix_adc_finalize
 
