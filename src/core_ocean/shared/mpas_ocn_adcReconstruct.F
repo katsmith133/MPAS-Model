@@ -362,6 +362,7 @@ module ocn_adc_mixing_fused
               uws(k,iCell) = -diff*(us(i1,k,iCell) - us(i1,k+1,iCell)) / dz
               vws(k,iCell) = -diff*(vs(i1,k,iCell) - vs(i1,k+1,iCell)) / dz
 
+              if(k < nVertLevels) then
               dzmid = (zm(k,iCell) - zm(k+1,iCell))
               Tz = (tracersMixing(1,k,iCell) - tracersMixing(1,k+1,iCell)) / dzmid
               Sz = (tracersMixing(2,k,iCell) - tracersMixing(2,k+1,iCell)) / dzmid
@@ -375,6 +376,7 @@ module ocn_adc_mixing_fused
               KhD(k+1,iCell) = ( 1.0_RKIND+2.0_RKIND*lenspsD(k+1,iCell)/dz)*KmD(k+1,iCell)
               wt_spsD(k+1,iCell) = -KhD(k+1,iCell)*Tz
               ws_spsD(k+1,iCell) = -KhD(k+1,iCell)*Sz
+              endif
 
             enddo !nVertLevels
           enddo !nCells

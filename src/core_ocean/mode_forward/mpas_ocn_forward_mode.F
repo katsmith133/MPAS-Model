@@ -637,7 +637,7 @@ module ocn_forward_mode
 #endif
          call mpas_timer_start('io_write')
          if ( mpas_stream_mgr_ringing_alarms(domain % streamManager, streamID='adcTurbulenceOutput', &
-             direction=MPAS_STREAM_OUTPUT, ierr=ierr) ) THEN
+             direction=MPAS_STREAM_OUTPUT, ierr=ierr) .and. config_adc_enable) THEN
              call ocn_turbulenceUpdateFields(domain)
          endif
          call mpas_stream_mgr_write(domain % streamManager, streamID='output', ierr=ierr)
