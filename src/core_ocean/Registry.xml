@@ -342,6 +342,10 @@
 					description="Gravity wave speed for the vertical stream function boundary value problem. This appears as $c$ in eqn 16a of Ferrari et al. 2010 (https://doi.org/10.1016/j.ocemod.2010.01.004)."
 					possible_values="Positive real numbers"
 		/>
+		<nml_option name="config_GM_use_surface_taper" type="logical" default_value=".true." units="NA"
+					description="flag to enable or disable near surface tapering of GM bolus kappa"
+					possible_values=".true. or .false."
+		/>
 		<nml_option name="config_GM_spatially_variable_min_kappa" type="real" default_value="300.0" units="m^2 s^{-1}"
 					description="minimum value of bolus diffusivity for spatially variable GM schemes. Used for all choices of config_GM_closure other than 'constant'."
 					possible_values="values around 100s"
@@ -2550,6 +2554,10 @@
 		/>
 		<var name="gmKappaScaling" type="real" dimensions="nVertLevelsP1 nEdges Time" units="NA" default_value="1.0"
 			description="spatially and depth varying GM kappa.  The scaling is based on the Brunt Vaisala Frequency relative to a maximum value below the mixed layer, follows from Danabasoglu and Marshall 2007.  If config_GM_closure is not set to N2_dependent the scaling value is set to 1 everywhere."
+			packages="gm"
+		/>
+		<var name="GMKappaSfcTaper" type="real" dimensions="nVertLevelsP1 nEdges Time" units="NA"
+		  description="surfacetaper the GM bolus Kappa near the surface follows the methodology laid out in Danabasoglu et al 2008."
 			packages="gm"
 		/>
 		<var name="RediKappaScaling" type="real" dimensions="nVertLevelsP1 nCells Time" units="NA"

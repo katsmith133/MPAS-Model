@@ -122,7 +122,7 @@ contains
                                                     k33, gmStreamFuncTopOfEdge, BruntVaisalaFreqTop, gmStreamFuncTopOfCell, &
                                                     layerThickness, inSituThermalExpansionCoeff, &
                                                     inSituSalineContractionCoeff, RediKappaScaling, gmKappaScaling, RediKappaSfcTaper, &
-                                                    zTop, RiTopOfCell
+                                                    gmKappaSfcTaper, zTop, RiTopOfCell
 
       real(kind=RKIND), dimension(:), pointer   :: c_Visbeck, gmBolusKappa, cGMphaseSpeed, &
                 ssh, eddyLength, eddyTime, betaEdge, fEdge, gmResolutionTaper, RediKappa
@@ -133,11 +133,13 @@ contains
       integer                          :: i, k, iEdge, cell1, cell2, iCell, N, iter, iCellSelf, maxLocation
       real(kind=RKIND)                 :: h1, h2, areaEdge, c, BruntVaisalaFreqTopEdge, rtmp
       real(kind=RKIND)                 :: kappaGMEdge, sumN2, countN2, maxN, kappaSum, ltSum
-      real(kind=RKIND)                 :: sumRi, RiTopOfEdge, zEdge, zMLD, sshEdge, sfcTaper
+      real(kind=RKIND)                 :: sumRi, RiTopOfEdge, zEdge, zMLD,  sfcTaper
       real(kind=RKIND) :: dcEdgeInv, drhoDx, drhoDT, drhoDS, dTdx, dSdx, BVFcent
       real(kind=RKIND) :: slopeTaperUp, slopeTaperDown, sfcTaperUp, sfcTaperDown, invAreaCell
       real(kind=RKIND) :: lt1, lt2, dzdxTopOfEdge, drhodz1, drhodz2, dTdz, dSdz
       real(kind=RKIND) :: L, sigma, Lr, Length, L_rhines, shearEdgeInv
+      real(kind=RKIND) :: zMidEdge, sshEdge
+      integer :: indMLDEdge
       real(kind=RKIND), dimension(:), allocatable :: dzTop, dTdzTop, dSdzTop, k33Norm
       ! Dimensions
       integer :: nsmooth, nCells, nEdges
@@ -183,6 +185,7 @@ contains
       call mpas_pool_get_array(diagnosticsPool, 'RediKappaScaling', RediKappaScaling)
       call mpas_pool_get_array(diagnosticsPool, 'gmKappaScaling', gmKappaScaling)
       call mpas_pool_get_array(diagnosticsPool, 'RediKappaSfcTaper', RediKappaSfcTaper)
+      call mpas_pool_get_array(diagnosticsPool, 'GMKappaSfcTaper', GMKappaSfcTaper)
       call mpas_pool_get_array(diagnosticsPool, 'normalGMBolusVelocity', normalGMBolusVelocity)
       call mpas_pool_get_array(diagnosticsPool, 'slopeTriadUp', slopeTriadUp)
       call mpas_pool_get_array(diagnosticsPool, 'slopeTriadDown', slopeTriadDown)
@@ -225,6 +228,16 @@ contains
                gradZMidTopOfEdge(nVertLevels+1, nEdges), &
                gradDensityConstZTopOfEdge(nVertLevels+1, nEdges))
 
+      !$omp parallel
+      !$omp do schedule(runtime) private(k)
+      do iEdge = 1, nEdges
+         do k = 1, nVertLevels+1
+            gmKappaScaling(k, iEdge) = 1.0_RKIND
+            GMKappaSfcTaper(k, iEdge) = 1.0_RKIND
+         end do
+      end do
+      !$omp end do
+ 
       !$omp parallel
       !$omp do schedule(runtime) private(k)
       do iEdge = 1, nEdges
@@ -696,6 +709,26 @@ contains
            !$omp end parallel
          endif
 
+         if (config_GM_use_surface_taper) then
+            !$omp parallel
+            !$omp do schedule (runtime) private(zMLD, k, zMidEdge, sshEdge, indMLDEdge, cell1, cell2)
+            do iEdge = 1, nEdges
+              cell1 = cellsOnEdge(1,iEdge)
+              cell2 = cellsOnEdge(2,iEdge)
+              indMLDEdge = max(indMLD(cell1),indMLD(cell2))
+              k = max(1, indMLDEdge)
+              sshEdge = 0.5_RKIND*(ssh(cell1) + ssh(cell2))
+              zMLD = sshEdge - min(zMid(k, cell1), zMid(k, cell2))
+   
+              do k = 1, indMLDEdge
+                zMidEdge = 0.5_RKIND*(zMid(k,cell1) + zMid(k,cell2))
+                GMKappaSfcTaper(k, iEdge) = abs((sshEdge - zMidEdge)/(zMLD))
+              end do
+            end do
+            !$omp end do
+            !$omp end parallel
+         end if
+
          nEdges = nEdgesArray(3)
          !!$omp parallel
          !!$omp do schedule(runtime) private(cell1, cell2, k, gradDensityTopOfEdge, dzdxTopOfEdge, &
@@ -719,7 +752,7 @@ contains
                tridiagC(k - 1) = 2.0_RKIND*cGMphaseSpeed(iEdge)**2/layerThicknessEdge(k, iEdge) &
                                  /(layerThicknessEdge(k - 1, iEdge) + layerThicknessEdge(k, iEdge))
                rightHandSide(k - 1) = gmBolusKappa(iEdge)*gmKappaScaling(k,iEdge)*gravity/rho_sw &
-                                      *gradDensityConstZTopOfEdge(k,iEdge)
+                                      *GMKappaSfcTaper(k, iEdge)*gradDensityConstZTopOfEdge(k,iEdge)
 
                ! Second to next to the last rows
                do k = 3, maxLevelEdgeTop(iEdge) - 1
@@ -732,7 +765,7 @@ contains
                   tridiagC(k - 1) = 2.0_RKIND*cGMphaseSpeed(iEdge)**2/layerThicknessEdge(k, iEdge) &
                                     /(layerThicknessEdge(k - 1, iEdge) + layerThicknessEdge(k, iEdge))
                   rightHandSide(k - 1) = gmBolusKappa(iEdge)*gmKappaScaling(k,iEdge)*gravity/rho_sw &
-                                         *gradDensityConstZTopOfEdge(k,iEdge)
+                                         *GMKappaSfcTaper(k, iEdge)*gradDensityConstZTopOfEdge(k,iEdge)
                end do
 
                ! Last row
@@ -744,7 +777,7 @@ contains
                tridiagB(k - 1) = -2.0_RKIND*cGMphaseSpeed(iEdge)**2/(layerThicknessEdge(k - 1, iEdge) &
                                                                      *layerThicknessEdge(k, iEdge)) - BruntVaisalaFreqTopEdge
                rightHandSide(k - 1) = gmBolusKappa(iEdge)*gmKappaScaling(k,iEdge)*gravity/rho_sw &
-                                      *gradDensityConstZTopOfEdge(k,iEdge)
+                                      *GMKappaSfcTaper(k, iEdge)*gradDensityConstZTopOfEdge(k,iEdge)
                ! Total number of rows
                N = maxLevelEdgeTop(iEdge) - 1
 
