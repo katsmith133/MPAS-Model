@@ -1447,6 +1447,9 @@ contains
       !         units: none
       real (kind=RKIND), dimension(:,:), allocatable :: ALE_Thickness
 
+      real (kind=RKIND), dimension(:), allocatable :: layerThicknessTopOfCell
+      ! Layer thickness at the top of each cell for advection
+
       err = 0
 
       if (config_vert_coord_movement.eq.'impermeable_interfaces') then
@@ -1458,7 +1461,8 @@ contains
 
       allocate(div_hu(nVertLevels, nCells), &
                projectedSSH(nCells), &
-               ALE_Thickness(nVertLevels, nCells))
+               ALE_Thickness(nVertLevels, nCells), &
+               layerThicknessTopOfCell(nVertLevels+1))
 
       ! Only need to compute over 0 and 1 halos
       nCells = nCellsHalo( 1 )
@@ -1505,13 +1509,21 @@ contains
       ! and using ALE_Thickness for thickness at the new time.
 
       !$omp parallel
-      !$omp do schedule(runtime) private(k)
+      !$omp do schedule(runtime) private(k, layerThicknessTopOfCell)
       do iCell = 1,nCells
+         layerThicknessTopOfCell(maxLevelCell(iCell)+1) = 1.0_RKIND !bottom value doesn't matter as w is zero there
+         layerThicknessTopOfCell(1) = oldLayerThickness(1,iCell)
+         do k = 2,maxLevelCell(iCell)
+           layerThicknessTopOfCell(k) = 0.5_RKIND*(oldLayerThickness(k,iCell) + oldLayerThickness(k-1,iCell))
+         enddo
+
          vertAleTransportTop(1,iCell) = 0.0_RKIND
          vertAleTransportTop(maxLevelCell(iCell)+1,iCell) = 0.0_RKIND
          do k = maxLevelCell(iCell),2,-1
-            vertAleTransportTop(k,iCell) = vertAleTransportTop(k+1,iCell) - div_hu(k,iCell) &
-              - (ALE_Thickness(k,iCell) - oldLayerThickness(k,iCell))/dt
+            vertAleTransportTop(k,iCell) = layerThicknessTopOfCell(k+1)/layerThicknessTopOfCell(k)* &
+                            vertAleTransportTop(k+1,iCell) - oldLayerThickness(k,iCell) / &
+                            layerThicknessTopOfCell(k) * div_hu(k,iCell) &
+                            - (ALE_Thickness(k,iCell) - oldLayerThickness(k,iCell))/dt
          end do
       end do
       !$omp end do
@@ -1519,7 +1531,8 @@ contains
 
       deallocate(div_hu, &
                  projectedSSH, &
-                 ALE_Thickness)
+                 ALE_Thickness, &
+                 layerThicknessTopOfCell)
 
    end subroutine ocn_vert_transport_velocity_top!}}}
 
