@@ -113,7 +113,7 @@ contains
       real (kind=RKIND), dimension(:), pointer :: &
         ssh,  seaIcePressure, atmosphericPressure
       real (kind=RKIND), dimension(:,:), pointer :: &
-        layerThickness, normalVelocity
+        layerThickness, normalVelocity, verticalVelocity
 
       real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers
 
@@ -141,6 +141,7 @@ contains
 
       call mpas_pool_get_array(statePool, 'layerThickness', layerThickness, timeLevel)
       call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocity, timeLevel)
+      call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocity, timeLevel)
       call mpas_pool_get_array(tracersPool, 'activeTracers', activeTracers, timeLevel)
       call mpas_pool_get_array(statePool, 'ssh', ssh, timeLevel)
 
@@ -169,7 +170,7 @@ contains
 
       call ocn_diagnostic_solve_vortVel(relativeVorticity, &
              layerThicknessEdge, normalVelocity, normalTransportVelocity, &
-             normalGMBolusVelocity, vertVelocityTop, vertTransportVelocityTop, &
+             normalGMBolusVelocity, verticalVelocity, vertVelocityTop, vertTransportVelocityTop, &
              vertGMBolusVelocityTop, relativeVorticityCell, divergence, &
              kineticEnergyCell, tangentialVelocity)
 
@@ -215,7 +216,7 @@ contains
       !
       call ocn_diagnostic_solve_pressure(forcingPool, layerThickness, density, &
                 atmosphericPressure, seaIcePressure, montgomeryPotential, pressure, &
-                zMid, zTop, ssh)
+                nonhydrostaticPressure, zMid, zTop, ssh)
 
       nCells = nCellsAll
 
@@ -1056,10 +1057,11 @@ contains
 !
 !-----------------------------------------------------------------------
    subroutine ocn_diagnostic_solve_vortVel(relativeVorticity, &
-                layerThicknessEdge, normalVelocity, normalTransportVelocity, &
-                normalGMBolusVelocity, vertVelocityTop, vertTransportVelocityTop, &
-                vertGMBolusVelocityTop, relativeVorticityCell, divergence, &
-                kineticEnergyCell, tangentialVelocity)!{{{
+                layerThicknessEdge, normalVelocity, normalTransportVelocity,  &
+                normalGMBolusVelocity, verticalVelocity, vertVelocityTop,     &
+                vertTransportVelocityTop, vertGMBolusVelocityTop,             &
+                relativeVorticityCell, divergence, kineticEnergyCell,         &
+                tangentialVelocity)!{{{
 
       use ocn_mesh
 
@@ -1089,7 +1091,7 @@ contains
       !-----------------------------------------------------------------
 
       real (kind=RKIND), dimension(:,:), intent(inout) :: &
-         vertVelocityTop
+         vertVelocityTop, verticalVelocity
       real (kind=RKIND), dimension(:,:), intent(out) :: &
          vertTransportVelocityTop
       real (kind=RKIND), dimension(:,:), intent(out) :: &
@@ -1190,6 +1192,20 @@ contains
       end do
       !$omp end do
       !$omp end parallel
+
+      !LVR: 20201204 -- add in new vertical velocity prognostic variable 
+      if(config_enable_nonhydrostatic_mode) then
+        !$omp parallel
+        !$omp do schedule(runtime) &
+        !$omp private(k)
+        do iCell=1,nCells
+          do k=1,maxLevelCell(iCell)+1
+            verticalVelocity(k,iCell) = vertVelocityTop(k,iCell)
+          enddo
+        enddo
+        !$omp end do
+        !$omp end parallel
+      endif
 
       deallocate(div_hu,div_huTransport,div_huGMBolus)
 

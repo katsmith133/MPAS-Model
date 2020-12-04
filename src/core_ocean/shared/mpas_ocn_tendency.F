@@ -226,7 +226,7 @@ contains
       real (kind=RKIND), dimension(:), pointer :: tidalPotentialEta 
       real (kind=RKIND), dimension(:,:), pointer :: &
         layerThicknessEdge, normalVelocity, tangentialVelocity, density, potentialDensity, zMid, pressure, &
-        layerThickness, &
+        layerThickness, nonhydrostaticPressure, &
         tend_normalVelocity, circulation, relativeVorticity, viscosity, kineticEnergyCell, &
         normalizedRelativeVorticityEdge, normalizedPlanetaryVorticityEdge, &
         montgomeryPotential, vertAleTransportTop, divergence, vertViscTopOfEdge, &
@@ -255,6 +255,7 @@ contains
       call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocity, timeLevel)
       call mpas_pool_get_array(statePool, 'layerThickness', layerThickness, timeLevel)
       call mpas_pool_get_array(statePool, 'ssh', ssh, timeLevel)
+      call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressure, timeLevel)
       call mpas_pool_get_array(tracersPool, 'activeTracers', activeTracers, timeLevel)
       call mpas_pool_get_dimension(tracersPool, 'index_temperature', indexTemperature)
       call mpas_pool_get_dimension(tracersPool, 'index_salinity', indexSalinity)
@@ -328,11 +329,11 @@ contains
          ! only pass EOS derivatives if needed.
          call mpas_pool_get_array(diagnosticsPool, 'inSituThermalExpansionCoeff',inSituThermalExpansionCoeff)
          call mpas_pool_get_array(diagnosticsPool, 'inSituSalineContractionCoeff', inSituSalineContractionCoeff)
-         call ocn_vel_pressure_grad_tend(meshPool, ssh, pressure, montgomeryPotential, zMid, density, potentialDensity, &
+         call ocn_vel_pressure_grad_tend(meshPool, ssh, nonhydrostaticPressure, pressure, montgomeryPotential, zMid, density, potentialDensity, &
               indexTemperature, indexSalinity, activeTracers, tend_normalVelocity, err, &
               inSituThermalExpansionCoeff,inSituSalineContractionCoeff)
       else
-         call ocn_vel_pressure_grad_tend(meshPool, ssh, pressure, montgomeryPotential, zMid, density, potentialDensity, &
+         call ocn_vel_pressure_grad_tend(meshPool, ssh, nonhydrostaticPressure,  pressure, montgomeryPotential, zMid, density, potentialDensity, &
               indexTemperature, indexSalinity, activeTracers, tend_normalVelocity, err, &
               inSituThermalExpansionCoeff,inSituSalineContractionCoeff)
       endif
