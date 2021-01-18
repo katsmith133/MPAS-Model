@@ -47,6 +47,11 @@ module ocn_forward_mode
    use ocn_thick_ale
    use ocn_thick_surface_flux
 
+   use ocn_vvel_pgf
+   use ocn_vvel_coriolis
+   use ocn_vvel_advection
+   use ocn_vvel_hmix_del2
+
    use ocn_vel_pressure_grad
    use ocn_vel_vadv
    use ocn_vel_hmix
@@ -213,6 +218,17 @@ module ocn_forward_mode
       ierr = ior(ierr, err_tmp)
       call ocn_vel_tidal_potential_init(domain,err_tmp)
       ierr = ior(ierr, err_tmp)
+
+      if(config_enable_nonhydrostatic_mode) then
+        call ocn_vvel_advection_init(err_tmp)
+        ierr = ior(ierr, err_tmp)
+        call ocn_vvel_coriolis_init(err_tmp)
+        ierr = ior(ierr, err_tmp)
+        call ocn_vvel_pgf_init(err_tmp)
+        ierr = ior(ierr, err_tmp)
+        call ocn_vvel_hmix_del2_init(err_tmp)
+        ierr = ior(ierr, err_tmp)
+      endif
 
       call ocn_tracer_hmix_init(err_tmp)
       ierr = ior(ierr, err_tmp)

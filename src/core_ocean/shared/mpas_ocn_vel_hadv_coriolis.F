@@ -25,6 +25,7 @@ module ocn_vel_hadv_coriolis
    use mpas_derived_types
    use mpas_pool_routines
    use ocn_constants
+   use mpas_constants
    use ocn_config
 
    implicit none
@@ -75,7 +76,7 @@ contains
 !-----------------------------------------------------------------------
 
    subroutine ocn_vel_hadv_coriolis_tend(meshPool, normalizedRelativeVorticityEdge, normalizedPlanetaryVorticityEdge, &
-                                    layerThicknessEdge, normalVelocity, kineticEnergyCell, tend, err)!{{{
+                                    layerThicknessEdge, normalVelocity, kineticEnergyCell, verticalVelocity, tend, err)!{{{
 
       !-----------------------------------------------------------------
       !
@@ -89,6 +90,9 @@ contains
          layerThicknessEdge,&!< Input: Thickness on edge
          normalVelocity,&    !< Input: Horizontal velocity
          kineticEnergyCell   !< Input: Kinetic Energy
+
+      real (kind=RKIND), dimension(:,:), intent(in), optional :: &
+         verticalVelocity    !< vertical velocity for non-hydrostatic mode only
 
       type (mpas_pool_type), intent(in) :: &
          meshPool          !< Input: mesh information
@@ -119,13 +123,13 @@ contains
       integer, dimension(:), pointer :: maxLevelEdgeTop, nEdgesOnEdge
       integer, dimension(:,:), pointer :: cellsOnEdge, edgesOnEdge, edgeMask
       real (kind=RKIND), dimension(:,:), pointer :: weightsOnEdge
-      real (kind=RKIND), dimension(:), pointer :: dcEdge
+      real (kind=RKIND), dimension(:), pointer :: dcEdge, latEdge
 
       integer :: j, k
       integer :: cell1, cell2, iEdge, eoe, nEdges
       integer, pointer :: nVertLevels
       integer, dimension(:), pointer :: nEdgesArray
-      real (kind=RKIND) :: workVorticity, invLength, edgeWeight, r_tmp
+      real (kind=RKIND) :: workVorticity, invLength, edgeWeight, r_tmp, wav
       real (kind=RKIND), dimension(:), allocatable :: qArr
 
       err = 0
@@ -141,6 +145,7 @@ contains
       call mpas_pool_get_array(meshPool, 'weightsOnEdge', weightsOnEdge)
       call mpas_pool_get_array(meshPool, 'dcEdge', dcEdge)
       call mpas_pool_get_array(meshPool, 'edgeMask', edgeMask)
+      call mpas_pool_get_array(meshPool, 'latEdge', latEdge)
 
       call mpas_pool_get_dimension(meshPool, 'nEdgesArray', nEdgesArray)
       call mpas_pool_get_dimension(meshPool, 'nVertLevels', nVertLevels)
@@ -183,6 +188,25 @@ contains
       end do
       !$omp end do
       !$omp end parallel
+
+      if(config_enable_nonHydrostatic_mode) then
+        !Add in the tendency for coriolis from vertical velocity
+        !$omp parallel
+        !$omp do schedule(runtime) &
+        !$omp private(cell1, cell2, wav)
+        do iEdge = 1, nEdges
+           cell1 = cellsOnEdge(1,iEdge)
+           cell2 = cellsOnEdge(2,iEdge)
+
+           do k=1,maxLevelEdgeTop(iEdge)
+              wav = 0.25_RKIND * (verticalVelocity(k,cell1) + verticalVelocity(k,cell2) + &
+                      verticalVelocity(k+1,cell1) + verticalVelocity(k+1,cell2))
+              tend(k, iEdge) = tend(k,iEdge) - 2.0_RKIND*omega*cos(latEdge(iEdge))*wav
+           end do
+        end do
+        !$omp end do
+        !$omp end parallel
+      endif
 
       deallocate( qArr )
 

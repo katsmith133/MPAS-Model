@@ -225,6 +225,14 @@
 					description="Horizontal viscosity, $\nu_{2h}$. If config_hmix_use_ref_cell_width = .true. then $\nu_h$ = config_mom_del2*(cellWidth / config_hmix_use_ref_cell_width). If config_hmix_use_ref_cell_width = .false. then it is referenced to the smallest cell."
 					possible_values="any positive real"
 		/>
+		<nml_option name="config_use_vertMom_del2" type="logical" default_value=".false." units="unitless"
+					description="If true, Laplacian horizontal mixing is used on the vertical momentum equation."
+					possible_values=".true. or .false."
+		/>
+		<nml_option name="config_vertMom_del2" type="real" default_value="0.0" units="m^2 s^{-1}"
+					description="Horizontal viscosity, $\nu_{2h}$. If config_hmix_use_ref_cell_width = .true. then $\nu_h$ = config_mom_del2*(cellWidth / config_hmix_use_ref_cell_width). If config_hmix_use_ref_cell_width = .false. then it is referenced to the smallest cell."
+					possible_values="any positive real"
+		/>
 		<nml_option name="config_use_tracer_del2" type="logical" default_value=".false." units="unitless"
 					description="If true, Laplacian horizontal mixing is used on the tracer equation."
 					possible_values=".true. or .false."
@@ -1235,6 +1243,10 @@
 					description="Diables tendencies on the velocity field from the Coriolis force and momentum advection."
 					possible_values=".true. or .false."
 		/>
+		<nml_option name="config_disable_vvel_coriolis" type="logical" default_value=".false." units="unitless"
+					description="Disables tendencies on the vertical velocity field from the Coriolis force."
+					possible_values=".true. or .false."
+		/>
 		<nml_option name="config_disable_vel_pgrad" type="logical" default_value=".false." units="unitless"
 					description="Disables tendencies on the velocity field from the horizontal pressure gradient."
 					possible_values=".true. or .false."
@@ -1310,7 +1322,6 @@
 		<package name="timeVaryingAtmosphericForcingPKG" description="This package includes variables required for time varying atmospheric forcing"/>
 		<package name="timeVaryingLandIceForcingPKG" description="This package includes variavles required for time varying land-ice forcing"/>
 		<package name="variableShortwave" description="This package includes variables required to compute spatially variable shortwave extinction coefficients"/>
-
 		<package name="splitTimeIntegrator" description="This package includes variables required for either the split or unsplit explicit time integrators."/>
 		<package name="semiImplicitTimePKG" description="This package includes variables required for semi-implicit time integrators."/>
 		<package name="thicknessFilter" description="This package includes variables required for frequency filtered thickness."/>
@@ -1330,6 +1341,7 @@
 		<package name="tracerBudget" description="This package controls variables that record the tracer budget."/>
 		<package name="gm" description="This package is for GM variables, which are only needed at lower resolutions."/>
 		<package name="tidalPotentialForcingPKG" description="This package controls variables required for tidal potential forcing"/>
+		<package name="nonHydrostaticMode" description="This package is for variables needed for the nonHydrostatic capabilities"/>
 	</packages>
 
 	<streams>
@@ -1917,9 +1929,11 @@
 		/>
     <var name="verticalVelocity" type="real" dimensions="nVertLevelsP1 nCells Time" units="m s^{-1}"
        description="prognostic vertical velocity, only used when config_enable_nonhydrostatic_mode = .true."
+			 packages="nonHydrostaticMode"
     />
     <var name="nonhydrostaticPressure" type="real" dimensions="nVertLevels nCells Time" units="N m^{-2}"
        description="nonHydrostatic pressure correction, set to zero if config_enable_nonhydrostatic_mode = .false."
+			 packages="nonHydrostaticMode"
     />
 
 		<!-- FIELDS FOR FREQUENCY FILTERED THICKNESS -->
@@ -2230,6 +2244,10 @@
 		<var name="tendNormalVelocity" type="real" dimensions="nVertLevels nEdges Time" units="m s^{-2}" name_in_code="normalVelocity"
 			 description="time tendency of normal component of velocity"
 			 packages="forwardMode"
+		/>
+		<var name="tendVerticalVelocity" type="real" dimensions="nVertLevelsP1 nCells Time" units="m s^{-2}" name_in_code="verticalVelocityTend"
+			 description="time tendency of the vertical velocity (Only active for non hydrostatic mode)"
+			 packages="nonHydrostaticMode"
 		/>
 		<var name="tendLayerThickness" type="real" dimensions="nVertLevels nCells Time" units="m s^{-1}" name_in_code="layerThickness"
 			 description="time tendency of layer thickness"

@@ -192,7 +192,7 @@ module ocn_time_integration_split
       ! Diagnostics Array Pointers
       real (kind=RKIND), dimension(:), pointer :: barotropicForcing, barotropicThicknessFlux
       real (kind=RKIND), dimension(:,:), pointer :: layerThicknessEdge, normalTransportVelocity, normalGMBolusVelocity
-      real (kind=RKIND), dimension(:,:), pointer :: vertAleTransportTop
+      real (kind=RKIND), dimension(:,:), pointer :: vertAleTransportTop, verticalVelocityCur
       real (kind=RKIND), dimension(:,:), pointer :: velocityX, velocityY, velocityZ
       real (kind=RKIND), dimension(:,:), pointer :: velocityZonal, velocityMeridional
       real (kind=RKIND), dimension(:), pointer :: gradSSH
@@ -521,17 +521,18 @@ module ocn_time_integration_split
 
            call mpas_pool_get_array(diagnosticsPool, 'layerThicknessEdge', layerThicknessEdge)
            call mpas_pool_get_array(diagnosticsPool, 'vertAleTransportTop', vertAleTransportTop)
+           call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityCur, 1)
 
            ! compute vertAleTransportTop.  Use u (rather than normalTransportVelocity) for momentum advection.
            ! Use the most recent time level available.
            if (associated(highFreqThicknessNew)) then
               call ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, &
                  layerThicknessCur, layerThicknessEdge, normalVelocityCur, &
-                 sshCur, dt, vertAleTransportTop, err, highFreqThicknessNew)
+                 sshCur, dt, vertAleTransportTop, verticalVelocityCur, err, highFreqThicknessNew)
             else
                call ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, &
                   layerThicknessCur, layerThicknessEdge, normalVelocityCur, &
-                  sshCur, dt, vertAleTransportTop, err)
+                  sshCur, dt, vertAleTransportTop, verticalVelocityCur, err)
             endif
 
            call ocn_tend_vel(tendPool, statePool, forcingPool, diagnosticsPool, meshPool, scratchPool, stage1_tend_time, dt)

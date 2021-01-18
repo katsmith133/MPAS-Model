@@ -113,7 +113,7 @@ contains
       real (kind=RKIND), dimension(:), pointer :: &
         ssh,  seaIcePressure, atmosphericPressure
       real (kind=RKIND), dimension(:,:), pointer :: &
-        layerThickness, normalVelocity, verticalVelocity
+        layerThickness, normalVelocity, verticalVelocity, nonHydrostaticPressure
 
       real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers
 
@@ -139,6 +139,7 @@ contains
       call mpas_pool_get_dimension(tracersPool, 'index_temperature', indexTemperature)
       call mpas_pool_get_dimension(tracersPool, 'index_salinity', indexSalinity)
 
+      call mpas_pool_get_array(statePool, 'nonHydrostaticPressure', nonHydrostaticPressure, timeLevel)
       call mpas_pool_get_array(statePool, 'layerThickness', layerThickness, timeLevel)
       call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocity, timeLevel)
       call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocity, timeLevel)
@@ -1193,8 +1194,8 @@ contains
       !$omp end do
       !$omp end parallel
 
-      !LVR: 20201204 -- add in new vertical velocity prognostic variable 
-      if(config_enable_nonhydrostatic_mode) then
+      !LVR: 20201204 -- add in new vertical velocity prognostic variable
+      if(.not. config_enable_nonhydrostatic_mode) then
         !$omp parallel
         !$omp do schedule(runtime) &
         !$omp private(k)
@@ -1243,7 +1244,7 @@ contains
 !-----------------------------------------------------------------------
    subroutine ocn_diagnostic_solve_pressure(forcingPool, layerThickness, density, &
                 atmosphericPressure, seaIcePressure, montgomeryPotential, pressure, &
-                zMid, zTop, ssh)!{{{
+                nonHydrostaticPressure, zMid, zTop, ssh)!{{{
 
       use ocn_mesh     ! debug, mdt :: this should be module-level
 
@@ -1264,6 +1265,8 @@ contains
          atmosphericPressure
       real (kind=RKIND), dimension(:), intent(in) :: &
          seaIcePressure
+      real (kind=RKIND), dimension(:,:), intent(in), optional :: &
+         nonHydrostaticPressure
 
       !-----------------------------------------------------------------
       !
@@ -1382,6 +1385,14 @@ contains
 
       endif
 
+      if(config_enable_nonhydrostatic_mode) then
+         do iCell=1,nCells
+            do k=1,maxLevelCell(iCell)
+               pressure(k,iCell) = pressure(k,iCell) + nonHydrostaticPressure(k,iCell)
+            end do
+         end do
+      end if
+
    end subroutine ocn_diagnostic_solve_pressure!}}}
 
 !***********************************************************************
@@ -1488,7 +1499,7 @@ contains
 !
 !-----------------------------------------------------------------------
    subroutine ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, oldLayerThickness, layerThicknessEdge, &
-     normalVelocity, oldSSH, dt, vertAleTransportTop, err, newHighFreqThickness)!{{{
+     normalVelocity, verticalVelocity, oldSSH, dt, vertAleTransportTop, err, newHighFreqThickness)!{{{
 
       !-----------------------------------------------------------------
       !
@@ -1515,6 +1526,11 @@ contains
 
       real (kind=RKIND), dimension(:), intent(in) :: &
          oldSSH     !< Input: sea surface height at old time
+
+      real (kind=RKIND), dimension(:,:), intent(in) :: &
+        verticalVelocity !predicted velocity, ale is motion relative to grid
+                         !this is needed since nonhydrostatic predicts velocity
+                         ! in hydrostatic mode this is set to vertVelocityTop from diagnostic_solve
 
       real (kind=RKIND), dimension(:,:), intent(in), optional :: &
          newHighFreqThickness   !< Input: high frequency thickness.  Alters ALE thickness.
@@ -1614,18 +1630,33 @@ contains
       ! Here we are using solving the continuity equation for vertAleTransportTop ($w^t$),
       ! and using ALE_Thickness for thickness at the new time.
 
-      !$omp parallel
-      !$omp do schedule(runtime) private(k)
-      do iCell = 1,nCells
-         vertAleTransportTop(1,iCell) = 0.0_RKIND
-         vertAleTransportTop(maxLevelCell(iCell)+1,iCell) = 0.0_RKIND
-         do k = maxLevelCell(iCell),2,-1
-            vertAleTransportTop(k,iCell) = vertAleTransportTop(k+1,iCell) - div_hu(k,iCell) &
-              - (ALE_Thickness(k,iCell) - oldLayerThickness(k,iCell))/dt
-         end do
-      end do
-      !$omp end do
-      !$omp end parallel
+      if(config_enable_nonhydrostatic_mode) then
+        !$omp parallel
+        !$omp do schedule(runtime) private(k)
+        do iCell = 1,nCells
+           vertAleTransportTop(1,iCell) = 0.0_RKIND
+           vertAleTransportTop(maxLevelCell(iCell)+1,iCell) = 0.0_RKIND
+           do k = maxLevelCell(iCell),2,-1
+              vertAleTransportTop(k,iCell) = vertAleTransportTop(k+1,iCell) - verticalVelocity(k,iCell) & !LPV changed for nonhydrostatic mode
+                - (ALE_Thickness(k,iCell) - oldLayerThickness(k,iCell))/dt
+           end do
+        end do
+        !$omp end do
+        !$omp end parallel
+      else
+        !$omp parallel
+        !$omp do schedule(runtime) private(k)
+        do iCell = 1,nCells
+           vertAleTransportTop(1,iCell) = 0.0_RKIND
+           vertAleTransportTop(maxLevelCell(iCell)+1,iCell) = 0.0_RKIND
+           do k = maxLevelCell(iCell),2,-1
+              vertAleTransportTop(k,iCell) = vertAleTransportTop(k+1,iCell) - div_hu(k,iCell) &
+                - (ALE_Thickness(k,iCell) - oldLayerThickness(k,iCell))/dt
+           end do
+        end do
+        !$omp end do
+        !$omp end parallel
+      endif
 
       deallocate(div_hu, &
                  projectedSSH, &

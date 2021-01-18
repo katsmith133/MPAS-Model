@@ -209,7 +209,7 @@ contains
                invdcEdge = 1.0_RKIND / dcEdge(iEdge)
 
                k=1
-               dqdz = 0.5_RKIND*((nonhydrostaticPressure(k,cell1) - nonhydrosaticPressure(k+1,cell1)          &
+               dqdz = 0.5_RKIND*((nonhydrostaticPressure(k,cell1) - nonhydrostaticPressure(k+1,cell1)          &
                   ) / (zMid(k,cell1) - zMid(k+1,cell1)) + (nonhydrostaticPressure(k,cell2) - &
                   nonhydrostaticPressure(k+1,cell2)) / (zMid(k,cell2) - zMid(k+1,cell2)))
                tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
@@ -228,7 +228,7 @@ contains
                k=maxLevelEdgeTop(iEdge)
                dqdz = 0.5_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k,cell1)) / &
                  (zMid(k-1,cell1) - zMid(k,cell1)) + (nonhydrostaticPressure(k-1,cell2) - &
-                 nonhydrostaticPressure(k,cell2)) / (zMid(k-1,cell2) - zMid(k,cells)))
+                 nonhydrostaticPressure(k,cell2)) / (zMid(k-1,cell2) - zMid(k,cell2)))
                tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
                  -density0Inv * ( nonhydrostaticPressure(k,cell2) - nonhydrostaticPressure(k,cell1) ) - &
                  dqdz * (zMid(k,cell2) - zMid(k,cell1)))
@@ -343,7 +343,7 @@ contains
                invdcEdge = 1.0_RKIND / dcEdge(iEdge)
 
                k=1
-               dqdz = 0.5_RKIND*((nonhydrostaticPressure(k,cell1) - nonhydrosaticPressure(k+1,cell1)          &
+               dqdz = 0.5_RKIND*((nonhydrostaticPressure(k,cell1) - nonhydrostaticPressure(k+1,cell1)          &
                   ) / (zMid(k,cell1) - zMid(k+1,cell1)) + (nonhydrostaticPressure(k,cell2) - &
                   nonhydrostaticPressure(k+1,cell2)) / (zMid(k,cell2) - zMid(k+1,cell2)))
                tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
@@ -362,7 +362,7 @@ contains
                k=maxLevelEdgeTop(iEdge)
                dqdz = 0.5_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k,cell1)) / &
                  (zMid(k-1,cell1) - zMid(k,cell1)) + (nonhydrostaticPressure(k-1,cell2) - &
-                 nonhydrostaticPressure(k,cell2)) / (zMid(k-1,cell2) - zMid(k,cells)))
+                 nonhydrostaticPressure(k,cell2)) / (zMid(k-1,cell2) - zMid(k,cell1)))
                tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
                  -density0Inv * ( nonhydrostaticPressure(k,cell2) - nonhydrostaticPressure(k,cell1) ) - &
                  dqdz * (zMid(k,cell2) - zMid(k,cell1)))
@@ -446,7 +446,7 @@ contains
                invdcEdge = 1.0_RKIND / dcEdge(iEdge)
 
                k=1
-               dqdz = 0.5_RKIND*((nonhydrostaticPressure(k,cell1) - nonhydrosaticPressure(k+1,cell1)          &
+               dqdz = 0.5_RKIND*((nonhydrostaticPressure(k,cell1) - nonhydrostaticPressure(k+1,cell1)          &
                   ) / (zMid(k,cell1) - zMid(k+1,cell1)) + (nonhydrostaticPressure(k,cell2) - &
                   nonhydrostaticPressure(k+1,cell2)) / (zMid(k,cell2) - zMid(k+1,cell2)))
                tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
@@ -465,7 +465,7 @@ contains
                k=maxLevelEdgeTop(iEdge)
                dqdz = 0.5_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k,cell1)) / &
                  (zMid(k-1,cell1) - zMid(k,cell1)) + (nonhydrostaticPressure(k-1,cell2) - &
-                 nonhydrostaticPressure(k,cell2)) / (zMid(k-1,cell2) - zMid(k,cells)))
+                 nonhydrostaticPressure(k,cell2)) / (zMid(k-1,cell2) - zMid(k,cell1)))
                tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
                  -density0Inv * ( nonhydrostaticPressure(k,cell2) - nonhydrostaticPressure(k,cell1) ) - &
                  dqdz * (zMid(k,cell2) - zMid(k,cell1)))
