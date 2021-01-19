@@ -62,7 +62,7 @@ module ocn_tendency
    use ocn_wetting_drying
    use ocn_vel_tidal_potential
 
-   use ocn_vvel_pgf
+   use ocn_vvel_pgrad
    use ocn_vvel_coriolis
    use ocn_vvel_advection
    use ocn_vvel_hmix_del2
@@ -214,7 +214,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-subroutine ocn_tend_vel(tendPool, statePool, forcingPool, diagnosticsPool, meshPool, scratchPool, timeLevelIn, dt)!{{{
+subroutine ocn_tend_vvel(tendPool, statePool, forcingPool, diagnosticsPool, meshPool, scratchPool, timeLevelIn, dt)!{{{
    implicit none
 
    type (mpas_pool_type), intent(inout) :: tendPool !< Input/Output: Tendency structure
