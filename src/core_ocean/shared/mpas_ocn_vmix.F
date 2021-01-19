@@ -550,7 +550,7 @@ contains
       integer, dimension(:), pointer :: nCellsArray
 
       integer, dimension(:), pointer :: maxLevelCell
-
+      real(kind=RKIND) :: viscAv
       integer, dimension(:,:), pointer :: cellsOnEdge
 
       real (kind=RKIND), dimension(:), allocatable :: A, B, C, velTemp
@@ -575,7 +575,7 @@ contains
       !$omp parallel
       !$omp do schedule(runtime) private(viscAv, N, cell1, cell2, A, B, C, velTemp, k)
       do iCell = 1, nCells
-        N = maxLevelCell(iEdge)+1
+        N = maxLevelCell(iCell)+1
         if (N .gt. 0) then
         A(N) = 0.0_RKIND
         C(N) = 0.0_RKIND
@@ -1164,7 +1164,8 @@ contains
       integer, dimension(:), pointer :: nCellsArray, nEdgesArray
       real (kind=RKIND), dimension(:), pointer :: bottomDrag, ssh, bottomDepth   ! needed for depth-variable computation
       real (kind=RKIND), dimension(:,:), pointer :: normalVelocity, layerThickness, layerThicknessEdge, vertViscTopOfEdge, &
-                                                    vertDiffTopOfCell, kineticEnergyCell
+                                                    vertDiffTopOfCell, kineticEnergyCell, &
+                                                    verticalVelocity
       real (kind=RKIND), dimension(:,:), pointer :: vertViscTopOfCell, nonLocalSurfaceTracerFlux, tracerGroupSurfaceFlux
       real (kind=RKIND), dimension(:,:,:), pointer :: tracersGroup, vertNonLocalFlux
       real (kind=RKIND), dimension(:,:,:), allocatable :: nonLocalFluxTend
@@ -1190,6 +1191,7 @@ contains
 
       call mpas_pool_get_subpool(forcingPool, 'tracersSurfaceFlux', tracersSurfaceFluxPool)
       call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocity, timeLevel)
+      call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocity, timeLevel)
       call mpas_pool_get_array(statePool, 'layerThickness', layerThickness, timeLevel)
       call mpas_pool_get_array(statePool, 'ssh', ssh, timeLevel)
 

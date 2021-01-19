@@ -907,6 +907,14 @@
 					description="Order of polynomial used for tracer reconstruction at cell edges"
 					possible_values="2, 3 and 4"
 		/>
+		<nml_option name="config_vert_vvel_adv_order" type="integer" default_value="3" units="unitless"
+					description="Order of polynomial used for vertical velocity reconstruction at cell tops"
+					possible_values="2, 3 and 4"
+		/>
+		<nml_option name="config_horiz_vvel_adv_order" type="integer" default_value="3" units="unitless"
+					description="Order of polynomial used for vertical velocity reconstruction at cell edges"
+					possible_values="2, 3 and 4"
+		/>
 		<nml_option name="config_coef_3rd_order" type="real" default_value="0.25" units="non-dimensional"
 					description="Reconstruction of 3rd-order reconstruction to blend with 4th-order reconstuction"
 					possible_values="any real between 0 and 1"
@@ -1245,6 +1253,10 @@
 		/>
 		<nml_option name="config_disable_vvel_coriolis" type="logical" default_value=".false." units="unitless"
 					description="Disables tendencies on the vertical velocity field from the Coriolis force."
+					possible_values=".true. or .false."
+		/>
+		<nml_option name="config_disable_vvel_adv" type="logical" default_value=".false." units="unitless"
+					description="Disables advection of vertical velocity"
 					possible_values=".true. or .false."
 		/>
 		<nml_option name="config_disable_vel_pgrad" type="logical" default_value=".false." units="unitless"
