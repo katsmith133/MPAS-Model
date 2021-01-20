@@ -528,11 +528,11 @@ module ocn_time_integration_split
            if (associated(highFreqThicknessNew)) then
               call ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, &
                  layerThicknessCur, layerThicknessEdge, normalVelocityCur, &
-                 sshCur, dt, vertAleTransportTop, verticalVelocityCur, err, highFreqThicknessNew)
+                 verticalVelocityCur, sshCur, dt, vertAleTransportTop, err, highFreqThicknessNew)
             else
                call ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, &
                   layerThicknessCur, layerThicknessEdge, normalVelocityCur, &
-                  sshCur, dt, vertAleTransportTop, verticalVelocityCur, err)
+                  verticalVelocityCur, sshCur, dt, vertAleTransportTop, err)
             endif
 
            call ocn_tend_vel(tendPool, statePool, forcingPool, diagnosticsPool, meshPool, scratchPool, stage1_tend_time, dt)
@@ -1514,6 +1514,7 @@ module ocn_time_integration_split
             call mpas_pool_get_array(diagnosticsPool, 'layerThicknessEdge', layerThicknessEdge)
             call mpas_pool_get_array(diagnosticsPool, 'normalTransportVelocity', normalTransportVelocity)
             call mpas_pool_get_array(diagnosticsPool, 'vertAleTransportTop', vertAleTransportTop)
+            call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityCur, 1)
 
             ! compute vertAleTransportTop.  Use normalTransportVelocity for advection of layerThickness and tracers.
             ! Use time level 1 values of layerThickness and layerThicknessEdge because
@@ -1522,11 +1523,11 @@ module ocn_time_integration_split
             if (associated(highFreqThicknessNew)) then
                call ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, &
                  layerThicknessCur, layerThicknessEdge, normalTransportVelocity, &
-                 sshCur, dt, vertAleTransportTop, err, highFreqThicknessNew)
+                 verticalVelocityCur, sshCur, dt, vertAleTransportTop, err, highFreqThicknessNew)
             else
                call ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, &
                  layerThicknessCur, layerThicknessEdge, normalTransportVelocity, &
-                 sshCur, dt, vertAleTransportTop, err)
+                 verticalVelocityCur, sshCur, dt, vertAleTransportTop, err)
             endif
             call mpas_timer_stop('thick vert trans vel top')
 

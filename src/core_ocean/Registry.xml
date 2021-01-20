@@ -1251,6 +1251,10 @@
 					description="Diables tendencies on the velocity field from the Coriolis force and momentum advection."
 					possible_values=".true. or .false."
 		/>
+		<nml_option name="config_disable_vvel_all_tend" type="logical" default_value=".false." units="unitless"
+					description="Disables all tendencies on the vertical velocity field."
+					possible_values=".true. or .false."
+		/>
 		<nml_option name="config_disable_vvel_coriolis" type="logical" default_value=".false." units="unitless"
 					description="Disables tendencies on the vertical velocity field from the Coriolis force."
 					possible_values=".true. or .false."
@@ -1941,7 +1945,6 @@
 		/>
     <var name="verticalVelocity" type="real" dimensions="nVertLevelsP1 nCells Time" units="m s^{-1}"
        description="prognostic vertical velocity, only used when config_enable_nonhydrostatic_mode = .true."
-			 packages="nonHydrostaticMode"
     />
     <var name="nonhydrostaticPressure" type="real" dimensions="nVertLevels nCells Time" units="N m^{-2}"
        description="nonHydrostatic pressure correction, set to zero if config_enable_nonhydrostatic_mode = .false."

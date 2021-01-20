@@ -47,7 +47,7 @@ module ocn_forward_mode
    use ocn_thick_ale
    use ocn_thick_surface_flux
 
-   use ocn_vvel_pgf
+   use ocn_vvel_pgrad
    use ocn_vvel_coriolis
    use ocn_vvel_advection
    use ocn_vvel_hmix_del2

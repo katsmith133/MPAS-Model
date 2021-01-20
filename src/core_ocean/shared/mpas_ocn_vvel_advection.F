@@ -40,8 +40,8 @@ module ocn_vvel_advection
    save
 
    ! public module method interfaces
-   public :: ocn_vvel_horiz_advection_init,         &
-             ocn_vvel_vert_advection_tend
+   public :: ocn_vvel_advection_init,         &
+             ocn_vvel_advection_tend
 
    ! privat module variables
    logical :: vvelAdvOn !< flag to turn on tracer advection

@@ -112,7 +112,7 @@ contains
       integer, dimension(:), pointer :: maxLevelCell, nCellsArray
 
       real, dimension(:,:), pointer :: zMid
-      integer :: j, k, i, iCell
+      integer :: j, k, i, iCell, nCells
       integer, pointer :: nVertLevels
 
       err = 0

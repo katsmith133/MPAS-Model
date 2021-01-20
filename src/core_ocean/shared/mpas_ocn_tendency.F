@@ -235,8 +235,7 @@ subroutine ocn_tend_vvel(tendPool, statePool, forcingPool, diagnosticsPool, mesh
      normalizedRelativeVorticityEdge, normalizedPlanetaryVorticityEdge, &
      montgomeryPotential, vertAleTransportTop, divergence, vertViscTopOfEdge, &
      inSituThermalExpansionCoeff, inSituSalineContractionCoeff, verticalVelocity, &
-     tend_verticalVelocity
-   real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers
+     tend_verticalVelocity, normalTransportVelocity
 
    ! Scratch Arrays
    ! normalThicknessFlux: Flux of thickness through an edge
@@ -246,7 +245,7 @@ subroutine ocn_tend_vvel(tendPool, statePool, forcingPool, diagnosticsPool, mesh
    integer :: timeLevel
 
    integer :: err, iEdge, iCell, k
-   integer, pointer :: indexTemperature, indexSalinity, nEdges, nCells
+   integer, pointer :: nVertLevels, indexTemperature, indexSalinity, nEdges, nCells
    integer, dimension(:), pointer :: maxLevelCell
 
    if (present(timeLevelIn)) then
@@ -258,7 +257,7 @@ subroutine ocn_tend_vvel(tendPool, statePool, forcingPool, diagnosticsPool, mesh
    call mpas_pool_get_dimension(meshPool, 'nEdges', nEdges)
    call mpas_pool_get_dimension(meshPool, 'nCells', nCells)
 
-   call mpas_pool_get_subpool(statePool, 'tracers', tracersPool)
+   call mpas_pool_get_dimension(meshPool, 'nVertLevels', nVertLevels)
 
    call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocity, timeLevel)
    call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocity, timeLevel)
@@ -271,7 +270,8 @@ subroutine ocn_tend_vvel(tendPool, statePool, forcingPool, diagnosticsPool, mesh
    call mpas_pool_get_array(diagnosticsPool, 'pressure', pressure)
    call mpas_pool_get_array(diagnosticsPool, 'density', density)
    call mpas_pool_get_array(diagnosticsPool, 'potentialDensity', potentialDensity)
-
+   call mpas_pool_get_array(diagnosticsPool, 'normalTransportVelocity', normalTransportVelocity)
+ 
    call mpas_pool_get_array(tendPool, 'verticalVelocity', tend_verticalVelocity)
 
    allocate(normalThicknessFlux(nVertLevels, nEdges+1))
@@ -310,9 +310,9 @@ subroutine ocn_tend_vvel(tendPool, statePool, forcingPool, diagnosticsPool, mesh
    !
    ! velocity tendency: horizontal and vertical advection
    !
-   call ocn_vvel_advection(verticalVelocity, normalThicknessFlux,       &
+   call ocn_vvel_advection_tend(verticalVelocity, normalThicknessFlux,       &
                                         layerThickness, dt, meshPool,          &
-                                        scratchPool, diagnosticsPool, tend, timeLevelIn)
+                                        scratchPool, diagnosticsPool, tend_verticalVelocity)
 
    !
    ! velocity tendency: pressure gradient
@@ -324,7 +324,7 @@ subroutine ocn_tend_vvel(tendPool, statePool, forcingPool, diagnosticsPool, mesh
    !   computed as \nu( \nabla divergence + k \times \nabla relativeVorticity )
    !   strictly only valid for config_mom_del2 == constant
    !
-   call ocn_vvel_hmix_del2(meshPool, layerThicknessEdge, verticalVelocity, &
+   call ocn_vvel_hmix_del2_tend(meshPool, layerThicknessEdge, verticalVelocity, &
                            tend_verticalVelocity, err)
 
 
@@ -454,7 +454,7 @@ end subroutine ocn_tend_vvel!}}}
       ! velocity tendency: nonlinear Coriolis term and grad of kinetic energy
       !
       call ocn_vel_hadv_coriolis_tend(meshPool, normalizedRelativeVorticityEdge, normalizedPlanetaryVorticityEdge, layerThicknessEdge, &
-         normalVelocity, kineticEnergyCell, tend_normalVelocity, err)
+         normalVelocity, kineticEnergyCell, verticalVelocity, tend_normalVelocity, err)
 
       !
       ! velocity tendency: vertical advection term -w du/dz
