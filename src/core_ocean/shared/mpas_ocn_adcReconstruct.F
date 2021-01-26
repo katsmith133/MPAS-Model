@@ -592,9 +592,9 @@ module ocn_adc_mixing_fused
                 !update second order moment tendency here
                 w2(i2,k,iCell) = (w2(i1,k,iCell) + dt_small*w2tend(k,iCell)) / &
                   (1.0_RKIND + dt_small*taupv(k,iCell)*2.0_RKIND/3.0_RKIND)
-                if(w2(i2,k,iCell) < 1.0E-10_RKIND) then
-                  w2cliptend(k,iCell) = 1.0E-10_RKIND-w2(i2,k,iCell)
-                  w2(i2,k,iCell) = 1.0E-10_RKIND
+                if(w2(i2,k,iCell) < epsilon) then
+                  w2cliptend(k,iCell) = epsilon-w2(i2,k,iCell)
+                  w2(i2,k,iCell) = epsilon
                 endif
 
                 if(abs(w2(i2,k,iCell)) > 1.0_RKIND) then
@@ -655,10 +655,10 @@ module ocn_adc_mixing_fused
                    !Amrapalli: 16.6 here can be tuned if needed, would show up in u2 and v2 primarily
                    ! also in KEspsU/D
                    KE = 0.5_RKIND*(u2(i2,k,iCell) + v2(i2,k,iCell) + w2(i2,k,iCell))
-                   length(k,iCell) = KE**1.5 / (eps(i2,k,iCell))
+                   length(k,iCell) = KE**1.5 / (16.6_RKIND * eps(i2,k,iCell))
                  else
                    KE = 0.5_RKIND*(u2(i2,k,iCell) + v2(i2,k,iCell) + w2(i2,k,iCell))
-                   eps(:,k,iCell) = KE**1.5 / (length(k,iCell))
+                   eps(:,k,iCell) = KE**1.5 / (16.6_RKIND * length(k,iCell))
                  endif
                 KspsU(i2,k,iCell) = max(epsilon,KspsU(i1,k,iCell) + dt_small*KspsUtend(k,iCell))
                 KspsD(i2,k,iCell) = max(epsilon,KspsD(i1,k,iCell) + dt_small*KspsDtend(k,iCell))
