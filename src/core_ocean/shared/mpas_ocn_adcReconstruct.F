@@ -81,8 +81,8 @@ module ocn_adc_mixing_fused
             ij = ij + 1
           end do
 
-          z1 = min(ze(ij,iCell), -(ze(ij-1,iCell) - ze(ij,iCell)) / &
-                  (1E-15+BEdge(ij) - BEdge(ij-1)) * (tkeup(k) - (BupEdge(k) - BEdge(ij-1))) + ze(ij,iCell))
+          z1 = min(ze(ij-1,iCell), -(ze(ij,iCell) - ze(ij-1,iCell)) / &
+                  (1E-15+BEdge(ij) - BEdge(ij-1)) * (tkeup(k) - (BupEdge(k) - BEdge(ij-1))) + ze(ij-1,iCell))
           lenup(k,iCell) = max(0.55_RKIND, abs(ze(k,iCell) - z1))
 
         !find lendown
@@ -92,8 +92,8 @@ module ocn_adc_mixing_fused
            ij = ij - 1
         end do
 
-        z1 = min(ze(ij,iCell),-((ze(ij,iCell) - ze(ij+1,iCell)) / &
-                  (1E-15+BEdge(ij) - BEdge(ij+1)) * (tkedo(k) - (BEdge(k) - BdoEdge(ij)))) + ze(ij,iCell))
+        z1 = min(ze(ij+1,iCell),-((ze(ij,iCell) - ze(ij+1,iCell)) / &
+                  (1E-15+BEdge(ij) - BEdge(ij+1)) * (tkedo(k) - (BEdge(ij+1) - BdoEdge(k)))) + ze(ij+1,iCell))
         lendn(k,iCell) = max(0.55, abs(ze(k,iCell)-z1))
 
         length(k,iCell) = (2.0_RKIND*lenup(k,iCell)*lendn(k,iCell))  &
@@ -547,9 +547,9 @@ module ocn_adc_mixing_fused
 
               !change length scale to lenup and lendown
               Entrainment(k,iCell) = Cww_E*areaFraction(k,iCell)*(1.0_RKIND- &
-                areaFraction(k,iCell))*Mc(k,iCell) / ( lendn(k,iCell) + EPSILON )
-              Detrainment(k,iCell) = Cww_D*areaFraction(k,iCell)*(1.0_RKIND- &
                 areaFraction(k,iCell))*Mc(k,iCell) / ( lenup(k,iCell) + EPSILON )
+              Detrainment(k,iCell) = Cww_D*areaFraction(k,iCell)*(1.0_RKIND- &
+                areaFraction(k,iCell))*Mc(k,iCell) / ( lendn(k,iCell) + EPSILON )
 
               if(k==2) then
                 Cval = 3.96
@@ -592,9 +592,9 @@ module ocn_adc_mixing_fused
                 !update second order moment tendency here
                 w2(i2,k,iCell) = (w2(i1,k,iCell) + dt_small*w2tend(k,iCell)) / &
                   (1.0_RKIND + dt_small*taupv(k,iCell)*2.0_RKIND/3.0_RKIND)
-                if(w2(i2,k,iCell) < epsilon) then
-                  w2cliptend(k,iCell) = epsilon-w2(i2,k,iCell)
-                  w2(i2,k,iCell) = epsilon
+                if(w2(i2,k,iCell) < 1.0E-10_RKIND) then
+                  w2cliptend(k,iCell) = 1.0E-10_RKIND-w2(i2,k,iCell)
+                  w2(i2,k,iCell) = 1.0E-10_RKIND
                 endif
 
                 if(abs(w2(i2,k,iCell)) > 1.0_RKIND) then
