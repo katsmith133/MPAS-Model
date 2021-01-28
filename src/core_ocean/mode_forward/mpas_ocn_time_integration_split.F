@@ -178,6 +178,7 @@ module ocn_time_integration_split
       real (kind=RKIND), dimension(:,:), pointer :: normalBaroclinicVelocityCur, normalBaroclinicVelocityNew
       real (kind=RKIND), dimension(:,:), pointer :: normalVelocityCur, normalVelocityNew
       real (kind=RKIND), dimension(:,:), pointer :: layerThicknessCur, layerThicknessNew
+      real (kind=RKIND), dimension(:,:), pointer :: verticalVelocityCur, verticalVelocityNew
       real (kind=RKIND), dimension(:,:), pointer :: highFreqThicknessCur, highFreqThicknessNew
       real (kind=RKIND), dimension(:,:), pointer :: lowFreqDivergenceCur, lowFreqDivergenceNew
       real (kind=RKIND), dimension(:,:,:), pointer :: tracersGroupCur, tracersGroupNew
@@ -185,7 +186,7 @@ module ocn_time_integration_split
       ! Tend Array Pointers
       real (kind=RKIND), dimension(:), pointer :: sshTend
       real (kind=RKIND), dimension(:,:), pointer :: highFreqThicknessTend
-      real (kind=RKIND), dimension(:,:), pointer :: lowFreqDivergenceTend
+      real (kind=RKIND), dimension(:,:), pointer :: lowFreqDivergenceTend, verticalVelocityTend
       real (kind=RKIND), dimension(:,:), pointer :: normalVelocityTend, layerThicknessTend
       real (kind=RKIND), dimension(:,:,:), pointer :: tracersGroupTend, activeTracersTend
 
@@ -306,6 +307,11 @@ module ocn_time_integration_split
          call mpas_pool_get_array(statePool, 'layerThickness', layerThicknessCur, 1)
          call mpas_pool_get_array(statePool, 'layerThickness', layerThicknessNew, 2)
 
+         if(config_enable_nonhydrostatic_mode) then
+            call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityCur, 1)
+            call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityNew, 2)
+         end if
+
          call mpas_pool_get_array(statePool, 'highFreqThickness', highFreqThicknessCur, 1)
          call mpas_pool_get_array(statePool, 'highFreqThickness', highFreqThicknessNew, 2)
 
@@ -349,6 +355,18 @@ module ocn_time_integration_split
          end do
          !$omp end do
          !$omp end parallel
+
+         if(config_enable_nonhydrostatic_mode) then
+            !$omp parallel
+            !$omp do schedule(runtime) private(k)
+            do iCell = 1, nCells
+               do k = 2, maxLevelCell(iCell)
+                  verticalVelocityNew(k,iCell) = verticalVelocityCur(k,iCell)
+               end do
+            end do
+            !$omp end do
+            !$omp end parallel
+         end if
 
          call mpas_pool_begin_iteration(tracersPool)
          do while ( mpas_pool_get_next_member(tracersPool, groupItr))
@@ -1559,6 +1577,8 @@ module ocn_time_integration_split
             call ocn_tend_tracer(tendPool, statePool, forcingPool, diagnosticsPool, meshPool, swForcingPool, scratchPool, &
                     dt, activeTracersOnly, 2)
 
+            if(config_enable_nonhydrostatic_mode) call ocn_tend_vvel(tendPool, statePool, &
+                          forcingPool, diagnosticsPool, meshPool, scratchPool, 2, dt)
             block => block % next
          end do
          call mpas_timer_stop('se tracer tend')
@@ -1607,6 +1627,12 @@ module ocn_time_integration_split
             call mpas_pool_get_array(statePool, 'layerThickness', layerThicknessNew, 2)
             call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocityCur, 1)
             call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocityNew, 2)
+            if(config_enable_nonhydrostatic_mode) then
+               call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityCur, 1)
+               call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityNew, 2)
+               call mpas_pool_get_array(tendPool, 'verticalVelocity', verticalVelocityTend)
+            end if
+            
             call mpas_pool_get_array(statePool, 'highFreqThickness', highFreqThicknessCur, 1)
             call mpas_pool_get_array(statePool, 'highFreqThickness', highFreqThicknessNew, 2)
             call mpas_pool_get_array(statePool, 'lowFreqDivergence', lowFreqDivergenceCur, 1)
@@ -1639,6 +1665,19 @@ module ocn_time_integration_split
 
                ! Only need T & S for earlier iterations,
                ! then all the tracers needed the last time through.
+
+               if(config_enable_nonhydrostatic_mode) then
+                 !$omp parallel
+                 !$omp do schedule(runtime) private(k, temp_h)
+                 do iCell = 1, nCells
+                    do k = 2, maxLevelCell(iCell)
+                       temp_h = verticalVelocityCur(k,iCell) + dt * verticalVelocityTend(k,iCell)
+                       verticalThicknessNew(k,iCell) = 0.5_RKIND*(verticalVelocityCur(k,iCell) + temp_h)
+                    end do
+                 end do
+                 !$omp end do
+                 !$omp end parallel
+               end if
 
                !$omp parallel
                !$omp do schedule(runtime) private(k, temp_h, temp, i)
@@ -1717,6 +1756,18 @@ module ocn_time_integration_split
             !
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             elseif (split_explicit_step == config_n_ts_iter) then
+
+               if(config_enable_nonhydrostatic_mode) then
+                  !$omp parallel
+                  !$omp do schedule(runtime) private(k)
+                  do iCell = 1, nCells
+                     do k = 1, maxLevelCell(iCell)
+                        verticalVelocityNew(k,iCell) = verticalVelocityCur(k,iCell) + dt * verticalVelocityTend(k,iCell)
+                     end do
+                  end do
+                  !$omp parallel
+                  !$omp end do
+               end if
 
                !$omp parallel
                !$omp do schedule(runtime) private(k)
@@ -1967,6 +2018,13 @@ module ocn_time_integration_split
  !             meshPool, scratchPool, timeLevelIn=2)
  !       end if
         call ocn_vmix_implicit(dt, meshPool, diagnosticsPool, statePool, forcingPool, scratchPool, err, 2)
+
+        ! add call to new nonhydro solve
+        if(config_enable_nonhydrostatic_mode) then
+          call ocn_nonhydrostatic_pressure_tend(normalVelocityNew, normalVelocityCur, &
+            verticalVelocityNew, verticalVelocityCur, layerThickness, layerThicknessEdge, &
+            nonHydrostaticPressure)
+        endif
 
         block => block % next
       end do
