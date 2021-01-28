@@ -462,10 +462,11 @@ contains
          call mpas_pool_get_dimension(meshPool, 'nCellsArray', nCellsArray)
          nCells = nCellsArray( size(nCellsArray) )
          do iCell = 1, nCells
+            w2(:,2,iCell) = epsilon
             do k = 1, nVertLevels+1
-               KspsU(:,k,iCell) = epsilon
-               KspsD(:,k,iCell) = epsilon
-               w2(:,k,iCell) = 1.0E-8_RKIND 
+               KspsU(:,k,iCell) = 0.0_RKIND
+               KspsD(:,k,iCell) = 0.0_RKIND
+              ! w2(:,k,iCell) = 0.0_RKIND 
                areaFraction(k,iCell) = 0.5_RKIND
                tumd(k,iCell) = 0.0_RKIND
                sumd(k,iCell) = 0.0_RKIND

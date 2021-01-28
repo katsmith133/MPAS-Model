@@ -5,6 +5,7 @@ module ocn_adc_mixing_fused
   use ocn_turbulence
   use mpas_log
   use ocn_config
+  use mpas_constants
 
   implicit none
 
@@ -22,88 +23,105 @@ module ocn_adc_mixing_fused
   end subroutine swap_time_levels
 
   subroutine dissipation_lengths2(nCells,nVertLevels,activeTracers,alphaT,betaS)
-    integer,intent(in) :: nVertLevels, nCells
-    real,dimension(2,nVertLevels,nCells),intent(in) :: activeTracers
-    real,dimension(nVertLevels,nCells),intent(in) :: alphaT, betaS
+		integer,intent(in) :: nVertLevels, nCells
+    real (kind=RKIND), dimension(2,nVertLevels,nCells), intent(in) :: activeTracers
+    real (kind=RKIND), dimension(nVertLevels,nCells), intent(in) :: alphaT, betaS
     integer :: iCell, k, ij, i
 
-    real,dimension(nVertLevels) :: B, Bup, Bdo
-    real,dimension(nVertLevels+1) :: tkedo, KEsps, tkeup, BupEdge, BEdge, BdoEdge
-    real :: sav, tudav, sudav, Tup, Tdo, Sup, Sdo
-    real :: s1, z1, zV, sumv, minlen
+    real (kind=RKIND), dimension(nVertLevels) :: B, Bup, Bdn
+    real (kind=RKIND), dimension(nVertLevels+1) :: KEsps, tke, BupEdge, BdnEdge, BEdge
+    real (kind=RKIND) :: sigav, tumdav, sumdav, Tup, Tdn, Sup, Sdn
+    real (kind=RKIND) :: sumv, sumv0
+    real (kind=RKIND), parameter :: refT = 15.0_RKIND, refS = 35.0_RKIND, minlen = 0.55_RKIND
 
     !NOTE: will need to convert to some form of displaced density in the mpas framework soon
     !possibly go back to a more traditional length scale formulation
-    do iCell=1,nCells
-      KEsps(:) = areaFraction(:,iCell)*KspsU(i1,:,iCell) + (1.0_RKIND - areaFraction(:,iCell))*KspsD(i1,:,iCell)
-      tkeup(:) = 0.5_RKIND*w2(i1,:,iCell)*areaFraction(:,iCell) / (1.0_RKIND - areaFraction(:,iCell))
-      tkedo(:) = 0.5_RKIND*w2(i1,:,iCell)*(1.0_RKIND-areaFraction(:,iCell)) / areaFraction(:,iCell)
+    do iCell = 1,nCells
+       do k = 1,nVertLevels+1
+          KEsps(k) = areaFraction(k,iCell) * KspsD(i1,k,iCell) + &
+                     (1.0_RKIND - areaFraction(k,iCell)) * KspsU(i1,k,iCell)
+          tke(k) = 0.5_RKIND*(u2(i1,k,iCell) + v2(i1,k,iCell) + w2(i1,k,iCell)) ! + KEsps(k)
+       enddo
 
-      tkeup(:) = 0.5_RKIND*(u2(i1,:,iCell) + v2(i1,:,iCell) + w2(i1,:,iCell))
-      tkedo(:) = 0.5_RKIND*(u2(i1,:,iCell) + v2(i1,:,iCell) + w2(i1,:,iCell))
-       do k=1,nVertLevels
-          B(k) = -9.806*(-alphaT(k,iCell)*(activeTracers(1,k,iCell) - 15.0_RKIND) + betaS(k,iCell)*   &
-                    (activeTracers(2,k,iCell) - 35.0_RKIND))
+       do k = 1,nVertLevels
+          B(k) = gravity * (alphaT(k,iCell) * (activeTracers(1,k,iCell) - refT) - &
+                            betaS(k,iCell)  * (activeTracers(2,k,iCell) - refS))
 
-          sav = 0.5_RKIND*(areaFraction(k,iCell) + areaFraction(k+1,iCell))
-          tudav = 0.5_RKIND*(tumd(k,iCell) + tumd(k+1,iCell))
-          sudav = 0.5*(sumd(k,iCell) + sumd(k+1,iCell))
+          sigav  = 0.5_RKIND * (areaFraction(k,iCell) + areaFraction(k+1,iCell))
+          tumdav = 0.5_RKIND * (tumd(k,iCell) + tumd(k+1,iCell))
+          sumdav = 0.5_RKIND * (sumd(k,iCell) + sumd(k+1,iCell))
 
-          Tup = activeTracers(1,k,iCell) - (1.0_RKIND - sav)*tudav
-          Tdo = activeTracers(1,k,iCell) + sav*tudav
-          Sup = activeTracers(2,k,iCell) - (1.0_RKIND - sav)*sudav
-          Sdo = activeTracers(2,k,iCell) + sav*sudav
+          Tup = activeTracers(1,k,iCell) + sigav*tumdav
+          Tdn = activeTracers(1,k,iCell) - (1.0_RKIND - sigav)*tumdav
+          Sup = activeTracers(2,k,iCell) + sigav*sumdav
+          Sdn = activeTracers(2,k,iCell) - (1.0_RKIND - sigav)*sumdav
 
-          Bup(k) = -9.806*(-alphaT(k,iCell)*(Tup - 15.0) + betaS(k,iCell)*(Sup - 35.0))
-          Bdo(k) = -9.806*(-alphaT(k,iCell)*(Tdo - 15.0) + betaS(k,iCell)*(Sdo - 35.0))
+          Bup(k) = gravity * (alphaT(k,iCell) * (Tup - refT) - betaS(k,iCell) * (Sup - refS))
+          Bdn(k) = gravity * (alphaT(k,iCell) * (Tdn - refT) - betaS(k,iCell) * (Sdn - refS))
 
           if(k>1) THEN
-             BupEdge(k) = 0.5*(Bup(k-1) + Bup(k))
-             BdoEdge(k) = 0.5*(Bdo(k-1) + Bdo(k))
-             BEdge(k) = 0.5*(B(k-1) + B(k))
+             BupEdge(k) = 0.5_RKIND * (Bup(k-1) + Bup(k))
+             BdnEdge(k) = 0.5_RKIND * (Bdn(k-1) + Bdn(k))
+             BEdge(k)   = 0.5_RKIND * (B(k-1) + B(k))
           endif
        enddo
 
-       BdoEdge(nVertLevels+1) = Bdo(nVertLevels)
-       BupEdge(nVertLevels+1) = Bup(nVertLevels)
-       BEdge(nVertLevels+1) = B(nVertLevels)
+       BdnEdge(nVertLevels+1) = BdnEdge(nVertLevels)
+       BupEdge(nVertLevels+1) = BupEdge(nVertLevels)
+       BEdge(nVertLevels+1)   = BEdge(nVertLevels)
 
-       BdoEdge(1) = Bdo(1)
-       BupEdge(1) = Bup(1)
-       BEdge(1) = B(1)
+       BdnEdge(1) = BdnEdge(2)
+       BupEdge(1) = BupEdge(2)
+       BEdge(1)   = BEdge(2)
 
-       !This new formulation looks to how far an unstable parcel can move vertically before stabilizing
-       do k=2,nVertLevels
-
-          sumv = 0
-          ij=k+1
-          do while(ij <= nVertLevels+1 .and. BupEdge(k) - BEdge(ij) < tkeup(k))
-            ij = ij + 1
+       do k = 2,nVertLevels
+          ! updraft length scale
+          sumv  = 0.0_RKIND
+          sumv0 = 0.0_RKIND
+          ij=k
+          lenup(k,iCell) = 0.0_RKIND
+          do while(sumv0 <= tke(k) .and. ij > 1)
+             sumv = sumv0 + (BEdge(ij) - BupEdge(k)) * (ze(ij-1,iCell)-ze(ij,iCell))
+             if (sumv > tke(k)) THEN
+                lenup(k,iCell) = max(minlen, &
+                                     lenup(k,iCell) + &
+                                     abs(ze(ij-1,iCell)-ze(ij,iCell))*(tke(k)-sumv0)/(sumv-sumv0))
+                exit
+             else
+                lenup(k,iCell) = lenup(k,iCell) + abs(ze(ij-1,iCell)-ze(ij,iCell))
+             endif
+             sumv0 = sumv
+             ij = ij - 1
           end do
 
-          z1 = min(ze(ij-1,iCell), -(ze(ij,iCell) - ze(ij-1,iCell)) / &
-                  (1E-15+BEdge(ij) - BEdge(ij-1)) * (tkeup(k) - (BupEdge(k) - BEdge(ij-1))) + ze(ij-1,iCell))
-          lenup(k,iCell) = max(0.55_RKIND, abs(ze(k,iCell) - z1))
+          ! downdraft length scale
+          sumv  = 0.0_RKIND
+          sumv0 = 0.0_RKIND
+          ij=k
+          lendn(k,iCell) = 0.0_RKIND
+          do while(sumv0 <= tke(k) .and. ij < nVertLevels+1)
+             sumv = sumv0 + (BdnEdge(k) - BEdge(ij)) * (ze(ij-1,iCell)-ze(ij,iCell))
+             if (sumv > tke(k)) THEN
+                lendn(k,iCell) = max(minlen, &
+                                     lendn(k,iCell) + &
+                                     abs(ze(ij-1,iCell)-ze(ij,iCell))*(tke(k)-sumv0)/(sumv-sumv0))
+                exit
+             else
+                lendn(k,iCell) = lendn(k,iCell) + abs(ze(ij-1,iCell)-ze(ij,iCell))
+             endif
+             sumv0 = sumv
+             ij = ij + 1
+          end do
 
-        !find lendown
-        sumv = 0
-        ij=k-1
-        do while(ij > 1 .and. BEdge(ij) - BdoEdge(k) < tkedo(k))
-           ij = ij - 1
-        end do
+          length(k,iCell) = 2.0_RKIND * lenup(k,iCell) * lendn(k,iCell)  &
+                            / (lenup(k,iCell) + lendn(k,iCell))
+          ! write(*,*) k, iCell, lenup(k,iCell), lendn(k,iCell)
+       enddo
+       ! write(*,*) '----'
+    enddo
 
-        z1 = min(ze(ij+1,iCell),-((ze(ij,iCell) - ze(ij+1,iCell)) / &
-                  (1E-15+BEdge(ij) - BEdge(ij+1)) * (tkedo(k) - (BEdge(ij+1) - BdoEdge(k)))) + ze(ij+1,iCell))
-        lendn(k,iCell) = max(0.55, abs(ze(k,iCell)-z1))
-
-        length(k,iCell) = (2.0_RKIND*lenup(k,iCell)*lendn(k,iCell))  &
-          / (lenup(k,iCell) + lendn(k,iCell))
-      enddo
-
-   enddo
-
-   length(1,:) = 0.55_RKIND
-   length(nVertLevels+1,:) = 0.55_RKIND
+    length(1,iCell) = 0.55_RKIND
+    length(nVertLevels+1,iCell) = 0.55_RKIND
 
   end subroutine dissipation_lengths2
 
@@ -135,7 +153,7 @@ module ocn_adc_mixing_fused
       real :: tauM1, tau, tauP1, tauAV, utemp, vtemp
       real :: B, Cval, diff, wtav, dzmid, Ksps, Sz, Tz, w4k, w4kp1, w2k, w2kp1
       real :: lareaFraction, wstar, Q, w3av, tempMoment
-      real :: sfcFrictionVelocity, wtSumUp, wtSumDn, wsSumUp, wsSumDn
+      real :: sfcFrictionVelocitySquared, wtSumUp, wtSumDn, wsSumUp, wsSumDn
 
       real,dimension(nVertLevels,nCells) :: Swumd
       real,dimension(nVertLevels,nCells) :: tauw3, taupt, taups, taupv
@@ -166,10 +184,10 @@ module ocn_adc_mixing_fused
         w2t(1,iCell) = -0.3_RKIND*wstar * wtsfc(iCell)
         w2s(1,iCell) = 0.3_RKIND*wstar * wssfc(iCell)
 
-        sfcFrictionVelocity = sqrt(uwsfc(iCell)**2 + vwsfc(iCell)**2)
+        sfcFrictionVelocitySquared = sqrt(uwsfc(iCell)**2 + vwsfc(iCell)**2)
         do k=1,2
-          u2(k,1,iCell) = 2.0*sfcFrictionVelocity + 0.3*wstar**2.0
-          v2(k,1,iCell) = 2.0*sfcFrictionVelocity + 0.3*wstar**2.0
+          u2(k,1,iCell) = 0.0_RKIND! 2.0*sfcFrictionVelocitySquared + 0.3*wstar**2.0
+          v2(k,1,iCell) = 0.0_RKIND!2.0*sfcFrictionVelocitySquared + 0.3*wstar**2.0
           uw(k,1,iCell) = -uwsfc(iCell)
           vw(k,1,iCell) = -vwsfc(iCell)
           wt(k,1,iCell) = wtsfc(iCell)
@@ -180,14 +198,6 @@ module ocn_adc_mixing_fused
       enddo
 
       do iIter=1,niter
-        ! We should test the use of this value versus the one above
-        do iCell=1,nCells
-          sigav = 0.5_RKIND*(areaFraction(1,iCell) + areaFraction(2,iCell))
-          wtav = 0.5_RKIND*(wt(i1,1,iCell) + wt(i1,2,iCell))
-          McAv = 0.5_RKIND*(w2(i1,1,iCell) + w2(i1,2,iCell))
-!          w2t(1,iCell) = -(1.0_RKIND - 2.0_RKIND*sigav)*wtav*sqrt(McAv / (sigav*(1.0_RKIND-sigav)))
-        enddo
-
         !Kernel 1 inlined versions of the base arrays, needed for later to make them collapsible
         do iCell=1,nCells
           do k=2,nVertLevels
@@ -373,8 +383,8 @@ module ocn_adc_mixing_fused
                 wumd(k-1,iCell)*tumd(k-1,iCell)*Mc(k-1,iCell) - (1.0_RKIND - 2.0_RKIND* &
                 areaFraction(k+1,iCell))*wumd(k+1,iCell)*tumd(k+1,iCell)*Mc(k+1,iCell)) &
                 / (ze(k-1,iCell) - ze(k+1,iCell)) - Mc(k,iCell)*wumd(k,iCell)*Tz
-          !    wttend2(k,iCell) = -(w2t(k-1,iCell) - w2t(k,iCell)) / (zm(k-1,iCell) - zm(k,iCell)) - &
-          !        Mc(k,iCell)*wumd(k,iCell)*Tz
+              wttend2(k,iCell) = -(w2t(k-1,iCell) - w2t(k,iCell)) / (zm(k-1,iCell) - zm(k,iCell)) - &
+                  Mc(k,iCell)*wumd(k,iCell)*Tz
               wttend3(k,iCell) = (1.0_RKIND - gamma1)*areaFraction(k,iCell)*  &
                 (1.0_RKIND - areaFraction(k,iCell))*grav*(alphaT(k,iCell) &
                 *tumd(k,iCell)**2.0 - betaS(k,iCell)*tumd(k,iCell)*sumd(k,iCell))
@@ -593,7 +603,7 @@ module ocn_adc_mixing_fused
                 w2(i2,k,iCell) = (w2(i1,k,iCell) + dt_small*w2tend(k,iCell)) / &
                   (1.0_RKIND + dt_small*taupv(k,iCell)*2.0_RKIND/3.0_RKIND)
                 if(w2(i2,k,iCell) < epsilon) then
-                  w2cliptend(k,iCell) = epsilon-w2(i2,k,iCell)
+                  w2cliptend(k,iCell) = -w2(i2,k,iCell)
                   w2(i2,k,iCell) = epsilon
                 endif
 
@@ -604,16 +614,16 @@ module ocn_adc_mixing_fused
 
                 u2(i2,k,iCell) = (u2(i1,k,iCell) + dt_small*u2tend(k,iCell)) / &
                   (1.0_RKIND + dt_small*taupv(k,iCell)*2.0_RKIND/3.0_RKIND)
-                if(u2(i2,k,iCell) < 0.0_RKIND) then
+                if(u2(i2,k,iCell) < epsilon) then
                    u2cliptend(k,iCell) = -u2(i2,k,iCell)
-                   u2(i2,k,iCell) = 0.0_RKIND
+                   u2(i2,k,iCell) = epsilon
                 endif
 
                 v2(i2,k,iCell) = (v2(i1,k,iCell) + dt_small*v2tend(k,iCell)) / &
                   (1.0_RKIND + dt_small*taupv(k,iCell)*2.0_RKIND/3.0_RKIND)
-                if(v2(i2,k,iCell) < 0.0_RKIND) then
+                if(v2(i2,k,iCell) < epsilon) then
                    v2cliptend(k,iCell) = -v2(i2,k,iCell)
-                   v2(i2,k,iCell) = 0.0_RKIND
+                   v2(i2,k,iCell) = epsilon
                 endif
 
                 uw(i2,k,iCell) = uw(i1,k,iCell) + dt_small*uwtend(k,iCell)
@@ -630,7 +640,7 @@ module ocn_adc_mixing_fused
                 if(abs(wt(i2,k,iCell)) > 1.0_RKIND) then
                   call mpas_log_write("ERROR: wt out of range, wt = $r, location = $i, $i", &
                      MPAS_LOG_CRIT,realArgs=(/wt(i2,k,iCell)/),intArgs=(/k,iCell/))
-                endif
+                 endif
 
                 if(abs(ws(i2,k,iCell)) > 1.0_RKIND) then
                    call mpas_log_write("ERROR: ws out of range, ws = $r, location = $i, $i", &
@@ -655,10 +665,10 @@ module ocn_adc_mixing_fused
                    !Amrapalli: 16.6 here can be tuned if needed, would show up in u2 and v2 primarily
                    ! also in KEspsU/D
                    KE = 0.5_RKIND*(u2(i2,k,iCell) + v2(i2,k,iCell) + w2(i2,k,iCell))
-                   length(k,iCell) = KE**1.5 / (16.6_RKIND * eps(i2,k,iCell))
+                   length(k,iCell) = KE**1.5 / (1.0_RKIND * eps(i2,k,iCell))
                  else
                    KE = 0.5_RKIND*(u2(i2,k,iCell) + v2(i2,k,iCell) + w2(i2,k,iCell))
-                   eps(:,k,iCell) = KE**1.5 / (16.6_RKIND * length(k,iCell))
+                   eps(:,k,iCell) = KE**1.5 / (1.0_RKIND * length(k,iCell))
                  endif
                 KspsU(i2,k,iCell) = max(epsilon,KspsU(i1,k,iCell) + dt_small*KspsUtend(k,iCell))
                 KspsD(i2,k,iCell) = max(epsilon,KspsD(i1,k,iCell) + dt_small*KspsDtend(k,iCell))
