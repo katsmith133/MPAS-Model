@@ -32,6 +32,7 @@ OBJS = mpas_ocn_init_routines.o \
 		 mpas_ocn_vvel_hmix_del2.o \
 		 mpas_ocn_vvel_advection.o \
 		 mpas_ocn_vvel_pgf.o \
+		 mpas_ocn_nonhydrostatic_pressure_solve.o \
 	   mpas_ocn_vmix.o \
 	   mpas_ocn_vmix_coefs_redi.o \
 	   mpas_ocn_vmix_cvmix.o \
@@ -129,6 +130,8 @@ mpas_ocn_vvel_horiz_advection: mpas_ocn_constants.o mpas_ocn_config.o
 mpas_ocn_vvel_hmix_del2: mpas_ocn_constants.o mpas_ocn_config.o
 
 mpas_ocn_vvel_advection.o: mpas_ocn_constants.o mpas_ocn_config.o mpas_ocn_vvel_horiz_advection.o mpas_ocn_vvel_vert_advection.o
+
+mpas_ocn_nonhydrostatic_pressure_solve.o: mpas_ocn_constants.o mpas_ocn_config.o
 
 mpas_ocn_tracer_hmix.o: mpas_ocn_tracer_hmix_del2.o mpas_ocn_tracer_hmix_del4.o mpas_ocn_tracer_hmix_redi.o
 

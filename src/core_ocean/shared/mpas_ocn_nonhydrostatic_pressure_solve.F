@@ -33,6 +33,15 @@ module ocn_compute_nonhydrostatic_pressure
   private
   save
 
+  !--------------------------------------------------------------------
+  !
+  ! Public member functions
+  !
+  !--------------------------------------------------------------------
+
+  public :: ocn_nonhydrostatic_pressure_tend
+
+
   !Things to do
   ! add PETSC paths here
   ! make sure a simple pass through builds with PETSC stuff

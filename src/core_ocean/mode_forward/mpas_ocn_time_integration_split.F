@@ -36,6 +36,7 @@ module ocn_time_integration_split
    use ocn_diagnostics
    use ocn_gm
 
+   use ocn_compute_nonhydrostatic_pressure
    use ocn_equation_of_state
    use ocn_vmix
    use ocn_time_average_coupled
@@ -179,6 +180,7 @@ module ocn_time_integration_split
       real (kind=RKIND), dimension(:,:), pointer :: normalVelocityCur, normalVelocityNew
       real (kind=RKIND), dimension(:,:), pointer :: layerThicknessCur, layerThicknessNew
       real (kind=RKIND), dimension(:,:), pointer :: verticalVelocityCur, verticalVelocityNew
+      real (kind=RKIND), dimension(:,:), pointer :: nonhydrostaticPressure
       real (kind=RKIND), dimension(:,:), pointer :: highFreqThicknessCur, highFreqThicknessNew
       real (kind=RKIND), dimension(:,:), pointer :: lowFreqDivergenceCur, lowFreqDivergenceNew
       real (kind=RKIND), dimension(:,:,:), pointer :: tracersGroupCur, tracersGroupNew
@@ -193,7 +195,7 @@ module ocn_time_integration_split
       ! Diagnostics Array Pointers
       real (kind=RKIND), dimension(:), pointer :: barotropicForcing, barotropicThicknessFlux
       real (kind=RKIND), dimension(:,:), pointer :: layerThicknessEdge, normalTransportVelocity, normalGMBolusVelocity
-      real (kind=RKIND), dimension(:,:), pointer :: vertAleTransportTop, verticalVelocityCur
+      real (kind=RKIND), dimension(:,:), pointer :: vertAleTransportTop
       real (kind=RKIND), dimension(:,:), pointer :: velocityX, velocityY, velocityZ
       real (kind=RKIND), dimension(:,:), pointer :: velocityZonal, velocityMeridional
       real (kind=RKIND), dimension(:), pointer :: gradSSH
@@ -1672,7 +1674,7 @@ module ocn_time_integration_split
                  do iCell = 1, nCells
                     do k = 2, maxLevelCell(iCell)
                        temp_h = verticalVelocityCur(k,iCell) + dt * verticalVelocityTend(k,iCell)
-                       verticalThicknessNew(k,iCell) = 0.5_RKIND*(verticalVelocityCur(k,iCell) + temp_h)
+                       verticalVelocityNew(k,iCell) = 0.5_RKIND*(verticalVelocityCur(k,iCell) + temp_h)
                     end do
                  end do
                  !$omp end do
@@ -2012,22 +2014,34 @@ module ocn_time_integration_split
         call mpas_pool_get_subpool(block % structs, 'mesh', meshPool)
         call mpas_pool_get_subpool(block % structs, 'diagnostics', diagnosticsPool)
         call mpas_pool_get_subpool(block % structs, 'scratch', scratchPool)
-        ! Compute normalGMBolusVelocity; it will be added to the baroclinic modes in Stage 2 above.
- !       if (config_use_GM.or.config_use_Redi) then
- !          call ocn_gm_compute_Bolus_velocity(statePool, diagnosticsPool, &
- !             meshPool, scratchPool, timeLevelIn=2)
- !       end if
-        call ocn_vmix_implicit(dt, meshPool, diagnosticsPool, statePool, forcingPool, scratchPool, err, 2)
 
-        ! add call to new nonhydro solve
-        if(config_enable_nonhydrostatic_mode) then
-          call ocn_nonhydrostatic_pressure_tend(normalVelocityNew, normalVelocityCur, &
-            verticalVelocityNew, verticalVelocityCur, layerThickness, layerThicknessEdge, &
-            nonHydrostaticPressure)
-        endif
+        call ocn_vmix_implicit(dt, meshPool, diagnosticsPool, statePool, forcingPool, scratchPool, err, 2)
 
         block => block % next
       end do
+
+      if(config_enable_nonhydrostatic_mode) then
+         block => domain % blocklist
+         do while(associated(block))
+            call mpas_pool_get_subpool(block % structs, 'state', statePool)
+            call mpas_pool_get_subpool(statePool, 'tracers', tracersPool)
+            call mpas_pool_get_subpool(block % structs, 'mesh', meshPool)
+            call mpas_pool_get_subpool(block % structs, 'diagnostics', diagnosticsPool)
+ ! pull out the variables needed!
+            call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocityNew, 2)
+            call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocityCur, 1)
+            call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityNew, 2)
+            call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityCur, 1)
+            call mpas_pool_get_array(diagnosticsPool, 'layerThicknessEdge', layerThicknessEdge)
+            call mpas_pool_get_array(statePool, 'layerThickness', layerThicknessNew, 2)
+            call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressure,2)
+
+            call ocn_nonhydrostatic_pressure_tend(normalVelocityNew, normalVelocityCur, &
+               verticalVelocityNew, verticalVelocityCur, layerThicknessNew, layerThicknessEdge, &
+               nonhydrostaticPressure)
+            block => block % next
+         end do
+      end if
 
       ! Update halo on u and tracers, which were just updated for implicit vertical mixing.  If not done,
       ! this leads to lack of volume conservation.  It is required because halo updates in stage 3 are only
