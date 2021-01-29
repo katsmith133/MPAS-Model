@@ -46,7 +46,7 @@ module ocn_turbulence
    real(kind=RKIND),public :: epsilon, &! small value below which w2, v2, u2 cannot go
                        sigmat, Ko, gamma1, beta5, c1, c2, c8, c10, c11, &
                        alpha1, alpha2, alpha3, B1, Kt, grav, c_1, c_2, c_mom, &
-                       c_therm, c_mom_w3, c_pt, c_ps, c_pv, &
+                       c_therm, c_mom_w3, c_Temp, c_Salt, c_Vel, c_vVel, c_epsilon, &
                        kappa_FL, kappa_w3, kappa_VAR, Cww_D, Cww_E
 
    integer,public :: iterCount, nCells, nVertLevels
@@ -163,9 +163,11 @@ module ocn_turbulence
       c_mom = config_adc_Cmom
       c_therm = config_adc_Ctherm
       c_mom_w3 = config_adc_Cmom_w3
-      c_pt = config_adc_cpt
-      c_ps = config_adc_cps
-      c_pv = config_adc_cpv
+      c_Temp = config_adc_cTemp
+      c_Salt = config_adc_cSalt
+      c_Vel = config_adc_cVel
+      c_vVel = config_adc_cwVel
+      c_epsilon = config_adc_dissipation_constant
       Cww_D = config_adc_CwwD
       Cww_E = config_adc_CwwE
       kappa_FL = config_adc_kappaFL
@@ -536,9 +538,11 @@ module ocn_turbulence
       !$acc                   c_mom,        &
       !$acc                   c_therm,      &
       !$acc                   c_mom_w3,     &
-      !$acc                   c_pt,         &
-      !$acc                   c_ps,         &
-      !$acc                   c_pv,         &
+      !$acc                   c_Temp,       &
+      !$acc                   c_Salt,       &
+      !$acc                   c_Vel,        &
+      !$acc                   c_vVel,       &
+      !$acc                   c_epsilon,    &
       !$acc                   Cww_D,        &
       !$acc                   Cww_E,        &
       !$acc                   kappa_FL,     &
@@ -718,9 +722,11 @@ module ocn_turbulence
       !$acc                   c_mom,        &
       !$acc                   c_therm,      &
       !$acc                   c_mom_w3,     &
-      !$acc                   c_pt,         &
-      !$acc                   c_ps,         &
-      !$acc                   c_pv,         &
+      !$acc                   c_Temp,       &
+      !$acc                   c_Salt,       &
+      !$acc                   c_Vel,        &
+      !$acc                   c_vVel,       &
+      !$acc                   c_epsilon,    &
       !$acc                   Cww_D,        &
       !$acc                   Cww_E,        &
       !$acc                   kappa_FL,     &
@@ -1116,9 +1122,11 @@ module ocn_turbulence
       c_mom = 0.0_RKIND
       c_therm = 0.0_RKIND
       c_mom_w3 = 0.0_RKIND
-      c_pt = 0.0_RKIND
-      c_ps = 0.0_RKIND
-      c_pv = 0.0_RKIND
+      c_Temp = 0.0_RKIND
+      c_Salt = 0.0_RKIND
+      c_Vel = 0.0_RKIND
+      c_vVel = 0.0_RKIND
+      c_epsilon = 0.0_RKIND
       Cww_D = 0.0_RKIND
       Cww_E = 0.0_RKIND
       kappa_FL = 0.0_RKIND
@@ -1149,9 +1157,11 @@ module ocn_turbulence
       !$acc                   c_mom,        &
       !$acc                   c_therm,      &
       !$acc                   c_mom_w3,     &
-      !$acc                   c_pt,         &
-      !$acc                   c_ps,         &
-      !$acc                   c_pv,         &
+      !$acc                   c_Temp,       &
+      !$acc                   c_Salt,       &
+      !$acc                   c_Vel,        &
+      !$acc                   c_vVel,       &
+      !$acc                   c_epsilon,    &
       !$acc                   Cww_D,        &
       !$acc                   Cww_E,        &
       !$acc                   kappa_FL,     &

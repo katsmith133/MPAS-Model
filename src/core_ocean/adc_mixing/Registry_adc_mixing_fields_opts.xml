@@ -67,18 +67,26 @@
       description="dissipation of w3 from LR01b"
       possible_values="values near 6"
       />
-    <nml_option name="config_adc_cpt" type="real" default_value="0.25" units="unitless"
+    <nml_option name="config_adc_cTemp" type="real" default_value="2.0" units="unitless"
       description="coefficient of temp/salinity dissipation, from Burchard et al 2012"
-      possible_values="values near 0.25"
+      possible_values="values near 2"
       />
-    <nml_option name="config_adc_cps" type="real" default_value="0.25" units="unitless"
+    <nml_option name="config_adc_cSalt" type="real" default_value="2.0" units="unitless"
       description="same as cpt above, but for salinity"
-      possible_values="values near 0.25"
+      possible_values="values near 2"
       />
-    <nml_option name="config_adc_cpv" type="real" default_value="0.25" units="unitless"
+    <nml_option name="config_adc_cVel" type="real" default_value="2.0" units="unitless"
       description="same as cpt/cps above, but for momentum"
-      possible_values="values near 0.25"
+      possible_values="values near 2"
       />
+    <nml_option name="config_adc_cwVel" type="real" default_value="1.75" units="unitless"
+      description="same as cVel above, but for w2 equation"
+      possible_values="values near 2"
+    />
+    <nml_option name="config_adc_dissipation_constant" type="real" default_value = "5.0" units="unitless"
+      description="factor multiplying the dissipation parameterization"
+      possible_values="positive values less than 16"
+    />
     <nml_option name="config_adc_CwwE" type="real" default_value="1.0" units="unitless"
       description="coefficient for entrainment in parameterization from LR01b"
       possible_values="values near 1.0, also CwwD/CwwE must be near 1.5"
