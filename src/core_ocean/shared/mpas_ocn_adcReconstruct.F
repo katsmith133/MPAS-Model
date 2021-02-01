@@ -159,7 +159,7 @@ module ocn_adc_mixing_fused
       real,dimension(nVertLevels,nCells) :: tauw3, tauTemp, tauSalt, tauVel, tauvVel
       real,dimension(nVertLevels+1,nCells) :: wttend, wstend, uwtend, vwtend, u2tend, v2tend, &
         uttend, vttend, ustend, vstend, uvtend
-      real,dimension(nVertLevels,nCells) :: epstend
+      real,dimension(nVertLevels,nCells) :: epstend, areaFractionMid
       real,dimension(nVertLevels+1,nCells) :: KspsUtend, KspsDtend
 
       dt_small = config_adc_timestep
@@ -210,6 +210,8 @@ module ocn_adc_mixing_fused
             if(lareaFraction > 0.99_RKIND) lareaFraction = 0.99_RKIND
 
             areaFraction(k,iCell) = lareaFraction
+
+
             wumd(k,iCell) = sqrt(w2(i1,k,iCell) / (areaFraction(k,iCell) * &
                (1.0_RKIND - areaFraction(k,iCell))))
             Mc(k,iCell) = areaFraction(k,iCell)*(1.0_RKIND - &
@@ -217,7 +219,14 @@ module ocn_adc_mixing_fused
 
             tumd(k,iCell) = wt(i1,k,iCell) / (1.0E-12_RKIND + Mc(k,iCell))
             sumd(k,iCell) = ws(i1,k,iCell) / (1.0E-12_RKIND + Mc(k,iCell))
-          enddo
+
+!            if(w2(i1,k,iCell) <= epsilon + 1.0e-12) then
+!               areaFraction(k,iCell) = 0.5_RKIND
+!               wumd(k,iCell) = 0.0_RKIND
+!               tumd(k,iCell) = 0.0_RKIND
+!               sumd(k,iCell) = 0.0_RKIND
+!            endif
+         enddo
         enddo
 
         do iCell = 1,nCells
@@ -234,6 +243,10 @@ module ocn_adc_mixing_fused
             w2cliptend(k,iCell) = 0.0_RKIND
           enddo
         enddo
+          if(config_adc_use_old_length_scale)then
+					  call dissipation_lengths2(nCells,nVertLevels,activeTracers,alphaT,betaS)
+          endif
+
 
         !This cell loop computes w3Tend and TOMs for later tendencies.  Should be okay to collapse loops here
         do iCell = 1,nCells
@@ -248,31 +261,17 @@ module ocn_adc_mixing_fused
               wumdav = 0.5*(wumd(k,iCell) + wumd(k+1,iCell))
               tumdav = 0.5*(tumd(k,iCell) + tumd(k+1,iCell))
               sumdav = 0.5*(sumd(k,iCell) + sumd(k+1,iCell))
-              KspsUav = 0.5*(KspsU(i1,k,iCell) + KspsU(i1,k+1,iCell))
-              KspsDav = 0.5*(KspsD(i1,k,iCell) + KspsD(i1,k+1,iCell))
               Mcav = 0.5*(Mc(k,iCell) + Mc(k+1,iCell))
               lenav = 0.5*(length(k,iCell) + length(k+1,iCell))
-              if(k==nVertLevels) then
-                sigavp1 = 0.5*(areaFraction(k,iCell))
-                wumdAvp1 = 0.5*(wumd(k,iCell))
-                tumdAvp1 = 0.5*(tumd(k,iCell))
-                sumdAvp1 = 0.5*(sumd(k,iCell))
-              else
-                sigavp1 = 0.5*(areaFraction(k,iCell) + areaFraction(k+1,iCell))
-                wumdAvp1 = 0.5*(wumd(k,iCell) + wumd(k+1,iCell))
-                tumdAvp1 = 0.5*(tumd(k,iCell) + tumd(k+1,iCell))
-                sumdAvp1 = 0.5*(sumd(k,iCell) + sumd(k+1,iCell))
-              endif
-
-              KEsps = sigav*KspsUav+ (1.0 - sigav)*KspsDav
+              KEsps = sigav*KspsDav+ (1.0 - sigav)*KspsUav
               KE = sqrt((u2av+v2av+w2av) + 0.0*KEsps)
 
               dz = ze(k,iCell) - ze(k+1,iCell)
               !KE = sqrt(areaFraction(k,iCell)*KspsUav + (1.0 - areaFraction(k,iCell))*KspsDav)
-              Swumd(k,iCell) = - 2.0/3.0*(1.0_RKIND/sigav*(areaFraction(k,iCell)*KspsU(i1,k,iCell) - &
-                areaFraction(k+1,iCell)*KspsU(i1,k+1,iCell)) / dz - 1.0_RKIND / (1.0_RKIND - &
-                sigav)*((1.0_RKIND - areaFraction(k,iCell))*KspsD(i1,k,iCell) - (1.0_RKIND - &
-                areaFraction(k+1,iCell))*KspsD(i1,k+1,iCell)) / dz)
+              Swumd(k,iCell) = - 2.0/3.0*(1.0_RKIND/sigav*(areaFraction(k,iCell)*KspsD(i1,k,iCell) - &
+                areaFraction(k+1,iCell)*KspsD(i1,k+1,iCell)) / dz - 1.0_RKIND / (1.0_RKIND - &
+                sigav)*((1.0_RKIND - areaFraction(k,iCell))*KspsU(i1,k,iCell) - (1.0_RKIND - &
+                areaFraction(k+1,iCell))*KspsU(i1,k+1,iCell)) / dz)
 
               tauw3(k,iCell) = C_mom_w3*KE / (1.0E-15_RKIND + sqrt(2.0_RKIND)*lenAv)
 
@@ -318,11 +317,9 @@ module ocn_adc_mixing_fused
             enddo !nVertLevels
           enddo !nCells
 
-          ! Ashwath -- I'm removing this possibility from this branch since it will be near impossible to 
-          ! parallelize well.  It's a loop over k with an inner loop expanding underneath.
-          if(config_adc_use_old_length_scale)then
-							   call dissipation_lengths2(nCells,nVertLevels,activeTracers,alphaT,betaS)
-         endif
+!          if(config_adc_use_old_length_scale)then
+!					  call dissipation_lengths2(nCells,nVertLevels,activeTracers,alphaT,betaS)
+!          endif
 
           !next all second order moment tendencies also apply tendencies
           do iCell=1,nCells
@@ -353,7 +350,7 @@ module ocn_adc_mixing_fused
                 areaFraction(k-1,iCell))*wumd(k-1,iCell)**2.0 - Mc(k+1,iCell)* &
                 (1.0_RKIND - 2.0_RKIND*areaFraction(k+1,iCell))*wumd(k+1,iCell)**2.0) &
                 / (ze(k-1,iCell) - ze(k+1,iCell))
-              !w2tend2(k,iCell) = -(w3(i1,k-1,iCell) - w3(i1,k,iCell)) / dzmid
+              w2tend2(k,iCell) = -(w3(i1,k-1,iCell) - w3(i1,k,iCell)) / dzmid
               w2tend3(k,iCell) = tauvVel(k,iCell)*(u2(i1,k,iCell) + v2(i1,k,iCell))/3.0_RKIND
               w2tend4(k,iCell) = (2.0_RKIND - 4.0_RKIND/3.0_RKIND*C_2)*Mc(k,iCell)* &
                 (grav*alphaT(k,iCell)*tumd(k,iCell) - grav*betaS(k,iCell)*sumd(k,iCell))
@@ -561,7 +558,7 @@ module ocn_adc_mixing_fused
                 KmU(k+1,iCell)) * (KspsU(i1,k,iCell) - KspsU(i1,k+1,iCell)) /     &
                 (ze(k,iCell) - ze(k+1,iCell))) / dzmid -                                 &
                 Cval*KspsU(i1,k,iCell)**1.5_RKIND/(1.0E-15 + lenspsU(k,iCell)) +                     &
-                eps(i1,k,iCell) / (2.0_RKIND*areaFraction(k,iCell)) + KmU(k,iCell)* &
+                eps(i1,k,iCell) / (2.0_RKIND*(1.0_RKIND - areaFraction(k,iCell))) + KmU(k,iCell)* &
                 (Uz**2.0 + Vz**2.0)
 
               if(k==2) then
@@ -576,8 +573,8 @@ module ocn_adc_mixing_fused
                 (ze(k-1,iCell) - ze(k,iCell)) - (KmD(k,iCell) +             &
                 KmD(k+1,iCell)) * (KspsD(i1,k,iCell) - KspsD(i1,k+1,iCell)) /     &
                 (ze(k,iCell) - ze(k+1,iCell))) / dz -                                 &
-                Cval*KspsD(i1,k,iCell)**1.5_RKIND / lenspsD(k,iCell) +                   &
-                eps(i1,k,iCell) / (2.0_RKIND*(1.0_RKIND - areaFraction(k,iCell))) + &
+                Cval*KspsD(i1,k,iCell)**1.5_RKIND /(1.0E-15_RKIND + lenspsD(k,iCell)) +                   &
+                eps(i1,k,iCell) / (2.0_RKIND*(areaFraction(k,iCell))) + &
                 KmD(k,iCell)*(Uz**2.0 + Vz**2.0)
 
             enddo ! nVertLevels
@@ -670,6 +667,8 @@ module ocn_adc_mixing_fused
               w3(i2,k,iCell) = min((w3(i1,k,iCell) + dt_small*w3tend(k,iCell)) / &
                 (1.0_RKIND + dt_small*tauw3(k,iCell)),w3check)
 
+              if(w2(i2,k,iCell) == 1.0E-8) w3(i2,k,iCell) = 0.0_RKIND
+
               if(abs(w3(i2,k,iCell)) > 1.0_RKIND) then
                 call mpas_log_write("ERROR: w3 out of range, w3 = $r, location = $i, $i", &
                   MPAS_LOG_CRIT,realArgs=(/w3(i2,k,iCell)/),intArgs=(/k,iCell/))
@@ -691,12 +690,12 @@ module ocn_adc_mixing_fused
           vvel(k,iCell) = vvel(k,iCell) - dt_small*(vw(i1,k,iCell) - vw(i1,k+1,iCell)) /  &
                     (ze(k,iCell) - ze(k+1,iCell)) !- dt_small*fCell(iCell)*utemp
 
-          wtSumUp = wt(i1,k,iCell) + areaFraction(k,iCell)*wt_spsU(k,iCell) + &
-            (1.0_RKIND - areaFraction(k,iCell))*wt_spsD(k,iCell)
-          wtSumDn = wt(i1,k+1,iCell) + areaFraction(k+1,iCell)*wt_spsU(k+1,iCell) + &
-            (1.0_RKIND - areaFraction(k+1,iCell))*wt_spsD(k+1,iCell)
-          wsSumUp = ws(i1,k,iCell) + areaFraction(k,iCell)*ws_spsU(k,iCell) + &
-            (1.0_RKIND - areaFraction(k,iCell))*ws_spsD(k,iCell)
+          wtSumUp = wt(i1,k,iCell) + areaFraction(k,iCell)*wt_spsD(k,iCell) + &
+            (1.0_RKIND - areaFraction(k,iCell))*wt_spsU(k,iCell)
+          wtSumDn = wt(i1,k+1,iCell) + areaFraction(k+1,iCell)*wt_spsD(k+1,iCell) + &
+            (1.0_RKIND - areaFraction(k+1,iCell))*wt_spsU(k+1,iCell)
+          wsSumUp = ws(i1,k,iCell) + areaFraction(k,iCell)*ws_spsD(k,iCell) + &
+            (1.0_RKIND - areaFraction(k,iCell))*ws_spsU(k,iCell)
           wsSumDn = ws(i1,k+1,iCell) + areaFraction(k+1,iCell)*ws_spsU(k+1,iCell) + &
             (1.0_RKIND - areaFraction(k+1,iCell))*ws_spsD(k+1,iCell)
 
