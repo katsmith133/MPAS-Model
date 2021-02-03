@@ -463,7 +463,7 @@ contains
          nCells = nCellsArray( size(nCellsArray) )
          do iCell = 1, nCells
             w2(:,2,iCell) = epsilon
-            do k = 1, nVertLevels+1
+            do k = 1, nVertLevels
                KspsU(:,k,iCell) = 1.0E-12_RKIND
                KspsD(:,k,iCell) = 1.0E-12_RKIND
               ! w2(:,k,iCell) = 0.0_RKIND 
@@ -485,6 +485,22 @@ contains
                eps(:,k,iCell) = 1.0E-13_RKIND
                ws(:,k,iCell) = 0.0_RKIND
                w3(:,k,iCell) = 0.0_RKIND
+               w2tend(:,k,iCell) = 0.0_RKIND
+               uwtend(:,k,iCell) = 0.0_RKIND
+               vwtend(:,k,iCell) = 0.0_RKIND
+               u2tend(:,k,iCell) = 0.0_RKIND
+               v2tend(:,k,iCell) = 0.0_RKIND
+               uvtend(:,k,iCell) = 0.0_RKIND
+               uttend(:,k,iCell) = 0.0_RKIND
+               vttend(:,k,iCell) = 0.0_RKIND
+               wttend(:,k,iCell) = 0.0_RKIND
+               ustend(:,k,iCell) = 0.0_RKIND
+               vstend(:,k,iCell) = 0.0_RKIND
+               wstend(:,k,iCell) = 0.0_RKIND
+               epstend(:,k,iCell) = 0.0_RKIND
+               w3tend(:,k,iCell) = 0.0_RKIND
+               KspsUtend(:,k,iCell) = 0.0_RKIND
+               KspsDtend(:,k,iCell) = 0.0_RKIND
             enddo
             length(1,iCell) = 0.5_RKIND*layerThickness(1,iCell)
             do k=2,nVertLevels

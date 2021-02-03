@@ -362,64 +362,115 @@
        description="if less than zero, it is reset to zero, this stores when that is active"
     />
 	</var_struct>
-  <var_struct name="adcPrognosticArrays" time_levs="2" packages="adcMixingPKG">
+  <var_struct name="adcPrognosticArrays" time_levs="3" packages="adcMixingPKG">
     <var name="KspsU" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^{-2}"
 			 description="sub plume scale TKE for upward moving plumes"
-		/>
+       />
+    <var name="KspsUtend" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+       description="tendency of upward moving plumes"
+       />
     <var name="KspsD" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^{-2}"
 			 description="sub plume scale TKE for downward moving plumes"
-		/>
-   <var name="eps" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+       />
+    <var name="KspsDtend" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+       description="sub plume scale TKE for downward moving plumes"
+       />
+    <var name="eps" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
        description="prognostic dissipation rate"
-    />
+       />
+    <var name="epstend" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^4"
+       description="tendency of dissipation"
+       />
     <var name="u2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^2"
 			 description="EW velocity variance"
-		/>
+       />
+    <var name="u2tend" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+       description="EW velocity variance tendency"
+       />
     <var name="v2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^2"
 			 description="NS velocity variance"
        />
+    <var name="v2tend" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+       description="NS velocity variance tendency"
+       />
     <var name="w2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^2"
       description="vertical velocity variance"
-    />
-  <var name="wt" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s"
+      />
+    <var name="w2tend" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+      description="vertical velocity variance tendency"
+      />
+    <var name="wt" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s"
 			 description="vertical turbulent temperature flux"
-		/>
-  <var name="ws" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s"
+       />
+    <var name="wttend" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s^2"
+       description="vertical turbulent temperature flux tendency"
+       />
+    <var name="ws" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s"
 			 description="vertical turbulent salinity flux"
        />
-  <var name="uw" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^2"
-    description="vertical flux of zonal momentum"
-    />
-  <var name="vw" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^2"
-    description="vertical flux of NS momentum"
-    />
-  <var name="w3" type="real" dimensions="nVertLevels nCells Time" units="m^3/s^3"
-    description="vertical flux of vertical velocity variance -- skewness"
-    />
-  <var name="uv" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^2"
-    description="NS/EW momentum covariance"
-    />
-  <var name="t2" type="real" dimensions="nVertLevelsP1 nCells Time" units="C^2"
-    description="temperature variance"
-    />
-  <var name="s2" type="real" dimensions="nVertLevelsP1 nCells Time" units="PSU^2"
-    description="salinity variance"
-    />
-  <var name="ut" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s"
-    description="horizontal temperature flux -- zonal direction"
-    />
-  <var name="vt" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s"
-    description="horizontal temperature flux -- meridional direction"
-    />
-   <var name="us" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s"
-    description="horizontal salinity flux -- zonal direction"
-    />
-  <var name="vs" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s"
-    description="horizontal salinity flux -- meridional direction"
-    />
-  <var name="ts" type="real" dimensions="nVertLevelsP1 nCells Time" units="C PSU"
-    description="temperature salinity covariance"
-    />
+    <var name="wstend" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s^2"
+       description="vertical turbulent salinity flux tendency"
+       />
+    <var name="uw" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^2"
+       description="vertical flux of zonal momentum"
+       />
+    <var name="uwtend" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+       description="vertical EW momentum flux tendency"
+       />
+    <var name="vw" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^2"
+       description="vertical flux of NS momentum"
+       />
+    <var name="vwtend" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+       description="vertical flux of NS momentum tendency"
+       />
+    <var name="w3" type="real" dimensions="nVertLevels nCells Time" units="m^3/s^3"
+       description="vertical flux of vertical velocity variance -- skewness"
+       />
+    <var name="w3tend" type="real" dimensions="nVertLevels nCells Time" units="m^3/s^4"
+       description="vertical flux of w3 tendency"
+       />
+    <var name="uv" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^2"
+       description="NS/EW momentum covariance"
+       />
+    <var name="uvtend" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+       description="uv tendency"
+       />
+    <var name="t2" type="real" dimensions="nVertLevelsP1 nCells Time" units="C^2"
+       description="temperature variance"
+       />
+    <var name="s2" type="real" dimensions="nVertLevelsP1 nCells Time" units="PSU^2"
+       description="salinity variance"
+       />
+    <var name="ut" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s"
+       description="horizontal temperature flux -- zonal direction"
+       />
+    <var name="uttend" type="real" dimensions="nVertLevelsP1 nCells Time" units="mC/s^2"
+       description="tendency of ut"
+       />
+    <var name="vt" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s"
+       description="horizontal temperature flux -- meridional direction"
+       />
+    <var name="vttend" type="real" dimensions="nVertLevelsP1 nCells Time" units="mC/s^2"
+       description="tendency of vt"
+       />
+    <var name="us" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s"
+       description="horizontal salinity flux -- zonal direction"
+       />
+    <var name="ustend" type="real" dimensions="nVertLevelsP1 nCells Time" units="mPSU/s^2"
+       description="tendency of us"
+       />
+    <var name="vs" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s"
+       description="horizontal salinity flux -- meridional direction"
+       />
+    <var name="vstend" type="real" dimensions="nVertLevelsP1 nCells Time" units="mPSU/s^2"
+       description="tendency of vs"
+       />
+    <var name="ts" type="real" dimensions="nVertLevelsP1 nCells Time" units="C PSU"
+       description="temperature salinity covariance"
+       />
+    <var name="tstend" type="real" dimensions="nVertLevelsP1 nCells Time" units="C PSU/s"
+       description="tendency of ts"
+       />
 	</var_struct>
 
   	<streams>

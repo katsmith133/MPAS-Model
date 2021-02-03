@@ -70,7 +70,10 @@ module ocn_turbulence
                        v2cliptend, w2cliptend, wstend6
 
    real(kind=RKIND), public, dimension(:,:,:), allocatable :: u2, v2, w2, t2, s2, &
-                       uw, vw, wt, ws, w3, uv, ut, vt, us, vs, ts, eps, KspsU, KspsD
+                       uw, vw, wt, ws, w3, uv, ut, vt, us, vs, ts, eps, KspsU, KspsD, &
+                       u2tend, v2tend, w2tend, uwtend, vwtend, wttend, wstend, w3tend, &
+                       uvtend, uttend, vttend, ustend, vstend, tstend, epstend, KspsUtend, &
+                       KspsDtend
 
 !   end type adcMixingType
 
@@ -123,10 +126,13 @@ module ocn_turbulence
 
    real(kind=RKIND), dimension(:,:), pointer :: u2Tmp, v2Tmp, w2Tmp, t2Tmp, s2Tmp, &
                        uwTmp, vwTmp, wtTmp, wsTmp, w3Tmp, uvTmp, utTmp, vtTmp, usTmp,&
-                       vsTmp, tsTmp, epsTmp, KspsUTmp, KspsDTmp
+                       vsTmp, tsTmp, epsTmp, KspsUTmp, KspsDTmp, u2tendTmp, v2tendTmp, &
+                       w2tendTmp, uwtendTmp, vwtendTmp, wttendTmp, wstendTmp, w3tendTmp, &
+                       uvtendTmp, uttendTmp, vttendTmp, ustendTmp, vstendTmp, tstendTmp, &
+                       epstendTmp, KspsUtendTmp, KspsDtendTmp
 
    integer, pointer :: iterCountTmp, nVertLevelsTmp, nVertLevelsP1
-   integer :: nCellsTmp
+   integer :: i,nCellsTmp
    integer, dimension(:), pointer :: nCellsArray
 
    block => domain % blocklist
@@ -409,106 +415,117 @@ module ocn_turbulence
       v2cliptend = v2cliptendTmp
       w2cliptend = w2cliptendTmp
 
-      call mpas_pool_get_array(adcPrognosticsPool, 'KspsD', KspsDTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'KspsU', KspsUTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'u2', u2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'v2', v2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'w2', w2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'wt', wtTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ws', wsTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'uw', uwTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vw', vwTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'w3', w3Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'uv', uvTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 't2', t2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ut', utTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vt', vtTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'us', usTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vs', vsTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ts', tsTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 's2', s2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'eps', epsTmp, 1)
+      allocate( KspsD( 3, nVertLevelsP1, nCells ) )
+      allocate( KspsU( 3, nVertLevelsP1, nCells) )
+      allocate( eps( 3, nVertLevelsP1, nCells ) )
+      allocate( u2( 3, nVertLevelsP1, nCells ) )
+      allocate( v2( 3, nVertLevelsP1, nCells ) )
+      allocate( w2( 3, nVertLevelsP1, nCells ) )
+      allocate( wt( 3, nVertLevelsP1, nCells ) )
+      allocate( ws( 3, nVertLevelsP1, nCells ) )
+      allocate( uw( 3, nVertLevelsP1, nCells ) )
+      allocate( vw( 3, nVertLevelsP1, nCells ) )
+      allocate( w3( 3, nVertLevels, nCells ) )
+      allocate( uv( 3, nVertLevelsP1, nCells ) )
+      allocate( t2( 3, nVertLevelsP1, nCells ) )
+      allocate( ut( 3, nVertLevelsP1, nCells ) )
+      allocate( vt( 3, nVertLevelsP1, nCells ) )
+      allocate( us( 3, nVertLevelsP1, nCells ) )
+      allocate( vs( 3, nVertLevelsP1, nCells ) )
+      allocate( ts( 3, nVertLevelsP1, nCells ) )
+      allocate( s2( 3, nVertLevelsP1, nCells ) )
+      allocate( KspsDtend( 3, nVertLevelsP1, nCells ) )
+      allocate( KspsUtend( 3, nVertLevelsP1, nCells) )
+      allocate( epstend( 3, nVertLevelsP1, nCells ) )
+      allocate( u2tend( 3, nVertLevelsP1, nCells ) )
+      allocate( v2tend( 3, nVertLevelsP1, nCells ) )
+      allocate( w2tend( 3, nVertLevelsP1, nCells ) )
+      allocate( wttend( 3, nVertLevelsP1, nCells ) )
+      allocate( wstend( 3, nVertLevelsP1, nCells ) )
+      allocate( uwtend( 3, nVertLevelsP1, nCells ) )
+      allocate( vwtend( 3, nVertLevelsP1, nCells ) )
+      allocate( w3tend( 3, nVertLevels, nCells ) )
+      allocate( uvtend( 3, nVertLevelsP1, nCells ) )
+      allocate( uttend( 3, nVertLevelsP1, nCells ) )
+      allocate( vttend( 3, nVertLevelsP1, nCells ) )
+      allocate( ustend( 3, nVertLevelsP1, nCells ) )
+      allocate( vstend( 3, nVertLevelsP1, nCells ) )
+      allocate( tstend( 3, nVertLevelsP1, nCells ) )
 
-      allocate( KspsD( 2, nVertLevelsP1, nCells ) )
-      allocate( KspsU( 2, nVertLevelsP1, nCells) )
-      allocate( eps( 2, nVertLevelsP1, nCells ) )
-      allocate( u2( 2, nVertLevelsP1, nCells ) )
-      allocate( v2( 2, nVertLevelsP1, nCells ) )
-      allocate( w2( 2, nVertLevelsP1, nCells ) )
-      allocate( wt( 2, nVertLevelsP1, nCells ) )
-      allocate( ws( 2, nVertLevelsP1, nCells ) )
-      allocate( uw( 2, nVertLevelsP1, nCells ) )
-      allocate( vw( 2, nVertLevelsP1, nCells ) )
-      allocate( w3( 2, nVertLevels, nCells ) )
-      allocate( uv( 2, nVertLevelsP1, nCells ) )
-      allocate( t2( 2, nVertLevelsP1, nCells ) )
-      allocate( ut( 2, nVertLevelsP1, nCells ) )
-      allocate( vt( 2, nVertLevelsP1, nCells ) )
-      allocate( us( 2, nVertLevelsP1, nCells ) )
-      allocate( vs( 2, nVertLevelsP1, nCells ) )
-      allocate( ts( 2, nVertLevelsP1, nCells ) )
-      allocate( s2( 2, nVertLevelsP1, nCells ) )
-
-      u2(1,:,:) = u2Tmp(:,:nCells)
-      v2(1,:,:) = v2Tmp(:,:nCells)
-      w2(1,:,:) = w2Tmp(:,:nCells)
-      wt(1,:,:) = wtTmp(:,:nCells)
-      ws(1,:,:) = wsTmp(:,:nCells)
-      uw(1,:,:) = uwTmp(:,:nCells)
-      vw(1,:,:) = vwTmp(:,:nCells)
-      w3(1,:,:) = w3Tmp(:,:nCells)
-      uv(1,:,:) = uvTmp(:,:nCells)
-      t2(1,:,:) = t2Tmp(:,:nCells)
-      ut(1,:,:) = utTmp(:,:nCells)
-      vt(1,:,:) = vtTmp(:,:nCells)
-      us(1,:,:) = usTmp(:,:nCells)
-      vs(1,:,:) = vsTmp(:,:nCells)
-      ts(1,:,:) = tsTmp(:,:nCells)
-      s2(1,:,:) = s2Tmp(:,:nCells)
-      eps(1,:,:) = epsTmp(:,:nCells)
-      KspsU(1,:,:) = KspsUTmp(:,:nCells)
-      KspsD(1,:,:) = KspsDTmp(:,:nCells)
-
-      call mpas_pool_get_array(adcPrognosticsPool, 'KspsD', KspsDTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'KspsU', KspsUTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'u2', u2Tmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'v2', v2Tmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'w2', w2Tmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'wt', wtTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ws', wsTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'uw', uwTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vw', vwTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'w3', w3Tmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'uv', uvTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 't2', t2Tmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ut', utTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vt', vtTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'us', usTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vs', vsTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ts', tsTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 's2', s2Tmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'eps', epsTmp, 2)
-
-      eps(2,:,:) = epsTmp(:,:nCells)
-      u2(2,:,:) = u2Tmp(:,:nCells)
-      v2(2,:,:) = v2Tmp(:,:nCells)
-      w2(2,:,:) = w2Tmp(:,:nCells)
-      wt(2,:,:) = wtTmp(:,:nCells)
-      ws(2,:,:) = wsTmp(:,:nCells)
-      uw(2,:,:) = uwTmp(:,:nCells)
-      vw(2,:,:) = vwTmp(:,:nCells)
-      w3(2,:,:) = w3Tmp(:,:nCells)
-      uv(2,:,:) = uvTmp(:,:nCells)
-      t2(2,:,:) = t2Tmp(:,:nCells)
-      ut(2,:,:) = utTmp(:,:nCells)
-      vt(2,:,:) = vtTmp(:,:nCells)
-      us(2,:,:) = usTmp(:,:nCells)
-      vs(2,:,:) = vsTmp(:,:nCells)
-      ts(2,:,:) = tsTmp(:,:nCells)
-      s2(2,:,:) = s2Tmp(:,:nCells)
-      KspsD(2,:,:) = KspsDTmp(:,:nCells)
-      KspsU(2,:,:) = KspsUTmp(:,:nCells)
-
+      do i = 1,3
+      call mpas_pool_get_array(adcPrognosticsPool, 'KspsD', KspsDTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'KspsU', KspsUTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'u2', u2Tmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'v2', v2Tmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'w2', w2Tmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'wt', wtTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'ws', wsTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'uw', uwTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'vw', vwTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'w3', w3Tmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'uv', uvTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 't2', t2Tmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'ut', utTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'vt', vtTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'us', usTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'vs', vsTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'ts', tsTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 's2', s2Tmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'eps', epsTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'KspsDtend', KspsDtendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'KspsUtend', KspsUtendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'u2tend', u2tendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'v2tend', v2tendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'w2tend', w2tendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'wttend', wttendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'wstend', wstendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'uwtend', uwtendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'vwtend', vwtendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'w3tend', w3tendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'uvtend', uvtendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'uttend', uttendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'vttend', vttendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'ustend', ustendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'vstend', vstendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'tstend', tstendTmp, i)
+      call mpas_pool_get_array(adcPrognosticsPool, 'epstend', epstendTmp, i)
+      u2(i,:,:) = u2Tmp(:,:nCells)
+      v2(i,:,:) = v2Tmp(:,:nCells)
+      w2(i,:,:) = w2Tmp(:,:nCells)
+      wt(i,:,:) = wtTmp(:,:nCells)
+      ws(i,:,:) = wsTmp(:,:nCells)
+      uw(i,:,:) = uwTmp(:,:nCells)
+      vw(i,:,:) = vwTmp(:,:nCells)
+      w3(i,:,:) = w3Tmp(:,:nCells)
+      uv(i,:,:) = uvTmp(:,:nCells)
+      t2(i,:,:) = t2Tmp(:,:nCells)
+      ut(i,:,:) = utTmp(:,:nCells)
+      vt(i,:,:) = vtTmp(:,:nCells)
+      us(i,:,:) = usTmp(:,:nCells)
+      vs(i,:,:) = vsTmp(:,:nCells)
+      ts(i,:,:) = tsTmp(:,:nCells)
+      s2(i,:,:) = s2Tmp(:,:nCells)
+      eps(i,:,:) = epsTmp(:,:nCells)
+      KspsU(i,:,:) = KspsUTmp(:,:nCells)
+      KspsD(i,:,:) = KspsDTmp(:,:nCells)
+      u2tend(i,:,:) = u2tendTmp(:,:nCells)
+      v2tend(i,:,:) = v2tendTmp(:,:nCells)
+      w2tend(i,:,:) = w2tendTmp(:,:nCells)
+      wttend(i,:,:) = wttendTmp(:,:nCells)
+      wstend(i,:,:) = wstendTmp(:,:nCells)
+      uwtend(i,:,:) = uwtendTmp(:,:nCells)
+      vwtend(i,:,:) = vwtendTmp(:,:nCells)
+      w3tend(i,:,:) = w3tendTmp(:,:nCells)
+      uvtend(i,:,:) = uvtendTmp(:,:nCells)
+      uttend(i,:,:) = uttendTmp(:,:nCells)
+      vttend(i,:,:) = vttendTmp(:,:nCells)
+      ustend(i,:,:) = ustendTmp(:,:nCells)
+      vstend(i,:,:) = vstendTmp(:,:nCells)
+      tstend(i,:,:) = tstendTmp(:,:nCells)
+      epstend(i,:,:) = epstendTmp(:,:nCells)
+      KspsUtend(i,:,:) = KspsUtendTmp(:,:nCells)
+      KspsDtend(i,:,:) = KspsDtendTmp(:,:nCells)
+      end do 
       block => block % next
    end do
 !   at end could do a copy to accelerator
@@ -631,6 +648,21 @@ module ocn_turbulence
       !$acc                  u2cliptend,  &
       !$acc                  v2cliptend,  &
       !$acc                  w2cliptend,  &
+      !$acc                  u2tend,      &
+      !$acc                  v2tend,      &
+      !$acc                  w2tend,      &
+      !$acc                  wttend,      &
+      !$acc                  wstend,      &
+      !$acc                  uwtend,      &
+      !$acc                  vwtend,      &
+      !$acc                  w3tend,      &
+      !$acc                  uvtend,      &
+      !$acc                  epstend,     &
+      !$acc                  uttend,      &
+      !$acc                  vttend,      &
+      !$acc                  ustend,      &
+      !$acc                  vstend,      &
+      !$acc                  tstend,      &
       !$acc                  u2,          &
       !$acc                  v2,          &
       !$acc                  w2,          &
@@ -686,10 +718,13 @@ module ocn_turbulence
 
    real(kind=RKIND), dimension(:,:), pointer :: u2Tmp, v2Tmp, w2Tmp, t2Tmp, s2Tmp, &
                        uwTmp, vwTmp, wtTmp, wsTmp, w3Tmp, uvTmp, utTmp, vtTmp, usTmp,&
-                       vsTmp, tsTmp, epsTmp, KspsUTmp, KspsDTmp
+                       vsTmp, tsTmp, epsTmp, KspsUTmp, KspsDTmp, u2tendTmp, v2tendTmp, &
+                       w2tendTmp, uwtendTmp, vwtendTmp, wttendTmp, wstendTmp, w3tendTmp, &
+                       uvtendTmp, uttendTmp, vttendTmp, ustendTmp, vstendTmp, tstendTmp, &
+                       epstendTmp, KspsUtendTmp, KspsDtendTmp
 
    integer, pointer :: nVertLevels, nVertLevelsP1
-   integer :: nCells
+   integer :: nCells, i
    integer, dimension(:), pointer :: nCellsArray
 
    block => domain % blocklist
@@ -815,6 +850,21 @@ module ocn_turbulence
       !$acc                  u2cliptend,  &
       !$acc                  v2cliptend,  &
       !$acc                  w2cliptend,  &
+      !$acc                  u2tend,      &
+      !$acc                  v2tend,      &
+      !$acc                  w2tend,      &
+      !$acc                  wttend,      &
+      !$acc                  wstend,      &
+      !$acc                  uwtend,      &
+      !$acc                  vwtend,      &
+      !$acc                  w3tend,      &
+      !$acc                  uvtend,      &
+      !$acc                  epstend,     &
+      !$acc                  uttend,      &
+      !$acc                  vttend,      &
+      !$acc                  ustend,      &
+      !$acc                  vstend,      &
+      !$acc                  tstend,      &
       !$acc                  u2,          &
       !$acc                  v2,          &
       !$acc                  w2,          &
@@ -1011,85 +1061,82 @@ module ocn_turbulence
       v2cliptendTmp = v2cliptend
       w2cliptendTmp = w2cliptend
 
-      call mpas_pool_get_array(adcPrognosticsPool, 'KspsD', KspsDTmp,1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'KspsU', KspsUTmp,1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'u2', u2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'v2', v2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'w2', w2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'wt', wtTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ws', wsTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'uw', uwTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vw', vwTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'w3', w3Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'uv', uvTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 't2', t2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ut', utTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vt', vtTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'us', usTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vs', vsTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ts', tsTmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 's2', s2Tmp, 1)
-      call mpas_pool_get_array(adcPrognosticsPool, 'eps', epsTmp, 1)
+      do i=1,3
+        call mpas_pool_get_array(adcPrognosticsPool, 'KspsD', KspsDTmp,i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'KspsU', KspsUTmp,i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'u2', u2Tmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'v2', v2Tmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'w2', w2Tmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'wt', wtTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'ws', wsTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'uw', uwTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'vw', vwTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'w3', w3Tmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'uv', uvTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 't2', t2Tmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'ut', utTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'vt', vtTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'us', usTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'vs', vsTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'ts', tsTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 's2', s2Tmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'eps', epsTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'KspsD', KspsDTmp,i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'KspsU', KspsUTmp,i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'u2tend', u2tendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'v2tend', v2tendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'w2tend', w2tendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'wttend', wttendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'wstend', wstendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'uwtend', uwtendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'vwtend', vwtendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'w3tend', w3tendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'uvtend', uvtendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'uttend', uttendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'vttend', vttendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'ustend', ustendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'vstend', vstendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'tstend', tstendTmp, i)
+        call mpas_pool_get_array(adcPrognosticsPool, 'epstend', epstendTmp, i)
 
-      epsTmp(:,:nCells) = eps(1,:,:nCells)
-      u2Tmp(:,:nCells) = u2(1,:,:nCells)
-      v2Tmp(:,:nCells) = v2(1,:,:nCells)
-      w2Tmp(:,:nCells) = w2(1,:,:nCells)
-      wtTmp(:,:nCells) = wt(1,:,:nCells)
-      wsTmp(:,:nCells) = ws(1,:,:nCells)
-      uwTmp(:,:nCells) = uw(1,:,:nCells)
-      vwTmp(:,:nCells) = vw(1,:,:nCells)
-      w3Tmp(:,:nCells) = w3(1,:,:nCells)
-      uvTmp(:,:nCells) = uv(1,:,:nCells)
-      t2Tmp(:,:nCells) = t2(1,:,:nCells)
-      utTmp(:,:nCells) = ut(1,:,:nCells)
-      vtTmp(:,:nCells) = vt(1,:,:nCells)
-      usTmp(:,:nCells) = us(1,:,:nCells)
-      vsTmp(:,:nCells) = vs(1,:,:nCells)
-      tsTmp(:,:nCells) = ts(1,:,:nCells)
-      s2Tmp(:,:nCells) = s2(1,:,:nCells)
-      KspsUTmp(:,:nCells) = KspsU(1,:,:nCells)
-      KspsDTmp(:,:nCells) = KspsD(1,:,:nCells)
+        epsTmp(:,:nCells) = eps(i,:,:nCells)
+        u2Tmp(:,:nCells) = u2(i,:,:nCells)
+        v2Tmp(:,:nCells) = v2(i,:,:nCells)
+        w2Tmp(:,:nCells) = w2(i,:,:nCells)
+        wtTmp(:,:nCells) = wt(i,:,:nCells)
+        wsTmp(:,:nCells) = ws(i,:,:nCells)
+        uwTmp(:,:nCells) = uw(i,:,:nCells)
+        vwTmp(:,:nCells) = vw(i,:,:nCells)
+        w3Tmp(:,:nCells) = w3(i,:,:nCells)
+        uvTmp(:,:nCells) = uv(i,:,:nCells)
+        t2Tmp(:,:nCells) = t2(i,:,:nCells)
+        utTmp(:,:nCells) = ut(i,:,:nCells)
+        vtTmp(:,:nCells) = vt(i,:,:nCells)
+        usTmp(:,:nCells) = us(i,:,:nCells)
+        vsTmp(:,:nCells) = vs(i,:,:nCells)
+        tsTmp(:,:nCells) = ts(i,:,:nCells)
+        s2Tmp(:,:nCells) = s2(i,:,:nCells)
+        KspsUTmp(:,:nCells) = KspsU(i,:,:nCells)
+        KspsDTmp(:,:nCells) = KspsD(i,:,:nCells)
+        epstendTmp(:,:nCells) = epstend(i,:,:nCells)
+        u2tendTmp(:,:nCells) = u2tend(i,:,:nCells)
+        v2tendTmp(:,:nCells) = v2tend(i,:,:nCells)
+        w2tendTmp(:,:nCells) = w2tend(i,:,:nCells)
+        wttendTmp(:,:nCells) = wttend(i,:,:nCells)
+        wstendTmp(:,:nCells) = wstend(i,:,:nCells)
+        uwtendTmp(:,:nCells) = uwtend(i,:,:nCells)
+        vwtendTmp(:,:nCells) = vwtend(i,:,:nCells)
+        w3tendTmp(:,:nCells) = w3tend(i,:,:nCells)
+        uvtendTmp(:,:nCells) = uvtend(i,:,:nCells)
+        uttendTmp(:,:nCells) = uttend(i,:,:nCells)
+        vttendTmp(:,:nCells) = vttend(i,:,:nCells)
+        ustendTmp(:,:nCells) = ustend(i,:,:nCells)
+        vstendTmp(:,:nCells) = vstend(i,:,:nCells)
+        tstendTmp(:,:nCells) = tstend(i,:,:nCells)
+        KspsUtendTmp(:,:nCells) = KspsUtend(i,:,:nCells)
+        KspsDtendTmp(:,:nCells) = KspsDtend(i,:,:nCells)
 
-      call mpas_pool_get_array(adcPrognosticsPool, 'KspsD', KspsDTmp,2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'KspsU', KspsUTmp,2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'u2', u2Tmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'v2', v2Tmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'w2', w2Tmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'wt', wtTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ws', wsTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'uw', uwTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vw', vwTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'w3', w3Tmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'uv', uvTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 't2', t2Tmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ut', utTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vt', vtTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'us', usTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'vs', vsTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'ts', tsTmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 's2', s2Tmp, 2)
-      call mpas_pool_get_array(adcPrognosticsPool, 'eps', epsTmp, 2)
-
-      KspsUTmp(:,:nCells) = KspsU(1,:,:nCells)
-      KspsDTmp(:,:nCells) = KspsD(1,:,:nCells)
-      epsTmp(:,:nCells) = eps(2,:,:nCells)
-      u2Tmp(:,:nCells) = u2(2,:,:nCells)
-      v2Tmp(:,:nCells) = v2(2,:,:nCells)
-      w2Tmp(:,:nCells) = w2(2,:,:nCells)
-      wtTmp(:,:nCells) = wt(2,:,:nCells)
-      wsTmp(:,:nCells) = ws(2,:,:nCells)
-      uwTmp(:,:nCells) = uw(2,:,:nCells)
-      vwTmp(:,:nCells) = vw(2,:,:nCells)
-      w3Tmp(:,:nCells) = w3(2,:,:nCells)
-      uvTmp(:,:nCells) = uv(2,:,:nCells)
-      t2Tmp(:,:nCells) = t2(2,:,:nCells)
-      utTmp(:,:nCells) = ut(2,:,:nCells)
-      vtTmp(:,:nCells) = vt(2,:,:nCells)
-      usTmp(:,:nCells) = us(2,:,:nCells)
-      vsTmp(:,:nCells) = vs(2,:,:nCells)
-      tsTmp(:,:nCells) = ts(2,:,:nCells)
-      s2Tmp(:,:nCells) = s2(2,:,:nCells)
+      end do  
       block => block % next
    end do
 !   at end could do a copy to accelerator
@@ -1250,6 +1297,21 @@ module ocn_turbulence
       !$acc                  u2cliptend,  &
       !$acc                  v2cliptend,  &
       !$acc                  w2cliptend,  &
+      !$acc                  u2tend,      &
+      !$acc                  v2tend,      &
+      !$acc                  w2tend,      &
+      !$acc                  wttend,      &
+      !$acc                  wstend,      &
+      !$acc                  uwtend,      &
+      !$acc                  vwtend,      &
+      !$acc                  w3tend,      &
+      !$acc                  uvtend,      &
+      !$acc                  epstend,     &
+      !$acc                  uttend,      &
+      !$acc                  vttend,      &
+      !$acc                  ustend,      &
+      !$acc                  vstend,      &
+      !$acc                  tstend,      &
       !$acc                  u2,          &
       !$acc                  v2,          &
       !$acc                  w2,          &
@@ -1351,6 +1413,21 @@ module ocn_turbulence
                  u2cliptend,  &
                  v2cliptend,  &
                  w2cliptend,  &
+                 u2tend,      &
+                 v2tend,      &
+                 w2tend,      &
+                 wttend,      &
+                 wstend,      &
+                 uwtend,      &
+                 vwtend,      &
+                 w3tend,      &
+                 uvtend,      &
+                 epstend,     &
+                 uttend,      &
+                 vttend,      &
+                 ustend,      &
+                 vstend,      &
+                 tstend,      &
                  u2,          &
                  v2,          &
                  w2,          &
