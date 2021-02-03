@@ -56,7 +56,8 @@ module ocn_adc_mixing_fused
     integer :: iCell, k, ij, i
 
     real (kind=RKIND), dimension(nVertLevels) :: B, Bup, Bdn
-    real (kind=RKIND), dimension(nVertLevels+1) :: KEsps, tke, BupEdge, BdnEdge, BEdge
+    real (kind=RKIND), dimension(nVertLevels+1) :: tedge, sedge, KEsps, tke, BupEdge, BdnEdge, BEdge
+    real (kind=RKIND), dimension(nVertLevels+1) :: alphaEdge, betaEdge
     real (kind=RKIND) :: sigav, tumdav, sumdav, Tup, Tdn, Sup, Sdn
     real (kind=RKIND) :: sumv, sumv0
     real (kind=RKIND), parameter :: refT = 15.0_RKIND, refS = 35.0_RKIND, minlen = 0.55_RKIND
@@ -64,42 +65,62 @@ module ocn_adc_mixing_fused
     !NOTE: will need to convert to some form of displaced density in the mpas framework soon
     !possibly go back to a more traditional length scale formulation
     do iCell = 1,nCells
+       do k = 2,nVertLevels
+          tedge(k) = 0.5_RKIND*(activeTracers(1,k,iCell) + activeTracers(1,k-1,iCell))
+          sedge(k) = 0.5_RKIND*(activeTracers(2,k,iCell) + activeTracers(2,k-1,iCell))
+          alphaEdge(k) = 0.5_RKIND*(alphaT(k,iCell) + alphaT(k-1,iCell))
+          betaEdge(k) = 0.5_RKIND*(betaS(k,iCell) + betaS(k-1,iCell))
+       end do
+ 
+       betaEdge(1) = betaEdge(2)
+       alphaEdge(1) = alphaEdge(2)
+       betaEdge(nVertLevels+1) = betaEdge(nVertLevels)
+       alphaEdge(nVertLevels+1) = alphaEdge(nVertLevels)
+       tedge(1) = tedge(2)
+       sedge(1) = sedge(2)
+       tedge(nVertLevels+1) = tedge(nVertLevels)
+       sedge(nVertLevels+1) = sedge(nVertLevels)
+
        do k = 1,nVertLevels+1
           KEsps(k) = areaFraction(k,iCell) * KspsD(i1,k,iCell) + &
                      (1.0_RKIND - areaFraction(k,iCell)) * KspsU(i1,k,iCell)
           tke(k) = 0.5_RKIND*(u2(i1,k,iCell) + v2(i1,k,iCell) + w2(i1,k,iCell)) ! + KEsps(k)
        enddo
 
-       do k = 1,nVertLevels
-          B(k) = gravity * (alphaT(k,iCell) * (activeTracers(1,k,iCell) - refT) - &
-                            betaS(k,iCell)  * (activeTracers(2,k,iCell) - refS))
+       do k = 1,nVertLevels+1
+          Bedge(k) = gravity * (alphaEdge(k) * (tedge(k) - refT) - &
+                            betaEdge(k)  * (sedge(k) - refS))
 
-          sigav  = 0.5_RKIND * (areaFraction(k,iCell) + areaFraction(k+1,iCell))
-          tumdav = 0.5_RKIND * (tumd(k,iCell) + tumd(k+1,iCell))
-          sumdav = 0.5_RKIND * (sumd(k,iCell) + sumd(k+1,iCell))
+!          sigav  = 0.5_RKIND * (areaFraction(k,iCell) + areaFraction(k+1,iCell))
+!          tumdav = 0.5_RKIND * (tumd(k,iCell) + tumd(k+1,iCell))
+!          sumdav = 0.5_RKIND * (sumd(k,iCell) + sumd(k+1,iCell))
 
-          Tup = activeTracers(1,k,iCell) + sigav*tumdav
-          Tdn = activeTracers(1,k,iCell) - (1.0_RKIND - sigav)*tumdav
-          Sup = activeTracers(2,k,iCell) + sigav*sumdav
-          Sdn = activeTracers(2,k,iCell) - (1.0_RKIND - sigav)*sumdav
+          sigav = areaFraction(k,iCell)
+          tumdav = tumd(k,iCell)
+          sumdav = sumd(k,iCell)
 
-          Bup(k) = gravity * (alphaT(k,iCell) * (Tup - refT) - betaS(k,iCell) * (Sup - refS))
-          Bdn(k) = gravity * (alphaT(k,iCell) * (Tdn - refT) - betaS(k,iCell) * (Sdn - refS))
+          Tup = tedge(k) + sigav*tumdav
+          Tdn = tedge(k) - (1.0_RKIND - sigav)*tumdav
+          Sup = sedge(k) + sigav*sumdav
+          Sdn = sedge(k) - (1.0_RKIND - sigav)*sumdav
 
-          if(k>1) THEN
-             BupEdge(k) = 0.5_RKIND * (Bup(k-1) + Bup(k))
-             BdnEdge(k) = 0.5_RKIND * (Bdn(k-1) + Bdn(k))
-             BEdge(k)   = 0.5_RKIND * (B(k-1) + B(k))
-          endif
+          Bupedge(k) = gravity * (alphaEdge(k) * (Tup - refT) - betaEdge(k) * (Sup - refS))
+          Bdnedge(k) = gravity * (alphaEdge(k) * (Tdn - refT) - betaEdge(k) * (Sdn - refS))
+
+!          if(k>1) THEN
+!             BupEdge(k) = 0.5_RKIND * (Bup(k-1) + Bup(k))
+!             BdnEdge(k) = 0.5_RKIND * (Bdn(k-1) + Bdn(k))
+!             BEdge(k)   = 0.5_RKIND * (B(k-1) + B(k))
+!          endif
        enddo
 
-       BdnEdge(nVertLevels+1) = BdnEdge(nVertLevels)
-       BupEdge(nVertLevels+1) = BupEdge(nVertLevels)
-       BEdge(nVertLevels+1)   = BEdge(nVertLevels)
+!       BdnEdge(nVertLevels+1) = BdnEdge(nVertLevels)
+!       BupEdge(nVertLevels+1) = BupEdge(nVertLevels)
+!       BEdge(nVertLevels+1)   = BEdge(nVertLevels)
 
-       BdnEdge(1) = BdnEdge(2)
-       BupEdge(1) = BupEdge(2)
-       BEdge(1)   = BEdge(2)
+!       BdnEdge(1) = BdnEdge(2)
+!       BupEdge(1) = BupEdge(2)
+!       BEdge(1)   = BEdge(2)
 
        do k = 2,nVertLevels
           ! updraft length scale
@@ -285,7 +306,7 @@ module ocn_adc_mixing_fused
             wumdav = wumdMid(k,iCell)
             sumdav = sumdMid(k,iCell)
             w2tTemp = -sigav*(1.0_RKIND - sigav)*(1.0_RKIND - 2.0_RKIND*sigav)*wumdav**2.0_RKIND*tumdav
-            w2tCheck = 1000.00!(sigav**3*(1.0_RKIND - sigav)**3*wumdav**4*tumdav**2)**0.5
+            w2tCheck = (sigav**3*(1.0_RKIND - sigav)**3*wumdav**4*tumdav**2)**0.5
             w2t(k,iCell) = min(w2tTemp, w2tCheck)
             w2sTemp = -sigav*(1.0_RKIND - sigav)*(1.0_RKIND - 2.0_RKIND*sigav)*wumdav**2.0_RKIND*sumdav
             w2sCheck = (sigav**3*(1.0_RKIND - sigav)**3*wumdav**4*sumdav**2)**0.5
