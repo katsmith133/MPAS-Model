@@ -338,8 +338,7 @@ module ocn_adc_mixing_fused
               sumdav = 0.5*(sumd(k,iCell) + sumd(k+1,iCell))
               Mcav = 0.5*(Mc(k,iCell) + Mc(k+1,iCell))
               lenav = 0.5*(length(k,iCell) + length(k+1,iCell))
-              KEsps = sigav*KspsDav+ (1.0 - sigav)*KspsUav
-              KE = sqrt((u2av+v2av+w2av) + 0.0*KEsps)
+              KE = sqrt((u2av+v2av+w2av))
 
               dz = ze(k,iCell) - ze(k+1,iCell)
               !KE = sqrt(areaFraction(k,iCell)*KspsUav + (1.0 - areaFraction(k,iCell))*KspsDav)
