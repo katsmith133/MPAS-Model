@@ -289,9 +289,9 @@ contains
          fracAbsorbedRunoff = 1.0_RKIND - exp( max(-layerThickness(1, iCell) / config_flux_attenuation_coefficient_runoff, &
                               -100.0_RKIND) )
 
-         wt_sfc(iCell) = tracerGroupSurfaceFlux(indexTemperature, iCell) - fracAbsorbed * surfaceThicknessFlux(iCell) * &
+         wt_sfc(iCell) = -(tracerGroupSurfaceFlux(indexTemperature, iCell) - fracAbsorbed * surfaceThicknessFlux(iCell) * &
                         activeTracers(indexTemperature,1,iCell) + tracerGroupSurfaceFluxRunoff(indexTemperature,iCell) * &
-                        fracAbsorbedRunoff
+                        fracAbsorbedRunoff)
 
          ws_sfc(iCell) = tracerGroupSurfaceFlux(indexSalinity, iCell) - fracAbsorbed * surfaceThicknessFlux(iCell) *  &
                         activeTracers(indexSalinity,1,iCell)
@@ -335,7 +335,7 @@ contains
      stend(:,:nCells) = activeTracers(2,:,:nCells)
 
      call compute_ADC_tends(local_nCells, nVertLevels, ntracers, dt, activeTracers, velocityZonal, velocityMeridional, &
-         BruntVaisalaFreqTop, uw_sfc, vw_sfc, -wt_sfc, ws_sfc, inSituThermalExpansionCoeff,        &
+         BruntVaisalaFreqTop, uw_sfc, vw_sfc, wt_sfc, ws_sfc, inSituThermalExpansionCoeff,        &
           inSituSalineContractionCoeff, fCell, dThreshMLD)
 
      utend(:,:nCells) = (velocityZonal(:,:nCells) - utend(:,:nCells)) / dt
