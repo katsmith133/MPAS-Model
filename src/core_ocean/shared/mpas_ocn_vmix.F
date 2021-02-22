@@ -633,16 +633,17 @@ contains
 !-----------------------------------------------------------------------
 
    subroutine ocn_vmix_implicit(dt, meshPool, diagnosticsPool, statePool, &
-     forcingPool, scratchPool, mixedLayerDepthsAMPool, err, timeLevelIn)!{{{
+     forcingPool, scratchPool, dThreshMLD, err, timeLevelIn)!{{{
       real (kind=RKIND), intent(in) :: dt
       type (mpas_pool_type), intent(in) :: meshPool
       type (mpas_pool_type), intent(inout) :: diagnosticsPool
       type (mpas_pool_type), intent(inout) :: statePool
       type (mpas_pool_type), intent(inout) :: forcingPool
-      type (mpas_pool_type), intent(in) :: mixedLayerDepthsAMPool
       type (mpas_pool_type), intent(in) :: scratchPool !< Input/Output: Scratch structure
       integer, intent(out) :: err
       integer, intent(in), optional :: timeLevelIn
+
+      real (kind=RKIND), dimension(:), intent(in) :: dThreshMLD
 
       type (mpas_pool_type), pointer :: tracersPool, tracersSurfaceFluxPool
 
@@ -713,7 +714,7 @@ contains
       call mpas_timer_stop('vmix coefs')
 
       if(config_adc_enable) then
-        call ocn_vmix_adc_mix(meshPool, statePool, forcingPool, diagnosticsPool, mixedLayerDepthsAMPool, dt, &
+        call ocn_vmix_adc_mix(meshPool, statePool, forcingPool, diagnosticsPool, dThreshMLD, dt, &
                err, 2)
       else
         nCells = nCellsArray(1)

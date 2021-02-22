@@ -81,7 +81,7 @@ contains
 !-----------------------------------------------------------------------
 
    subroutine ocn_vmix_adc_mix(meshPool, statePool, forcingPool, diagnosticsPool, &
-      mixedLayerDepthsAMPool, dt, err, timeLevelIn)!{{{
+      dThreshMLD, dt, err, timeLevelIn)!{{{
 
       !-----------------------------------------------------------------
       !
@@ -109,8 +109,8 @@ contains
       type (mpas_pool_type), intent(inout) :: &
          forcingPool   !< Input/Output: forcing information
 
-      type (mpas_pool_type), intent(in) :: &
-         mixedLayerDepthsAMPool
+      real (kind=RKIND), dimension(:), intent(in) :: &
+         dThreshMLD
 
       type (mpas_pool_type), pointer :: tracersPool, tracersSurfaceFluxPool
 
@@ -136,7 +136,7 @@ contains
         stressZonal, stressMeridional, fCell, &
         surfaceStress, surfaceStressMagnitude, bottomDepth,  &
         penetrativeTemperatureFlux, angleEdge, surfaceThicknessFlux, &
-        dThreshMLD, surfaceThicknessFluxRunoff, boundaryLayerDepth
+        surfaceThicknessFluxRunoff, boundaryLayerDepth
 
       real (kind=RKIND), dimension(:,:), pointer :: &
         normalVelocity, layerThickness, velocityZonal, velocityMeridional, &
@@ -207,7 +207,6 @@ contains
       call mpas_pool_get_array(forcingPool, "surfaceThicknessFlux", surfaceThicknessFlux)
       call mpas_pool_get_array(forcingPool, "surfaceThicknessFluxRunoff", surfaceThicknessFluxRunoff)
 
-      call mpas_pool_get_array(mixedLayerDepthsAMPool, 'dThreshMLD', dThreshMLD)
       call mpas_pool_get_array(diagnosticsPool, "boundaryLayerDepth", boundaryLayerDepth)
       call mpas_pool_get_array(diagnosticsPool, 'inSituThermalExpansionCoeff', inSituThermalExpansionCoeff)
       call mpas_pool_get_array(diagnosticsPool, 'inSituSalineContractionCoeff', inSituSalineContractionCoeff)
@@ -469,7 +468,7 @@ contains
               ! w2(:,k,iCell) = 0.0_RKIND 
                areaFraction(k,iCell) = 0.5_RKIND
                tumd(k,iCell) = 0.0_RKIND
-               w2(:,k,iCell) = 0.0_RKIND
+               w2(:,k,iCell) = 1.0E-8_RKIND
                sumd(k,iCell) = 0.0_RKIND
                wumd(k,iCell) = 0.0_RKIND
                uw(:,k,iCell) = 0.0_RKIND
@@ -484,7 +483,7 @@ contains
                vs(:,k,iCell) = 0.0_RKIND
                eps(:,k,iCell) = 1.0E-13_RKIND
                ws(:,k,iCell) = 0.0_RKIND
-               w3(:,k,iCell) = 0.0_RKIND
+               w3(:,k,iCell) = -1.0e-12_RKIND
                w2tend(:,k,iCell) = 0.0_RKIND
                uwtend(:,k,iCell) = 0.0_RKIND
                vwtend(:,k,iCell) = 0.0_RKIND

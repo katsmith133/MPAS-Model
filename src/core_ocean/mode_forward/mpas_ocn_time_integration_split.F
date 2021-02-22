@@ -164,7 +164,7 @@ module ocn_time_integration_split
       integer, dimension(:,:), pointer :: edgesOnCell, edgeSignOnCell
 
       real (kind=RKIND), dimension(:), pointer :: dcEdge, fEdge, bottomDepth, refBottomDepthTopOfCell
-      real (kind=RKIND), dimension(:), pointer :: dvEdge, areaCell
+      real (kind=RKIND), dimension(:), pointer :: dThreshMLD, dvEdge, areaCell
       real (kind=RKIND), dimension(:,:), pointer :: weightsOnEdge
 
       ! State Array Pointers
@@ -1827,13 +1827,14 @@ module ocn_time_integration_split
         call mpas_pool_get_subpool(block % structs, 'mesh', meshPool)
         call mpas_pool_get_subpool(block % structs, 'diagnostics', diagnosticsPool)
         call mpas_pool_get_subpool(block % structs, 'scratch', scratchPool)
-        call mpas_pool_get_subpool(blocK % structs, 'mixedLayerDepthsAM',mixedLayerDepthsAMPool)
+        call mpas_pool_get_subpool(block % structs, 'mixedLayerDepthsAM',mixedLayerDepthsAMPool)
           call mpas_pool_get_array(diagnosticsPool, 'velocityX', velocityX)
          call mpas_pool_get_array(diagnosticsPool, 'velocityY', velocityY)
          call mpas_pool_get_array(diagnosticsPool, 'velocityZ', velocityZ)
          call mpas_pool_get_array(diagnosticsPool, 'velocityZonal', velocityZonal)
          call mpas_pool_get_array(diagnosticsPool, 'velocityMeridional', velocityMeridional)
          call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocityNew, 2)
+         call mpas_pool_get_array(mixedLayerDepthsAMPool, 'dThreshMLD', dThreshMLD)
          call mpas_reconstruct(meshPool, normalVelocityNew,  &
                           velocityX, velocityY, velocityZ,   &
                           velocityZonal, velocityMeridional, &
@@ -1842,8 +1843,9 @@ module ocn_time_integration_split
         if (config_use_standardGM) then
            call ocn_gm_compute_Bolus_velocity(diagnosticsPool, meshPool, scratchPool)
         end if
+        
         call ocn_vmix_implicit(dt, meshPool, diagnosticsPool, statePool, forcingPool, &
-            scratchPool, mixedLayerDepthsAMPool, err, 2)
+            scratchPool, dThreshMLD, err, 2)
 
         block => block % next
       end do
