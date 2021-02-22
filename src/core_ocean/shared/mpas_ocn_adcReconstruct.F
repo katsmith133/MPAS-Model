@@ -324,7 +324,6 @@ module ocn_adc_mixing_fused
             if(lareaFraction < 0.01_RKIND) then
               w3(i1,k-1,iCell) = -2.0_RKIND*(9.8*w2(i1,k,iCell)**1.5) - w3(i1,k,iCell)
               lareaFraction = 0.01_RKIND
-              print *, 'hi = ',w3(i1,k-1,iCell),w3(i1,k,iCell),k
             end if
 
             if(lareaFraction > 0.99_RKIND) then
@@ -525,7 +524,7 @@ module ocn_adc_mixing_fused
               wttend2(k,iCell) = ((1.0_RKIND - 2.0_RKIND*areaFraction(k-1,iCell))* &
                 wumd(k-1,iCell)*tumd(k-1,iCell)*Mc(k-1,iCell) - (1.0_RKIND - 2.0_RKIND* &
                 areaFraction(k+1,iCell))*wumd(k+1,iCell)*tumd(k+1,iCell)*Mc(k+1,iCell)) &
-                / (ze(k-1,iCell) - ze(k+1,iCell)) - Mc(k,iCell)*wumd(k,iCell)*Tz
+                / (ze(k-1,iCell) - ze(k+1,iCell)) - 0.0_RKIND*Mc(k,iCell)*wumd(k,iCell)*Tz
               wttend2(k,iCell) = -(w2t(k-1,iCell) - w2t(k,iCell)) / (zm(k-1,iCell) - zm(k,iCell)) - &
                   Mc(k,iCell)*wumd(k,iCell)*Tz*0.0_RKIND
               wttend3(k,iCell) = (1.0_RKIND - gamma1)*areaFraction(k,iCell)*  &
@@ -704,7 +703,7 @@ module ocn_adc_mixing_fused
                 Cval = (0.19_RKIND+0.51_RKIND*lenspsU(k,iCell)/dzmid)
               endif
 
-              KspsUtend(i3_f,k,iCell) = -grav*(alphaT(k,iCell)*wt_spsU(k,iCell) - &
+              KspsUtend(i3_f,k,iCell) = grav*(alphaT(k,iCell)*wt_spsU(k,iCell) - &
                 betaS(k,iCell)*ws_spsU(k,ICell)) + ((KmU(k-1,iCell) +                 &
                 KmU(k,iCell))*(KspsU(i1,k-1,iCell) - KspsU(i1,k,iCell)) /         &
                 (ze(k-1,iCell) - ze(k,iCell)) - (KmU(k,iCell) +             &
@@ -720,7 +719,7 @@ module ocn_adc_mixing_fused
                 Cval = (0.19_RKIND+0.51_RKIND*lenspsD(k,iCell)/dz)
               endif
 
-              KspsDtend(i3_f,k,iCell) = -grav*(alphaT(k,iCell)*wt_spsD(k,iCell) - &
+              KspsDtend(i3_f,k,iCell) = grav*(alphaT(k,iCell)*wt_spsD(k,iCell) - &
                 betaS(k,iCell)*ws_spsD(k,iCell)) + ((KmD(k-1,iCell) +                 &
                 KmD(k,iCell))*(KspsD(i1,k-1,iCell) - KspsD(i1,k,iCell)) /         &
                 (ze(k-1,iCell) - ze(k,iCell)) - (KmD(k,iCell) +             &
