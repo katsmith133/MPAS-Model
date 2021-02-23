@@ -305,10 +305,10 @@ module ocn_adc_mixing_fused
               (1.0E-12_RKIND + McMid(k-1,iCell))
             if(w3av <= epsilon + 1.0e-9) then
                areaFractionMid(k-1,iCell) = 0.5_RKIND
-               wumdMid(k-1,iCell) = 0.0_RKIND
+        !       wumdMid(k-1,iCell) = 0.0_RKIND
                tumdMid(k-1,iCell) = 0.0_RKIND
                sumdMid(k-1,iCell) = 0.0_RKIND
-               McMid(k-1,iCell) = 0.0_RKIND
+        !       McMid(k-1,iCell) = 0.0_RKIND
             endif
         enddo
       enddo
@@ -322,12 +322,12 @@ module ocn_adc_mixing_fused
             lareaFraction = 0.5_RKIND + 0.5_RKIND*Sw / sqrt(4.0_RKIND + Sw**2)
 
             if(lareaFraction < 0.01_RKIND) then
-              w3(i1,k-1,iCell) = -2.0_RKIND*(9.8*w2(i1,k,iCell)**1.5) - w3(i1,k,iCell)
+            !  w3(i1,k-1,iCell) = -2.0_RKIND*(9.8*w2(i1,k,iCell)**1.5) - w3(i1,k,iCell)
               lareaFraction = 0.01_RKIND
             end if
 
             if(lareaFraction > 0.99_RKIND) then
-              w3(i1,k-1,iCell) = 2.0_RKIND*(9.8*w2(i1,k,iCell)**1.5) - w3(i1,k,iCell)
+            !  w3(i1,k-1,iCell) = 2.0_RKIND*(9.8*w2(i1,k,iCell)**1.5) - w3(i1,k,iCell)
               lareaFraction = 0.99_RKIND
             end if
 
@@ -342,13 +342,13 @@ module ocn_adc_mixing_fused
             sumd(k,iCell) = ws(i1,k,iCell) / (1.0E-12_RKIND + Mc(k,iCell))
 
             if(w2(i1,k,iCell) <= epsilon + 1.0e-9) then
-               areaFraction(k,iCell) = 0.5_RKIND
-               wumd(k,iCell) = 0.0_RKIND
+              ! areaFraction(k,iCell) = 0.5_RKIND
+              ! wumd(k,iCell) = 0.0_RKIND
                tumd(k,iCell) = 0.0_RKIND
                sumd(k,iCell) = 0.0_RKIND
-               Mc(k,iCell) = 0.0_RKIND
+               !Mc(k,iCell) = 0.0_RKIND
               !w2(i1,k,iCell) = 0.0_RKIND
-               !wt(i1,k,iCell) = 0.0_RKIND
+               wt(i1,k,iCell) = 0.0_RKIND
             endif
              !redo mid quantities
             areaFractionMid(k-1,iCell) = 0.5_RKIND*(areaFraction(k-1,iCell) + areaFraction(k,iCell))
@@ -497,7 +497,7 @@ module ocn_adc_mixing_fused
               Sz = (activeTracers(2,k-1,iCell) - activeTracers(2,k,iCell)) / dzmid
 
               KE = sqrt(0.5_RKIND*(u2(i1,k,iCell) + v2(i1,k,iCell) + areaFraction(k,iCell)* &
-                        (1.0_RKIND - areaFraction(k,iCell))*wumd(k,iCell)))
+                        (1.0_RKIND - areaFraction(k,iCell))*wumd(k,iCell)**2.0))
 
               tauTemp(k,iCell) = c_Temp*KE / (1.0E-15_RKIND + length(k,iCell))
               tauSalt(k,iCell) = c_Salt*KE / (1.0E-15_RKIND + length(k,iCell))
@@ -831,13 +831,13 @@ module ocn_adc_mixing_fused
 
           ! update the third order w3 and mean fields
           do iCell = 1,nCells
-            w3(i2,1,iCell) = (w3(i1,1,iCell) + dt_small*(Cw3 * w3tend(i3_f,1,iCell) + &
-               Cw2 * w3tend(i2_f,1,iCell) + Cw1 * w3tend(i1_f,1,iCell))) / &
-              (1.0_RKIND + 0.0*dt_small*tauw3(1,iCell))
-            do k=2,nVertLevels
-              w3check = 10.0*(w2(i2,k,iCell) + w2(i2,k+1,iCell))**1.5
-              !w3check = 1.0
-              w3(i2,k,iCell) = max(-w3check*10.0,min((w3(i1,k,iCell) + dt_small*(Cw3 * w3tend(i3_f,k,iCell) + &
+!            w3(i2,1,iCell) = (w3(i1,1,iCell) + dt_small*(Cw3 * w3tend(i3_f,1,iCell) + &
+!               Cw2 * w3tend(i2_f,1,iCell) + Cw1 * w3tend(i1_f,1,iCell))) / &
+!              (1.0_RKIND + 0.0*dt_small*tauw3(1,iCell))
+            do k=1,nVertLevels
+              w3check = (w2(i2,k,iCell) + w2(i2,k+1,iCell))**1.5
+              if(w3check == 0.0) w3check = 1.0
+              w3(i2,k,iCell) = max(-w3check,min((w3(i1,k,iCell) + dt_small*(Cw3 * w3tend(i3_f,k,iCell) + &
                 Cw2 * w3tend(i2_f,k,iCell) + Cw1 * w3tend(i1_f,k,iCell))) / &
                 (1.0_RKIND + 0.0*dt_small*tauw3(k,iCell)),w3check))
 

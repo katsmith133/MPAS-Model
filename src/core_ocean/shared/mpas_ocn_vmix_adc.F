@@ -461,14 +461,13 @@ contains
          call mpas_pool_get_dimension(meshPool, 'nCellsArray', nCellsArray)
          nCells = nCellsArray( size(nCellsArray) )
          do iCell = 1, nCells
-            w2(:,2,iCell) = epsilon
             do k = 1, nVertLevels
                KspsU(:,k,iCell) = 1.0E-12_RKIND
                KspsD(:,k,iCell) = 1.0E-12_RKIND
               ! w2(:,k,iCell) = 0.0_RKIND 
                areaFraction(k,iCell) = 0.5_RKIND
                tumd(k,iCell) = 0.0_RKIND
-               w2(:,k,iCell) = 1.0E-8_RKIND
+               w2(:,k,iCell) = 0.0_RKIND
                sumd(k,iCell) = 0.0_RKIND
                wumd(k,iCell) = 0.0_RKIND
                uw(:,k,iCell) = 0.0_RKIND
@@ -481,9 +480,9 @@ contains
                wt(:,k,iCell) = 0.0_RKIND
                us(:,k,iCell) = 0.0_RKIND
                vs(:,k,iCell) = 0.0_RKIND
-               eps(:,k,iCell) = 1.0E-13_RKIND
+               eps(:,k,iCell) = 0.0_RKIND
                ws(:,k,iCell) = 0.0_RKIND
-               w3(:,k,iCell) = -1.0e-12_RKIND
+               w3(:,k,iCell) = 0.0_RKIND
                w2tend(:,k,iCell) = 0.0_RKIND
                uwtend(:,k,iCell) = 0.0_RKIND
                vwtend(:,k,iCell) = 0.0_RKIND
@@ -501,6 +500,9 @@ contains
                KspsUtend(:,k,iCell) = 0.0_RKIND
                KspsDtend(:,k,iCell) = 0.0_RKIND
             enddo
+            w2(:,2,iCell) = 1e-8_RKIND
+            w3(:,1,iCell) = -1e-12_RKIND
+            eps(:,2,iCell) = 1e-13_RKIND
             length(1,iCell) = 0.5_RKIND*layerThickness(1,iCell)
             do k=2,nVertLevels
               length(k,iCell) = 0.5_RKIND*(layerThickness(k-1,iCell) + &
