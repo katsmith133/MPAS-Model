@@ -355,7 +355,7 @@ module ocn_adc_mixing_fused
             wumdMid(k-1,iCell) = 0.5_RKIND*(wumd(k-1,iCell) + wumd(k,iCell))
             tumdMid(k-1,iCell) = 0.5_RKIND*(tumd(k-1,iCell) + tumd(k,iCell))
             sumdMid(k-1,iCell) = 0.5_RKIND*(sumd(k-1,iCell) + sumd(k,iCell))
-
+            McMid(k-1,iCell) = 0.5_RKIND*(Mc(k-1,iCell) + Mc(k,iCell))
        enddo
         areaFractionMid(nVertLevels,iCell) = 0.5_RKIND
         wumdMid(nVertLevels,iCell) = 0.0_RKIND
@@ -836,7 +836,7 @@ module ocn_adc_mixing_fused
 !              (1.0_RKIND + 0.0*dt_small*tauw3(1,iCell))
             do k=1,nVertLevels
               w3check = (w2(i2,k,iCell) + w2(i2,k+1,iCell))**1.5
-              if(w3check == 0.0) w3check = 1.0
+              if(w3check < 3e-14_RKIND) w3check = 1.0
               w3(i2,k,iCell) = max(-w3check,min((w3(i1,k,iCell) + dt_small*(Cw3 * w3tend(i3_f,k,iCell) + &
                 Cw2 * w3tend(i2_f,k,iCell) + Cw1 * w3tend(i1_f,k,iCell))) / &
                 (1.0_RKIND + 0.0*dt_small*tauw3(k,iCell)),w3check))
