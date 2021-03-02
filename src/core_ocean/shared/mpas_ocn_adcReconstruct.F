@@ -348,7 +348,6 @@ module ocn_adc_mixing_fused
                sumd(k,iCell) = 0.0_RKIND
                !Mc(k,iCell) = 0.0_RKIND
               !w2(i1,k,iCell) = 0.0_RKIND
-               wt(i1,k,iCell) = 0.0_RKIND
             endif
              !redo mid quantities
             areaFractionMid(k-1,iCell) = 0.5_RKIND*(areaFraction(k-1,iCell) + areaFraction(k,iCell))
