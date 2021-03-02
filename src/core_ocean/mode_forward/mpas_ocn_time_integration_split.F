@@ -2036,9 +2036,17 @@ module ocn_time_integration_split
             call mpas_pool_get_array(statePool, 'layerThickness', layerThicknessNew, 2)
             call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressure,2)
 
-            call ocn_nonhydrostatic_pressure_tend(normalVelocityNew, normalVelocityCur, &
-               verticalVelocityNew, verticalVelocityCur, layerThicknessNew, layerThicknessEdge, &
-               nonhydrostaticPressure)
+            dminfo = domain % dminfo
+            call ocn_nonhydrostatic_pressure_tend(normalVelocityNew, verticalVelocityNew, &
+              layerThicknessNew, layerThicknessEdge, nonhydrostaticPressure, dminfo % comm, dt)
+
+            call mpas_timer_start('se NHpressure tend halo pressure')
+            call mpas_dmpar_field_halo_exch(domain, 'nonhydrostaticPressure', timeLevel=2)
+            call mpas_timer_stop('se NHpressure tend halo pressure')
+
+            call ocn_nonhydrostatic_pressue_update_velocity(normalVelocityNew, verticalVelocityNew, &
+              layerThicknessNew, layerThicknessEdge, nonhydrostaticPressure, dt)
+
             block => block % next
          end do
       end if

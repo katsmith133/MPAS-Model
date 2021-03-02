@@ -76,6 +76,7 @@ module ocn_forward_mode
    use ocn_tracer_MacroMolecules
    use ocn_tracer_surface_restoring
    use ocn_gm
+   use ocn_compute_nonhydrostatic_pressure
 
    use ocn_high_freq_thickness_hmix_del2
 
@@ -227,6 +228,8 @@ module ocn_forward_mode
         call ocn_vvel_pgf_init(err_tmp)
         ierr = ior(ierr, err_tmp)
         call ocn_vvel_hmix_del2_init(err_tmp)
+        ierr = ior(ierr, err_tmp)
+        call ocn_nonhydrostatic_solver_init(err_tmp)
         ierr = ior(ierr, err_tmp)
       endif
 
@@ -746,6 +749,8 @@ module ocn_forward_mode
       call mpas_destroy_clock(domain % clock, ierr)
 
       call mpas_decomp_destroy_decomp_list(domain % decompositions)
+
+      if(config_enable_nonhydrostatic_mode) call ocn_nonhydrostatic_solver_finalize()
 
    end function ocn_forward_mode_finalize!}}}
 

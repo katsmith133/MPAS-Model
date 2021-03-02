@@ -518,7 +518,7 @@ ifneq ($(wildcard $(PETSC)/lib), )
 else
 	PETSC_LIB = $(PETSC)
 endif
-	LIBS = -L$(PETSC_LIB)
+	LIBS += -L$(PETSC_LIB)
 	LIBS += -lpetsc
 ifneq ($(wildcard $(PETSC)/include), )
 	CPPINCLUDES += -I$(PETSC)/include

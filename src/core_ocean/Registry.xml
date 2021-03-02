@@ -999,6 +999,14 @@
           description="Flag to enable the nonhydrostatic pressure calculation"
           possible_values=".true. or .false."
     />
+    <nml_option name="config_nonhydrostatic_preconditioner" type="character" default_value="PCJACOBI" units="unitless"
+		 description="String describing preconditioner to use, recommended options -- PCJACOBI, PCBJACOBI, PCILU" 
+		 possible_values="PCJACOBI, PCBJACOBI, PCILU"
+	/>
+	<nml_option name="config_nonhydrostatic_solver_type" type="character" default_value="KSPPIPECGRR" units="unitless"
+		 description="String describing the solver context, recommended types -- KSPPIPECGRR, KSPPIPECG, KSPCG, KSPIBCGS, KSPGMRES"
+		 possible_values="KSPPIPECGRR, KSPPIPECG, KSPCG, KSPIBCGS, KSPGMRES"
+	/>
 	</nml_record>
 	<nml_record name="eos">
 		<nml_option name="config_eos_type" type="character" default_value="linear" units="unitless"
