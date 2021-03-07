@@ -92,22 +92,32 @@ contains
       type (mpas_pool_type), pointer :: tracersPool
       type (mpas_pool_type), pointer :: verticalMeshPool
 
-      integer :: iCell, k, idx
+      integer :: iEdge, i, iCell, k, idx, cell1, cell2, mlc, edge_tmp
 
       ! Define dimension pointers
-      integer, pointer :: nCellsSolve, nEdgesSolve, nVertLevels, nVertLevelsP1
+      integer, pointer :: nCellsSolve, nEdgesSolve, nVertLevels, nCells, nEdges, nVertLevelsP1
       integer, pointer :: index_temperature, index_salinity, index_tracer1
 
       ! Define variable pointers
-      integer, dimension(:), pointer :: maxLevelCell
+      integer, dimension(:), pointer :: maxLevelCell, nEdgesOnCell
+      integer, dimension(:,:), pointer :: cellsOnEdge, edgesOnCell
+
       real (kind=RKIND), dimension(:), pointer :: xCell, yCell,refBottomDepth, refZMid, &
                                                   vertCoordMovementWeights, bottomDepth, &
-                                                  fCell, fEdge, fVertex, dcEdge
-      real (kind=RKIND), dimension(:,:), pointer :: layerThickness, restingThickness
+                                                  fCell, fEdge, fVertex, dcEdge, dvEdge, &
+                                                  angleEdge, areaCell, xEdge, yEdge
+      real (kind=RKIND), dimension(:,:), pointer :: edgeSignOnCell, layerThickness, restingThickness, &
+                                      normalVelocity, verticalVelocity
       real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers, debugTracers
 
       ! Define local interfaceLocations variable
       real (kind=RKIND), dimension(:), pointer :: interfaceLocations
+
+      real (kind=RKIND) :: uVelocity, vVelocity, r_tmp, dcTmp, dvTmp, edge_temp, invAreaCell1, ltEdge
+
+      real (kind=RKIND) :: dvEdge_temp
+
+      real (kind=RKIND), dimension(:), allocatable :: div_hu
 
       logical, pointer :: on_a_sphere
 
@@ -179,13 +189,24 @@ contains
 
         call mpas_pool_get_dimension(meshPool, 'nVertLevels', nVertLevels)
         call mpas_pool_get_dimension(meshPool, 'nCellsSolve', nCellsSolve)
+        call mpas_pool_get_dimension(meshPool, 'nCells', nCells)
+        call mpas_pool_get_dimension(meshPool, 'nEdges', nEdges)
 
         call mpas_pool_get_dimension(tracersPool, 'index_temperature', index_temperature)
         call mpas_pool_get_dimension(tracersPool, 'index_salinity', index_salinity)
         call mpas_pool_get_dimension(tracersPool, 'index_tracer1', index_tracer1)
 
+        call mpas_pool_get_array(meshPool, 'nEdgesOnCell', nEdgesOnCell)
+        call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
+        call mpas_pool_get_array(meshPool, 'dvEdge', dvEdge)
+        call mpas_pool_get_array(meshPool, 'edgeSignOnCell', edgeSignOnCell)
+        call mpas_pool_get_array(meshPool, 'edgesOnCell', edgesOnCell)
+
+        call mpas_pool_get_array(meshPool, 'angleEdge', angleEdge)
         call mpas_pool_get_array(meshPool, 'xCell', xCell)
         call mpas_pool_get_array(meshPool, 'yCell', yCell)
+        call mpas_pool_get_array(meshPool, 'xEdge', xEdge)
+        call mpas_pool_get_array(meshPool, 'yEdge', yEdge)
         call mpas_pool_get_array(meshPool, 'refBottomDepth', refBottomDepth)
         call mpas_pool_get_array(meshPool, 'vertCoordMovementWeights', vertCoordMovementWeights)
         call mpas_pool_get_array(meshPool, 'bottomDepth', bottomDepth)
@@ -193,10 +214,16 @@ contains
         call mpas_pool_get_array(meshPool, 'fCell', fCell)
         call mpas_pool_get_array(meshPool, 'fEdge', fEdge)
         call mpas_pool_get_array(meshPool, 'fVertex', fVertex)
+        call mpas_pool_get_array(meshPool, 'areaCell', areaCell)
 
         call mpas_pool_get_array(tracersPool, 'activeTracers', activeTracers, 1)
         call mpas_pool_get_array(tracersPool, 'debugTracers', debugTracers, 1)
         call mpas_pool_get_array(statePool, 'layerThickness', layerThickness, 1)
+
+        if(config_baroclinic_channel_test_NH_solver) then
+          call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocity, 1)
+          call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocity, 1)
+        end if
 
         call mpas_pool_get_array(verticalMeshPool, 'refZMid', refZMid)
         call mpas_pool_get_array(verticalMeshPool, 'restingThickness', restingThickness)
@@ -213,7 +240,7 @@ contains
         ! Set vertCoordMovementWeights
         vertCoordMovementWeights(:) = 1.0_RKIND
 
-        do iCell = 1, nCellsSolve
+        do iCell = 1, nCells
            ! Determine cutoff location for large sin wave
            yOffset = perturbationWidth * sin (6.0_RKIND * pii * (xCell(iCell) - xMinGlobal) / (xMaxGlobal - xMinGlobal))
 
@@ -288,6 +315,62 @@ contains
         fEdge(:) = config_baroclinic_channel_coriolis_parameter
         fVertex(:) = config_baroclinic_channel_coriolis_parameter
 
+        if(config_baroclinic_channel_test_NH_solver) then
+           do iEdge=1,nEdges
+              cell1 = cellsOnEdge(iEdge,1)
+              cell2 = cellsOnEdge(iEdge,2)
+              vVelocity = config_baroclinic_channel_max_velocity*config_baroclinic_channel_nwaves / xMaxGlobal * &
+                  cos(config_baroclinic_channel_nwaves*xEdge(iEdge)/xMaxGlobal) * cos(config_baroclinic_channel_nwaves * &
+                  yEdge(iEdge)/yMaxGlobal)
+              uVelocity = config_baroclinic_channel_max_velocity*config_baroclinic_channel_nwaves / yMaxGlobal * &
+                  sin(config_baroclinic_channel_nwaves*xEdge(iEdge)/xMaxGlobal) * sin(config_baroclinic_channel_nwaves * &
+                  yEdge(iEdge)/yMaxGlobal)
+              normalVelocity(:, iEdge) = uVelocity*cos(angleEdge(iEdge)) + vVelocity*sin(angleEdge(iEdge))
+           end do
+
+           !Set activeTracer temperature to surface value to remove perturbation for testing
+           activeTracers(index_temperature,:,:) = config_baroclinic_channel_surface_temperature
+
+           !next compute w value by non divergence or simple function
+
+           if(config_baroclinic_channel_test_NH_solver_nondivergent) then
+             allocate(div_hu(nVertLevels))
+             do iCell = 1,nCellsSolve
+                invAreaCell1 = 1.0_RKIND / areaCell(iCell)
+                div_hu(:) = 0.0_RKIND
+                do i =1,nEdgesOnCell(iCell)
+                   edge_tmp = edgeSignOnCell(i,iCell)
+                   dvTmp = dvEdge(iEdge)
+                   dcTmp = dcEdge(iEdge)
+                   iEdge = edgesOnCell(i,iCell)
+                   mlc = min(maxLevelCell(cell1),maxLevelCell(cell2))
+                   cell1 = cellsOnEdge(1,iEdge)
+                   cell2 = cellsOnEdge(2,iEdge)
+                   do k=1,mlc
+                      r_tmp = dvEdge_temp * normalVelocity(k, iEdge) * invAreaCell1
+                      ltEdge = 0.5_RKIND*(layerThickness(k,cell1) + layerThickness(k,cell2))
+                      div_hu(k) = div_hu(k) - ltEdge * edge_temp * r_tmp
+                   end do
+                end do
+
+                verticalVelocity(maxLevelCell(iCell)+1,iCell) = 0.0_RKIND
+                do k = maxLevelCell(iCell),1,-1
+                   verticalVelocity(k,iCell) = verticalVelocity(k+1,iCell) - div_hu(k)
+                end do
+             end do
+             deallocate(div_hu)
+          else
+             !use a simple cos2 function
+             do iCell = 1,nCellsSolve
+                do k=1,maxLevelCell(iCell)
+                   verticalVelocity(k,iCell) = 0.0001_RKIND*cos(3.14159_RKIND*refBottomDepth(k) /  &
+                        config_baroclinic_channel_bottom_depth)**2
+                end do
+                verticalVelocity(1,iCell) = 0.0_RKIND
+                verticalVelocity(maxLevelCell(iCell)+1,iCell) = 0.0_RKIND
+             enddo
+          end if
+        end if !NH solver test block
         block_ptr => block_ptr % next
       end do
 
