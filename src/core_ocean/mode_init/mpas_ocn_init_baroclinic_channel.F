@@ -100,13 +100,13 @@ contains
 
       ! Define variable pointers
       integer, dimension(:), pointer :: maxLevelCell, nEdgesOnCell
-      integer, dimension(:,:), pointer :: cellsOnEdge, edgesOnCell
+      integer, dimension(:,:), pointer :: cellsOnEdge, edgeSignOnCell, edgesOnCell
 
       real (kind=RKIND), dimension(:), pointer :: xCell, yCell,refBottomDepth, refZMid, &
                                                   vertCoordMovementWeights, bottomDepth, &
                                                   fCell, fEdge, fVertex, dcEdge, dvEdge, &
                                                   angleEdge, areaCell, xEdge, yEdge
-      real (kind=RKIND), dimension(:,:), pointer :: edgeSignOnCell, layerThickness, restingThickness, &
+      real (kind=RKIND), dimension(:,:), pointer :: layerThickness, restingThickness, &
                                       normalVelocity, verticalVelocity
       real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers, debugTracers
 
@@ -228,11 +228,13 @@ contains
         call mpas_pool_get_array(verticalMeshPool, 'refZMid', refZMid)
         call mpas_pool_get_array(verticalMeshPool, 'restingThickness', restingThickness)
 
-        call ocn_mark_north_boundary(meshPool, yMaxGlobal, dcEdgeMinGlobal, iErr)
-        call ocn_mark_south_boundary(meshPool, yMinGlobal, dcEdgeMinGlobal, iErr)
-
+        if(.not. config_baroclinic_channel_make_periodic) then
+           call ocn_mark_north_boundary(meshPool, yMaxGlobal, dcEdgeMinGlobal, iErr)
+           call ocn_mark_south_boundary(meshPool, yMinGlobal, dcEdgeMinGlobal, iErr)
+        end if
         ! Set refBottomDepth and refZMid
         do k = 1, nVertLevels
+          print *, k,nVertLevels
             refBottomDepth(k) = config_baroclinic_channel_bottom_depth * interfaceLocations(k+1)
             refZMid(k) = - 0.5_RKIND * (interfaceLocations(k+1) + interfaceLocations(k)) * config_baroclinic_channel_bottom_depth
         end do
@@ -317,8 +319,8 @@ contains
 
         if(config_baroclinic_channel_test_NH_solver) then
            do iEdge=1,nEdges
-              cell1 = cellsOnEdge(iEdge,1)
-              cell2 = cellsOnEdge(iEdge,2)
+              cell1 = cellsOnEdge(1,iEdge)
+              cell2 = cellsOnEdge(2,iEdge)
               vVelocity = config_baroclinic_channel_max_velocity*config_baroclinic_channel_nwaves / xMaxGlobal * &
                   cos(config_baroclinic_channel_nwaves*xEdge(iEdge)/xMaxGlobal) * cos(config_baroclinic_channel_nwaves * &
                   yEdge(iEdge)/yMaxGlobal)
@@ -339,8 +341,8 @@ contains
                 invAreaCell1 = 1.0_RKIND / areaCell(iCell)
                 div_hu(:) = 0.0_RKIND
                 do i =1,nEdgesOnCell(iCell)
-                   edge_tmp = edgeSignOnCell(i,iCell)
-                   dvTmp = dvEdge(iEdge)
+                   edge_temp = edgeSignOnCell(i,iCell)
+                   dvedge_temp = dvEdge(iEdge)
                    dcTmp = dcEdge(iEdge)
                    iEdge = edgesOnCell(i,iCell)
                    mlc = min(maxLevelCell(cell1),maxLevelCell(cell2))
@@ -352,6 +354,13 @@ contains
                       div_hu(k) = div_hu(k) - ltEdge * edge_temp * r_tmp
                    end do
                 end do
+
+                if(iCell==1) then
+                  print *, layerTHickness(:,iCell)
+                  print *, nEdgesOnCell(iCell)
+                  print *, mlc
+                  print *, div_hu
+                end if
 
                 verticalVelocity(maxLevelCell(iCell)+1,iCell) = 0.0_RKIND
                 do k = maxLevelCell(iCell),1,-1

@@ -55,4 +55,8 @@
 			description="number of waves in the domain for the idealized sin/cos solution"
 			possible_values="real positive numbers"
 		/>
+		<nml_option name="config_baroclinic_channel_make_periodic" type="logical" default_value=".false." units="unitless"
+			description="if true, force baroclinic channel to be periodic"
+			possible_values=".true. or .false"
+		/>
 	</nml_record>
