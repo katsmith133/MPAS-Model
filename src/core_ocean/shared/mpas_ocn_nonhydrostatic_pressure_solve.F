@@ -97,11 +97,14 @@ module ocn_compute_nonhydrostatic_pressure
 
     reuse_preconditioner = .false.
 
+    print *, 'hi'
     call ocn_nonhydrostatic_solver_fill_matVec(normalVelocityNew, &
       verticalVelocityNew, layerThickness, layerThicknessEdge, mpi_comm, dt)
 
+    print *, 'hi1'
     call ocn_nonhydrostatic_pressure_solve(mpi_comm, reuse_preconditioner, nonhydrostaticPressure)
 
+    print *, 'hi2'
   end subroutine ocn_nonhydrostatic_pressure_tend
 
   !--------------------------------------------------------------------
@@ -198,6 +201,8 @@ module ocn_compute_nonhydrostatic_pressure
     integer, intent(in) :: mpi_comm
     logical, intent(in) :: reuse_preconditioner
     real(kind=RKIND),dimension(:,:), intent(out) :: nonhydrostaticPressure
+    PetscScalar :: x_array(1)
+    PetscOffset :: i_x
 
     integer :: vecSpot, iCell, k, reason
 
@@ -261,13 +266,17 @@ module ocn_compute_nonhydrostatic_pressure
           intArgs=(/petsc_err/))
     end if
 
+    print *, 'getting stuff'
+    print *, nCellsOwned, nVertLevels
     !now update the nonhydrostaticPressure array unpack into k,iCell
     !$omp parallel
     !$omp do schedule(runtime) private(k,vecSpot)
     do iCell=1,nCellsOwned
        do k=1,maxLevelCell(iCell)
-          vecSpot = (iCell-1)*k + k - 1
-          call VecGetValues(x,1,vecSpot,nonhydrostaticPressure(k,iCell),petsc_err)
+          vecSpot = (iCell-1)*k + k
+          !call VecGetValues(x,1,vecSpot,nonhydrostaticPressure(k,iCell),petsc_err)
+          call vecGetArray(x,x_array,i_x,petsc_err)
+          nonhydrostaticPressure(k,iCell) = x_array(i_x+vecSpot)
        end do
     end do
     !$omp end do
@@ -527,6 +536,7 @@ module ocn_compute_nonhydrostatic_pressure
         intArgs=(/petsc_err/))
       ierr = petsc_err
     endif
+
 
     call VecSetSizes(b, m, globalM, petsc_err)
     if ( commsize == 1 ) then

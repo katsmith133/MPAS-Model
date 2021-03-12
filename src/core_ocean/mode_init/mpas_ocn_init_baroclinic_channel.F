@@ -344,10 +344,10 @@ contains
                   yCell(cell2)/yMaxEdgeGlobal)
               vVelocity = pi2*config_baroclinic_channel_max_velocity*config_baroclinic_channel_nwaves / xMaxEdgeGlobal * &
                   cos(pi2*config_baroclinic_channel_nwaves*xCell(cell1)/xMaxEdgeGlobal) * cos(pi2*config_baroclinic_channel_nwaves * &
-                  yCell(cell2)/yMaxEdgeGlobal)
+                  yCell(cell1)/yMaxEdgeGlobal)
               uVelocity = pi2*config_baroclinic_channel_max_velocity*config_baroclinic_channel_nwaves / yMaxEdgeGlobal * &
-                  sin(pi2*config_baroclinic_channel_nwaves*xEdge(iEdge)/xMaxEdgeGlobal) * sin(pi2*config_baroclinic_channel_nwaves * &
-                  yEdge(iEdge)/yMaxEdgeGlobal)
+                  sin(pi2*config_baroclinic_channel_nwaves*xCell(cell1)/xMaxEdgeGlobal) * sin(pi2*config_baroclinic_channel_nwaves * &
+                  yCell(cell1)/yMaxEdgeGlobal)
               normalVelocity(:, iEdge) = 0.5_RKIND*(uVelocity+uVelocity2)*cos(angleEdge(iEdge)) + &
                  0.5_RKIND*(vVelocity + vVelocity2)*sin(angleEdge(iEdge))
            end do
