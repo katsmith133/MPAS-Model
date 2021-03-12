@@ -220,19 +220,6 @@ module ocn_forward_mode
       call ocn_vel_tidal_potential_init(domain,err_tmp)
       ierr = ior(ierr, err_tmp)
 
-      if(config_enable_nonhydrostatic_mode) then
-        call ocn_vvel_advection_init(err_tmp)
-        ierr = ior(ierr, err_tmp)
-        call ocn_vvel_coriolis_init(err_tmp)
-        ierr = ior(ierr, err_tmp)
-        call ocn_vvel_pgf_init(err_tmp)
-        ierr = ior(ierr, err_tmp)
-        call ocn_vvel_hmix_del2_init(err_tmp)
-        ierr = ior(ierr, err_tmp)
-        call ocn_nonhydrostatic_solver_init(err_tmp)
-        ierr = ior(ierr, err_tmp)
-      endif
-
       call ocn_tracer_hmix_init(err_tmp)
       ierr = ior(ierr, err_tmp)
       call ocn_tracer_hmix_redi_init(domain,err_tmp)
@@ -332,6 +319,20 @@ module ocn_forward_mode
 
       ! fill the ocean mesh structure
       call ocn_meshCreate(domain)
+
+      if(config_enable_nonhydrostatic_mode) then
+        call ocn_vvel_advection_init(err_tmp)
+        ierr = ior(ierr, err_tmp)
+        call ocn_vvel_coriolis_init(err_tmp)
+        ierr = ior(ierr, err_tmp)
+        call ocn_vvel_pgf_init(err_tmp)
+        ierr = ior(ierr, err_tmp)
+        call ocn_vvel_hmix_del2_init(err_tmp)
+        ierr = ior(ierr, err_tmp)
+        call ocn_nonhydrostatic_solver_init(domain % dminfo % comm, err_tmp)
+        ierr = ior(ierr, err_tmp)
+      endif
+
 
       timeStep = mpas_get_clock_timestep(domain % clock, ierr=err_tmp)
       call mpas_get_timeInterval(timeStep, dt=dt)

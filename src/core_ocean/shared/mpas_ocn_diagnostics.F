@@ -113,7 +113,7 @@ contains
       real (kind=RKIND), dimension(:), pointer :: &
         ssh,  seaIcePressure, atmosphericPressure
       real (kind=RKIND), dimension(:,:), pointer :: &
-        layerThickness, normalVelocity, verticalVelocity, nonHydrostaticPressure
+        layerThickness, normalVelocity, verticalVelocity, nonhydrostaticPressure
 
       real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers
 
@@ -139,7 +139,7 @@ contains
       call mpas_pool_get_dimension(tracersPool, 'index_temperature', indexTemperature)
       call mpas_pool_get_dimension(tracersPool, 'index_salinity', indexSalinity)
 
-      call mpas_pool_get_array(statePool, 'nonHydrostaticPressure', nonHydrostaticPressure, timeLevel)
+      call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressure, timeLevel)
       call mpas_pool_get_array(statePool, 'layerThickness', layerThickness, timeLevel)
       call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocity, timeLevel)
       call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocity, timeLevel)
@@ -1244,7 +1244,7 @@ contains
 !-----------------------------------------------------------------------
    subroutine ocn_diagnostic_solve_pressure(forcingPool, layerThickness, density, &
                 atmosphericPressure, seaIcePressure, montgomeryPotential, pressure, &
-                nonHydrostaticPressure, zMid, zTop, ssh)!{{{
+                nonhydrostaticPressure, zMid, zTop, ssh)!{{{
 
       use ocn_mesh     ! debug, mdt :: this should be module-level
 
@@ -1266,7 +1266,7 @@ contains
       real (kind=RKIND), dimension(:), intent(in) :: &
          seaIcePressure
       real (kind=RKIND), dimension(:,:), intent(in), optional :: &
-         nonHydrostaticPressure
+         nonhydrostaticPressure
 
       !-----------------------------------------------------------------
       !
@@ -1388,7 +1388,7 @@ contains
       if(config_enable_nonhydrostatic_mode) then
          do iCell=1,nCells
             do k=1,maxLevelCell(iCell)
-               pressure(k,iCell) = pressure(k,iCell) + nonHydrostaticPressure(k,iCell)
+               pressure(k,iCell) = pressure(k,iCell) + nonhydrostaticPressure(k,iCell)
             end do
          end do
       end if

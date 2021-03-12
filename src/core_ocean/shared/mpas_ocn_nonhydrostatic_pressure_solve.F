@@ -12,12 +12,12 @@
 !-----------------------------------------------------------------------
 
 #define PETSC_USE_FORTRAN_MODULES 1 
-#include "petsc/finclude/petscsys.h"
-#include "petsc/finclude/petscvec.h"
-#include "petsc/finclude/petscmat.h"
-#include "petsc/finclude/petscpc.h"
-#include "petsc/finclude/petscksp.h"
-
+!#include "petsc/finclude/petscsys.h"
+!#include "petsc/finclude/petscvec.h"
+!#include "petsc/finclude/petscmat.h"
+!#include "petsc/finclude/petscpc.h"
+!#include "petsc/finclude/petscksp.h"
+#include "petsc/finclude/petsc.h"
 
 module ocn_compute_nonhydrostatic_pressure
 
@@ -37,6 +37,7 @@ module ocn_compute_nonhydrostatic_pressure
   use petscmat
   use petscpc
   use petscksp
+  use petsc
 
   implicit none
   private
@@ -64,7 +65,7 @@ module ocn_compute_nonhydrostatic_pressure
   double precision :: norm ! norm of solution error
   PetscInt ::  i, j, II, JJ, m, n, its, Istart, Iend
   PetscInt ::  row, col, ione, globalM
-  PetscErrorCode :: petsc_err
+  PetscErrorCode :: petsc_err, ierr2
   PetscMPIInt :: petsc_rank, petsc_size
   PetscBool :: flag
   PetscScalar :: v, one, neg_one
@@ -81,14 +82,14 @@ module ocn_compute_nonhydrostatic_pressure
 
     subroutine ocn_nonhydrostatic_pressure_tend(normalVelocityNew, &
       verticalVelocityNew, layerThickness, layerThicknessEdge, &
-      nonHydrostaticPressure, mpi_comm, dt)
+      nonhydrostaticPressure, mpi_comm, dt)
 
     real,dimension(:,:), intent(in) :: normalVelocityNew, verticalVelocityNew, &
       layerThickness, layerThicknessEdge
 
     real(kind=RKIND), intent(in) :: dt
 
-    real,dimension(:,:), intent(inout) :: nonHydrostaticPressure
+    real,dimension(:,:), intent(inout) :: nonhydrostaticPressure
 
     integer, intent(in) :: mpi_comm
 
@@ -116,8 +117,8 @@ module ocn_compute_nonhydrostatic_pressure
   !--------------------------------------------------------------------
 
   subroutine ocn_nonhydrostatic_pressue_update_velocity(normalVelocityNew, &
-      verticalVelocityNew, layerThicknessEdge, layerThickness,           &
-      nonHydrostaticPressure, dt)
+      verticalVelocityNew, layerThickness, layerThicknessEdge,           &
+      nonhydrostaticPressure, dt)
 
     real(KIND=RKIND),intent(in) :: dt
 
@@ -128,7 +129,7 @@ module ocn_compute_nonhydrostatic_pressure
     real(KIND=RKIND),dimension(:,:),intent(in) :: &
       layerThicknessEdge, &
       layerThickness,     &
-      nonHydrostaticPressure
+      nonhydrostaticPressure
 
     integer :: cell1, cell2, nEdges, iCell, iEdge, nCells, i, k
 
@@ -260,13 +261,13 @@ module ocn_compute_nonhydrostatic_pressure
           intArgs=(/petsc_err/))
     end if
 
-    !now update the nonHydrostaticPressure array unpack into k,iCell
+    !now update the nonhydrostaticPressure array unpack into k,iCell
     !$omp parallel
     !$omp do schedule(runtime) private(k,vecSpot)
     do iCell=1,nCellsOwned
        do k=1,maxLevelCell(iCell)
-          vecSpot = (iCell-1)*k + k
-          call VecGetValues(x,1,vecSpot,nonHydrostaticPressure(k,iCell),petsc_err)
+          vecSpot = (iCell-1)*k + k - 1
+          call VecGetValues(x,1,vecSpot,nonhydrostaticPressure(k,iCell),petsc_err)
        end do
     end do
     !$omp end do
@@ -314,11 +315,11 @@ module ocn_compute_nonhydrostatic_pressure
      !add the points with iCell and k, k+1, k-1i
      !at the top of the domain and bottom (maxLevelCell+1, fill things in with zeros below
      ! should only contain an icell entry to get derivatives right. better BCs now
-     ! the conversion to matrix space is i = nVertLevels*(iCell-1) + nVertLevels
+     ! the conversion to matrix space is i = nVertLevels*(iCell-1) + nVertLevelsi
      do j=1,nEdgesOnCell(iCell)
         iEdge = edgesOnCell(j, iCell)
-        cell1 = cellsOnEdge(iEdge,1)
-        cell2 = cellsOnEdge(iEdge,2)
+        cell1 = cellsOnEdge(1,iEdge)
+        cell2 = cellsOnEdge(2,iEdge)
 
         if(cell1 == iCell) then
           termSign = -1
@@ -328,15 +329,15 @@ module ocn_compute_nonhydrostatic_pressure
           neighborInd = cell1
         end if
 
-        edge_tmp = termSign*dvEdge(iEdge)*edgeSignOnCell(j,iCell)*dt/(dcEdge(iEdge)*areaCell(iCell))
+        edge_tmp = dvEdge(iEdge)*edgeSignOnCell(j,iCell)*dt/(rho_sw*dcEdge(iEdge)*areaCell(iCell))
 
         do k=1,maxLevelEdgeTop(iEdge)
-          col = (iCell-1)*k + k
-          row = (iCell-1)*k + k
+          row = (iCell-1)*k + k - 1
+          col = (cell2-1)*k + k - 1
           insertVal = edge_tmp*layerThicknessEdge(k,iEdge)
           call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
 
-          row = (neighborInd-1)*k + k
+          col = (cell1-1)*k + k - 1
           insertVal = -edge_tmp*layerThicknessEdge(k,iEdge)
           call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
         end do
@@ -344,44 +345,44 @@ module ocn_compute_nonhydrostatic_pressure
 
      ! So now do the iCell, k (and k-1 k + 1)
      k = 1
-     col = (iCell - 1)*k + k
-     row = (iCell - 1)*k + k
+     col = (iCell - 1)*k + k - 1
+     row = (iCell - 1)*k + k - 1
      ! k value
      insertVal = -dt*(1.0_RKIND / (0.5_RKIND*rho_sw*(layerThickness(k,iCell) + layerThickness(k+1,iCell) + 1.0E-15_RKIND)))
      call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
 
      ! k + 1 value
-     col = (iCell - 1)*(k+1) + (k+1)
+     col = (iCell - 1)*(k+1) + (k+1) - 1
      insertVal = dt / (0.5_RKIND*rho_sw*(layerThickness(k,iCell) + layerThickness(k+1,iCell) + 1.0E-15_RKIND))
      call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
 
      do k=2,maxLevelCell(iCell)-1
-        col = (iCell - 1)*(k-1) + (k-1)
-        row = (iCell - 1)*k + k
+        col = (iCell - 1)*(k-1) + (k-1) - 1
+        row = (iCell - 1)*k + k - 1
         insertVal = dt / (0.5_RKIND*rho_sw*(layerThickness(k-1,iCell) + layerThickness(k,iCell)) + 1.0E-15_RKIND)
         call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
 
         ! k value
-        col = (iCell - 1)*k + k
+        col = (iCell - 1)*k + k - 1
         insertVal = -dt*(1.0/(0.5_RKIND*rho_sw*(layerThickness(k-1,iCell) + layerThickness(k,iCell) + 1.0E-15_RKIND)) + &
                          1.0/(0.5_RKIND*rho_sw*(layerThickness(k,iCell) + layerThickness(k+1,iCell) + 1.0E-15_RKIND)))
         call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
 
         ! k+1 value
-        col = (iCell - 1)*(k+1) + (k+1)
+        col = (iCell - 1)*(k+1) + (k+1) - 1
         insertVal = dt/(0.5_RKIND*rho_sw*(layerThickness(k,iCell) + layerThickness(k+1,iCell) + 1.0E-15_RKIND))
         call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
      end do !k loop
 
      k = maxLevelCell(iCell)
      !k-1 value
-     col = (iCell - 1)*(k-1) + (k-1)
-     row = (iCell - 1)*k + k
+     col = (iCell - 1)*(k-1) + (k-1) - 1
+     row = (iCell - 1)*k + k - 1
      insertVal = dt / (0.5_RKIND*rho_sw*(layerThickness(k-1,iCell) + layerThickness(k,iCell)) + 1.0E-15_RKIND)
      call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
 
      !k value
-     col = (iCell - 1)*k + k
+     col = (iCell - 1)*k + k - 1
      insertVal = -dt*(1.0/(0.5_RKIND*rho_sw*(layerThickness(k-1,iCell) + layerThickness(k,iCell) + 1.0E-15_RKIND)))
      call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
   end do !iCell loop
@@ -389,14 +390,13 @@ module ocn_compute_nonhydrostatic_pressure
   call MatAssemblyBegin(Amat,MAT_FINAL_ASSEMBLY,petsc_err)
   call MatAssemblyEnd(Amat,MAT_FINAL_ASSEMBLY,petsc_err)
 
-  !FIXME: save for now and return to this after hearing from phil and / or Matt T.
   ! next fill RHS vector 'b'
   call vecZeroEntries(b,petsc_err)
 
   do iCell=1,nCellsOwned
      do k=1,maxLevelCell(iCell)
         insertVal = verticalVelocityNew(k,iCell) - verticalVelocityNew(k+1,iCell)
-        row = (iCell - 1)*k + k
+        row = (iCell - 1)*k + k - 1
         call VecSetValues(b, 1, row, insertVal, ADD_VALUES, petsc_err)
      enddo
   enddo
@@ -405,8 +405,9 @@ module ocn_compute_nonhydrostatic_pressure
      do j=1,nEdgesOnCell(iCell)
         iEdge = edgesOnCell(j,iCell)
         do k=1,maxLevelEdgeTop(iEdge)
-           insertVal = dvEdge(iEdge)*edgeSignOnCell(j,iEdge)*normalVelocityNew(k,iEdge)/areaCell(iCell)
-           row = (iCell -1)*k + k
+           insertVal = layerThicknessEdge(k,iEdge)*dvEdge(iEdge)*edgeSignOnCell(j,iCell)* &
+                          normalVelocityNew(k,iEdge)/areaCell(iCell)
+           row = (iCell -1)*k + k - 1
            call VecSetValues(b, 1, row, insertVal, ADD_VALUES, petsc_err)
         end do
      end do
@@ -430,11 +431,15 @@ module ocn_compute_nonhydrostatic_pressure
   !
   !--------------------------------------------------------------------
 
-  subroutine ocn_nonhydrostatic_solver_init(ierr)
+  subroutine ocn_nonhydrostatic_solver_init(mpi_comm, ierr)
 
+    integer, intent(in) :: mpi_comm
     integer, intent(inout) :: ierr
-    PetscInt :: major, minor, subminor
+    PetscInt :: major, minor, subminor, release
+    integer :: commsize
     real(kind=RKIND) :: decimals, version
+
+    call MPI_comm_size(mpi_comm, commsize, ierr)
 
     call PetscInitialize(PETSC_NULL_CHARACTER,petsc_err)
     if(petsc_err .ne. 0) then
@@ -443,7 +448,7 @@ module ocn_compute_nonhydrostatic_pressure
       ierr = petsc_err
     endif
 
-    call PetscGetVersionNumber(major, minor, subminor, petsc_err)
+    call PetscGetVersionNumber(major, minor, subminor, release, petsc_err)
     if(petsc_err .ne. 0) then
       call mpas_log_write("ERROR: Petsc GetVersionNumber failed, error code = $i", MPAS_LOG_CRIT, &
         intArgs=(/petsc_err/))
@@ -452,9 +457,9 @@ module ocn_compute_nonhydrostatic_pressure
 
     !Solver routines require version to be greater than 3.5
     decimals = floor(log10(float(minor))) + 1
-    version = major + minor / 10.0_RKIND**decimals
-    if(version < 3.5) then
-      call mpas_log_write("ERROR: Petsc Version required to be greater than 3.5, you are using $i", &
+    version = float(major) + float(minor) / 10.0_RKIND**decimals
+    if(version < 3.05) then
+      call mpas_log_write("ERROR: Petsc Version required to be greater than 3.5, you are using $r", &
         MPAS_LOG_CRIT, realArgs=(/version/))
       ierr = petsc_err
     end if
@@ -467,7 +472,7 @@ module ocn_compute_nonhydrostatic_pressure
       ierr = petsc_err
     endif
 
-    call MatCreate(PETSC_COMM_WORLD, Amat, petsc_err)
+    call MatCreate(mpi_comm, Amat, petsc_err)
     if(petsc_err .ne. 0) then
       call mpas_log_write("ERROR: Petsc MatCreate failed, error code = $i", MPAS_LOG_CRIT, &
         intArgs=(/petsc_err/))
@@ -480,6 +485,13 @@ module ocn_compute_nonhydrostatic_pressure
         intArgs=(/petsc_err/))
       ierr = petsc_err
     endif
+
+    call MatSetType( Amat, MATAIJ, petsc_err )
+    if( commsize == 1) then
+      call MatSetType( Amat, MATAIJ, petsc_err )
+    else
+      call MatSetType( Amat, MATMPIAIJ, petsc_err )
+    end if
 
     call MatSetFromOptions(Amat,petsc_err)
     if(petsc_err .ne. 0) then
@@ -509,7 +521,7 @@ module ocn_compute_nonhydrostatic_pressure
       ierr = petsc_err
     endif
 
-    call VecCreate(PETSC_COMM_WORLD, b, petsc_err)
+    call VecCreate(mpi_comm, b, petsc_err)
     if(petsc_err .ne. 0) then
       call mpas_log_write("ERROR: Petsc VecCreate failed, error_code = $i", MPAS_LOG_CRIT, &
         intArgs=(/petsc_err/))
@@ -517,15 +529,21 @@ module ocn_compute_nonhydrostatic_pressure
     endif
 
     call VecSetSizes(b, m, globalM, petsc_err)
+    if ( commsize == 1 ) then
+       call VecSetType(b, VECSEQ, petsc_err)
+    else
+       call VecSetType(b, VECMPI, petsc_err)
+    end if
+
     if(petsc_err .ne. 0) then
       call mpas_log_write("ERROR: Petsc VecSetSizes failed, error_code = $i", MPAS_LOG_CRIT, &
         intArgs=(/petsc_err/))
       ierr = petsc_err
     endif
 
-    call VecCreate(PETSC_COMM_WORLD, x, petsc_err)
+    call VecDuplicate(b, x, petsc_err)
     if(petsc_err .ne. 0) then
-      call mpas_log_write("ERROR: Petsc VecCreate failed, error_code = $i", MPAS_LOG_CRIT, &
+      call mpas_log_write("ERROR: Petsc VecCreate Duplicate, error_code = $i", MPAS_LOG_CRIT, &
         intArgs=(/petsc_err/))
       ierr = petsc_err
     endif
@@ -552,11 +570,12 @@ module ocn_compute_nonhydrostatic_pressure
   !--------------------------------------------------------------------
 
   subroutine ocn_nonhydrostatic_solver_finalize()
+
     call MatDestroy(Amat,petsc_err)
-    call MatDestroy(Pmat,petsc_err)
     call VecDestroy(b,petsc_err)
     call VecDestroy(x,petsc_err)
-    call PetscFinalize(petsc_err)
+    call KSPDestroy(ksp,ierr2)
+    call PetscFinalize(ierr2)
 
   end subroutine ocn_nonhydrostatic_solver_finalize  
 
