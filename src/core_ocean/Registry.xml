@@ -1383,6 +1383,7 @@
 			<var name="yCell"/>
 			<var name="zCell"/>
 			<var name="indexToCellID"/>
+			<var name="mpasToPetscMap"/>
 			<var name="latEdge"/>
 			<var name="lonEdge"/>
 			<var name="xEdge"/>
@@ -1496,6 +1497,7 @@
 			<var name="yCell"/>
 			<var name="zCell"/>
 			<var name="indexToCellID"/>
+			<var name="mpasToPetscMap"/>
 			<var name="latEdge"/>
 			<var name="lonEdge"/>
 			<var name="xEdge"/>
@@ -2036,6 +2038,9 @@
 		/>
 		<var name="indexToCellID" type="integer" dimensions="nCells" units="unitless"
 			 description="List of global cell IDs."
+		/>
+		<var name="mpasToPetscMap" type="integer" dimensions="nCells" units="unitless"
+			 description="Mapping of indexToCellID to PETSC decomposition ids"
 		/>
 		<var name="latEdge" type="real" dimensions="nEdges" units="radians"
 			 description="Latitude location of edge midpoints in radians."

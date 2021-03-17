@@ -69,6 +69,7 @@ module ocn_mesh
       maxLevelVertexBot, &! max ocean level at bottom of each vertex
       nAdvCellsForEdge, &! number of cells contrib to advection at edge
       indexToCellID, &! global ID of each local cell
+      mpasToPetscMap, &! mapping from mpas decomposition to PETSC decomp
       indexToEdgeID, &! global ID of each local edge
       indexToVertexID    ! global ID of each local vertex
 
@@ -321,6 +322,8 @@ contains
                                   nAdvCellsForEdge)
          call mpas_pool_get_array(meshPool, 'indexToCellID', &
                                   indexToCellID)
+         call mpas_pool_get_array(meshPool, 'mpasToPetscMap', &
+                                  mpasToPetscMap)
          call mpas_pool_get_array(meshPool, 'indexToEdgeID', &
                                   indexToEdgeID)
          call mpas_pool_get_array(meshPool, 'indexToVertexID', &
@@ -526,6 +529,7 @@ contains
          !$acc                   maxLevelVertexBot,        &
          !$acc                   nAdvCellsForEdge,         &
          !$acc                   indexToCellID,            &
+         !$acc                   mpasToPetcMap,            &
          !$acc                   indexToEdgeID,            &
          !$acc                   indexToVertexID,          &
          !$acc                   edgesOnEdge,              &
@@ -657,6 +661,7 @@ contains
       !$acc                  maxLevelVertexBot, &
       !$acc                  nAdvCellsForEdge,  &
       !$acc                  indexToCellID,     &
+      !$acc                  mpasToPetscMap,    &
       !$acc                  indexToEdgeID,     &
       !$acc                  indexToVertexID,   &
       !$acc                  edgesOnEdge,       &
@@ -746,6 +751,7 @@ contains
                maxLevelVertexBot, &
                nAdvCellsForEdge, &
                indexToCellID, &
+               mpasToPetscMap, &
                indexToEdgeID, &
                indexToVertexID, &
                edgesOnEdge, &
@@ -1093,6 +1099,7 @@ contains
       !$acc               maxLevelVertexBot,        &
       !$acc               nAdvCellsForEdge,         &
       !$acc               indexToCellID,            &
+      !$acc               mpasToPetscMap,           &
       !$acc               indexToEdgeID,            &
       !$acc               indexToVertexID,          &
       !$acc               edgesOnEdge,              &
