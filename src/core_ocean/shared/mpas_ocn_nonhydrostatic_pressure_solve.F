@@ -334,7 +334,7 @@ module ocn_compute_nonhydrostatic_pressure
           neighborInd = cell1
         end if
 
-        edge_tmp = dvEdge(iEdge)*edgeSignOnCell(j,iCell)*dt/(rho_sw*dcEdge(iEdge)*areaCell(iCell))
+        edge_tmp = dvEdge(iEdge)*edgeSignOnCell(j,iCell)*dt/(dcEdge(iEdge)*areaCell(iCell))
 
         do k=1,maxLevelEdgeTop(iEdge)
           row = (mpasToPetscMap(iCell)-1)*nVertLevels + k - 1 
@@ -353,29 +353,29 @@ module ocn_compute_nonhydrostatic_pressure
      col = (mpasToPetscMap(iCell) - 1)*nVertLevels + k - 1
      row = (mpasToPetscMap(iCell) - 1)*nVertLevels + k - 1
      ! k value
-     insertVal = -dt*(1.0_RKIND / (0.5_RKIND*rho_sw*(layerThickness(k,iCell) + layerThickness(k+1,iCell) + 1.0E-15_RKIND)))
+     insertVal = -dt*(1.0_RKIND / (0.5_RKIND*(layerThickness(k,iCell) + layerThickness(k+1,iCell) + 1.0E-15_RKIND)))
      call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
 
      ! k + 1 value
      col = (mpasToPetscMap(iCell) - 1)*nVertLevels + (k+1) - 1
-     insertVal = dt / (0.5_RKIND*rho_sw*(layerThickness(k,iCell) + layerThickness(k+1,iCell) + 1.0E-15_RKIND))
+     insertVal = dt / (0.5_RKIND*(layerThickness(k,iCell) + layerThickness(k+1,iCell) + 1.0E-15_RKIND))
      call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
 
      do k=2,maxLevelCell(iCell)-1
         col = (mpasToPetscMap(iCell) - 1)*nVertLevels + (k-1) - 1
         row = (mpasToPetscMap(iCell) - 1)*nVertLevels + k - 1
-        insertVal = dt / (0.5_RKIND*rho_sw*(layerThickness(k-1,iCell) + layerThickness(k,iCell)) + 1.0E-15_RKIND)
+        insertVal = dt / (0.5_RKIND*(layerThickness(k-1,iCell) + layerThickness(k,iCell)) + 1.0E-15_RKIND)
         call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
 
         ! k value
         col = (mpasToPetscMap(iCell) - 1)*nVertLevels + k - 1
-        insertVal = -dt*(1.0/(0.5_RKIND*rho_sw*(layerThickness(k-1,iCell) + layerThickness(k,iCell) + 1.0E-15_RKIND)) + &
-                         1.0/(0.5_RKIND*rho_sw*(layerThickness(k,iCell) + layerThickness(k+1,iCell) + 1.0E-15_RKIND)))
+        insertVal = -dt*(1.0/(0.5_RKIND*(layerThickness(k-1,iCell) + layerThickness(k,iCell) + 1.0E-15_RKIND)) + &
+                         1.0/(0.5_RKIND*(layerThickness(k,iCell) + layerThickness(k+1,iCell) + 1.0E-15_RKIND)))
         call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
 
         ! k+1 value
         col = (mpasToPetscMap(iCell) - 1)*nVertLevels + (k+1) - 1
-        insertVal = dt/(0.5_RKIND*rho_sw*(layerThickness(k,iCell) + layerThickness(k+1,iCell) + 1.0E-15_RKIND))
+        insertVal = dt/(0.5_RKIND*(layerThickness(k,iCell) + layerThickness(k+1,iCell) + 1.0E-15_RKIND))
         call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
      end do !k loop
 
@@ -383,12 +383,12 @@ module ocn_compute_nonhydrostatic_pressure
      !k-1 value
      col = (mpasToPetscMap(iCell) - 1)*nVertLevels + (k-1) - 1
      row = (mpasToPetscMap(iCell) - 1)*nVertLevels + k - 1
-     insertVal = dt / (0.5_RKIND*rho_sw*(layerThickness(k-1,iCell) + layerThickness(k,iCell)) + 1.0E-15_RKIND)
+     insertVal = dt / (0.5_RKIND*(layerThickness(k-1,iCell) + layerThickness(k,iCell)) + 1.0E-15_RKIND)
      call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
 
      !k value
      col = (mpasToPetscMap(iCell) - 1)*nVertLevels + k - 1 
-     insertVal = -dt*(1.0/(0.5_RKIND*rho_sw*(layerThickness(k-1,iCell) + layerThickness(k,iCell) + 1.0E-15_RKIND)))
+     insertVal = -dt*(1.0/(0.5_RKIND*(layerThickness(k-1,iCell) + layerThickness(k,iCell) + 1.0E-15_RKIND)))
      call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
   end do !iCell loop
 
