@@ -402,7 +402,7 @@ contains
              !use a simple cos2 function
              do iCell = 1,nCellsSolve
                 do k=1,maxLevelCell(iCell)
-                   verticalVelocity(k,iCell) = 0.0001_RKIND*cos(3.14159_RKIND*refBottomDepth(k) /  &
+                   verticalVelocity(k,iCell) = 0.1_RKIND*cos(3.14159_RKIND*refBottomDepth(k) /  &
                         config_baroclinic_channel_bottom_depth)**2
                 end do
                 verticalVelocity(1,iCell) = 0.0_RKIND

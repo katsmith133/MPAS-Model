@@ -1007,6 +1007,18 @@
 		 description="String describing the solver context, recommended types -- pipecgrr, pipecg, cg, bcgs, gmres" 
 		 possible_values="pipecgrr, pipecg, cg, bcgs, gmres"
 	/>
+	<nml_option name="config_petsc_rtol" type="real" default_value="1.0e-10" units="unitless"
+		 description="relative tolerance for the norm in petsc convergence"
+		 possible_values="very small positive reals"
+	/>
+	<nml_option name="config_petsc_atol" type="real" default_value="1.0E-20" units="unitless"
+		 description="absolute tolerance for the norm in petsc convergence"
+		 possible_values="very small positive reals"
+	/>
+	<nml_option name="config_petsc_maxit" type="integer" default_value="10000" units="unitless"
+		 description="maximum number of iterations in petsc solve"
+		 possible_values="positive integers"
+	/>
 	</nml_record>
 	<nml_record name="eos">
 		<nml_option name="config_eos_type" type="character" default_value="linear" units="unitless"
@@ -1547,6 +1559,7 @@
 			<stream name="mesh"/>
 			<var_struct name="tracers"/>
 			<var name="normalVelocity"/>
+			<var name="verticalVelocity"/>
 			<var name="layerThickness"/>
 			<var name="highFreqThickness"/>
 			<var name="lowFreqDivergence"/>
