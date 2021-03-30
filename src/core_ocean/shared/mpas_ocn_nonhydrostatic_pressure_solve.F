@@ -352,7 +352,7 @@ module ocn_compute_nonhydrostatic_pressure
           call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
         end do
      end do !End loop over edges
-stop
+
      ! So now do the iCell, k (and k-1 k + 1)
      k = 1
      col = (indexToCellId(iCell) - 1)*nVertLevels + k - 1
