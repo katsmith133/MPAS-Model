@@ -434,14 +434,17 @@ module ocn_adc_mixing_fused
               Mcav = McMid(k,iCell)
 
               w3tend1(k,iCell) = -wumdav**3.0*(Eav*(3.0*sigav - 2.0) + Dav*(3.0*sigav - 1.0))
-              w3tend2(k,iCell) = -wumdav**3.0*(6.0*sigav**2.0 - 6.0*sigav + 1)*             &
-                    (areaFraction(k,iCell)*(1.0_RKIND - areaFraction(k,iCell))*  &
-                    wumd(k,iCell) - areaFraction(k+1,iCell)*(1.0_RKIND - &
-                    areaFraction(k+1,iCell))*wumd(k+1,iCell))/dz
-              w3tend3(k,iCell) = -1.5_RKIND*sigav*(1.0_RKIND - sigav)*(1.0_RKIND - 2.0_RKIND*sigav)* &
-                    wumdav**2.0_RKIND*((1.0_RKIND - 2.0_RKIND*areaFraction(k,iCell))*      &
-                    wumd(k,iCell)**2.0_RKIND - (1.0_RKIND -                                &
-                    2.0_RKIND*areaFraction(k+1,iCell))*wumd(k+1,iCell)**2.0_RKIND) / dz
+!              w3tend2(k,iCell) = -wumdav**3.0*(6.0*sigav**2.0 - 6.0*sigav + 1)*             &
+!                    (areaFraction(k,iCell)*(1.0_RKIND - areaFraction(k,iCell))*  &
+!                    wumd(k,iCell) - areaFraction(k+1,iCell)*(1.0_RKIND - &
+!                    areaFraction(k+1,iCell))*wumd(k+1,iCell))/dz
+!              w3tend3(k,iCell) = -1.5_RKIND*sigav*(1.0_RKIND - sigav)*(1.0_RKIND - 2.0_RKIND*sigav)* &
+!                    wumdav**2.0_RKIND*((1.0_RKIND - 2.0_RKIND*areaFraction(k,iCell))*      &
+!                    wumd(k,iCell)**2.0_RKIND - (1.0_RKIND -                                &
+!                    2.0_RKIND*areaFraction(k+1,iCell))*wumd(k+1,iCell)**2.0_RKIND) / dz
+              !Revert to QNA for the w4 term and combine with transport term, zeroing out w3tend2 as its unneeded
+              w3tend2(k,iCell) = 0.0_RKIND
+              w3tend3(k,iCell) = -1.5_RKIND*(w2(i1,k,iCell)**2.0 - w2(i1,k+1,iCell)**2.0) / dz
               w3tend4(k,iCell) = -3.0_RKIND*(1.0_RKIND - 2.0_RKIND*sigav)*Mcav*wumdav*Swumd(k,iCell) - &
                     tauw3(k,iCell)*w3(i1,k,iCell)
               w3tend5(k,iCell) = 3.0_RKIND*(1.0_RKIND - c11)*grav*(alphaT(k,iCell)*w2t(k,iCell) - &
