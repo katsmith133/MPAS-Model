@@ -131,7 +131,7 @@ module ocn_vvel_horiz_advection
           ! Compute 3rd or 4th fluxes where requested.
           do i = 1, nAdvCellsForEdge(iEdge)
             iCell = advCellsForEdge(i,iEdge)
-            do k = 1, maxLevelCell(iCell)
+            do k = 2, maxLevelCell(iCell)
               vvel_weight = highOrderAdvectionMask(k, iEdge) * (adv_coefs(i,iEdge) + coef3rdOrder &
                             * sign(1.0_RKIND,0.5_RKIND*(normalTransportVelocity(k-1,iEdge) +          &
                             normalTransportVelocity(k,iEdge)))*adv_coefs_3rd(i,iEdge))
@@ -149,7 +149,7 @@ module ocn_vvel_horiz_advection
           invAreaCell1 = 1.0_RKIND / areaCell(iCell)
           do i = 1, nEdgesOnCell(iCell)
             iEdge = edgesOnCell(i, iCell)
-            do k = 1, maxLevelEdgeTop(iEdge)
+            do k = 2, maxLevelEdgeTop(iEdge)
               tend(k, iCell) = tend(k, iCell) + edgeSignOnCell(i, iCell) * high_order_horiz_flux(k, iEdge) &
                                       * invAreaCell1
             end do

@@ -1632,7 +1632,7 @@ module ocn_time_integration_split
             if(config_enable_nonhydrostatic_mode) then
                call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityCur, 1)
                call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityNew, 2)
-               call mpas_pool_get_array(tendPool, 'verticalVelocity', verticalVelocityTend)
+               call mpas_pool_get_array(tendPool, 'verticalVelocityTend', verticalVelocityTend)
             end if
             
             call mpas_pool_get_array(statePool, 'highFreqThickness', highFreqThicknessCur, 1)
@@ -1680,7 +1680,6 @@ module ocn_time_integration_split
                  !$omp end do
                  !$omp end parallel
                end if
-
                !$omp parallel
                !$omp do schedule(runtime) private(k, temp_h, temp, i)
                do iCell = 1, nCells
@@ -1770,7 +1769,6 @@ module ocn_time_integration_split
                   !$omp parallel
                   !$omp end do
                end if
-
                !$omp parallel
                !$omp do schedule(runtime) private(k)
                do iCell = 1, nCells

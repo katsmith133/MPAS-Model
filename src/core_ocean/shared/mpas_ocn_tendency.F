@@ -272,7 +272,7 @@ subroutine ocn_tend_vvel(tendPool, statePool, forcingPool, diagnosticsPool, mesh
    call mpas_pool_get_array(diagnosticsPool, 'potentialDensity', potentialDensity)
    call mpas_pool_get_array(diagnosticsPool, 'normalTransportVelocity', normalTransportVelocity)
  
-   call mpas_pool_get_array(tendPool, 'verticalVelocity', tend_verticalVelocity)
+   call mpas_pool_get_array(tendPool, 'verticalVelocityTend', tend_verticalVelocity)
 
    allocate(normalThicknessFlux(nVertLevels, nEdges+1))
 
@@ -294,8 +294,8 @@ subroutine ocn_tend_vvel(tendPool, statePool, forcingPool, diagnosticsPool, mesh
    !
    !$omp Parallel
    !$omp do schedule(runtime)
-   do iEdge = 1, nEdges
-      tend_verticalVelocity(:, iEdge) = 0.0_RKIND
+   do iCell = 1, nCells
+      tend_verticalVelocity(:, iCell) = 0.0_RKIND
    end do
    !$omp end do
 

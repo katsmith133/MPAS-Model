@@ -614,7 +614,6 @@ module ocn_compute_nonhydrostatic_pressure
        call VecSetType(local_x, VECMPI, petsc_err)
     end if
 
-
     allocate(destIndex(globalM), origIndex(globalM))
     ! Try a better way with Index Sets and Vec Scatter for some communication
     ! later move this first part to init as we don't have to do it every time FIXME!
@@ -630,7 +629,6 @@ module ocn_compute_nonhydrostatic_pressure
     call ISCreateGeneral(mpi_comm, globalM, origIndex, PETSC_COPY_VALUES, origIS, petsc_err)
     call ISCreateGeneral(mpi_comm, globalM, destIndex, PETSC_COPY_VALUES, destIS, petsc_err)
     call VecScatterCreate(x, origIS, local_x, destIS, scatter, petsc_err)
-
 
     end subroutine ocn_nonhydrostatic_solver_init
 

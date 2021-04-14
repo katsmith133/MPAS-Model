@@ -26,7 +26,8 @@ TEST_CASES = mpas_ocn_init_baroclinic_channel.o \
              mpas_ocn_init_isomip.o \
              mpas_ocn_init_isomip_plus.o \
              mpas_ocn_init_hurricane.o \
-             mpas_ocn_init_tidal_boundary.o
+             mpas_ocn_init_tidal_boundary.o \
+			 mpas_ocn_init_deep_convection.o
              #mpas_ocn_init_TEMPLATE.o
 
 all: init_mode
@@ -48,6 +49,8 @@ mpas_ocn_init_spherical_utils.o:
 mpas_ocn_init_vertical_grids.o:
 
 mpas_ocn_init_seaSurfaceHeightAndPressure.o:
+
+mpas_ocn_init_deep_convection.o: $(UTILS)
 
 mpas_ocn_init_baroclinic_channel.o: $(UTILS)
 

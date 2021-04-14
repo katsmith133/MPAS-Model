@@ -40,6 +40,7 @@ list(APPEND RAW_SOURCES
   core_ocean/mode_init/mpas_ocn_init_internal_waves.F
   core_ocean/mode_init/mpas_ocn_init_overflow.F
   core_ocean/mode_init/mpas_ocn_init_cvmix_WSwSBF.F
+  core_ocean/mode_init/mpas_ocn_init_deep_convection.F
   core_ocean/mode_init/mpas_ocn_init_iso.F
   core_ocean/mode_init/mpas_ocn_init_soma.F
   core_ocean/mode_init/mpas_ocn_init_ziso.F

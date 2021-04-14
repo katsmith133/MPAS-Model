@@ -589,7 +589,6 @@ contains
 !               / (layerThicknessEdge(k-1,iEdge) + layerThicknessEdge(k,iEdge)) &
 !               / layerThicknessEdge(k,iEdge)
          enddo
-
          ! C is upper diagonal term
          do k = 2, N-1
            viscAv = 0.5_RKIND*(vertViscTopOfCell(k,iCell) + vertViscTopOfCell(k+1,iCell))
@@ -602,15 +601,13 @@ contains
          enddo
 
          ! B is diagonal term
-         do k = 2, N-1
+         do k = 1, N
             B(k) = 1.0_RKIND - A(k) - C(k)
          enddo
-         B(N) = 0.0_RKIND
+
          call tridiagonal_solve(A(2:N),B,C(1:N-1),verticalVelocity(:,iCell),velTemp,N)
 
          verticalVelocity(1:N,iCell) = velTemp(1:N)
-         !normalVelocity(N+1:nVertLevels,iEdge) = 0.0_RKIND
-
         end if
       end do
       !$omp end do
@@ -1263,7 +1260,6 @@ contains
           vertViscTopOfEdge, layerThickness, layerThicknessEdge, normalVelocity, err)
       end if
       call mpas_timer_stop('vmix solve momentum')
-
       !
       !  If nonhydrostatic is enabled compute vertical velocity diffusion
       !
