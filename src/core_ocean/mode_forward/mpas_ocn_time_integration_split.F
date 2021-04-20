@@ -555,6 +555,7 @@ module ocn_time_integration_split
                   verticalVelocityCur, sshCur, dt, vertAleTransportTop, err)
             endif
 
+            print *, '1'
            call ocn_tend_vel(tendPool, statePool, forcingPool, diagnosticsPool, meshPool, scratchPool, stage1_tend_time, dt)
 
            block => block % next
@@ -1551,6 +1552,7 @@ module ocn_time_integration_split
             endif
             call mpas_timer_stop('thick vert trans vel top')
 
+            print *, '2'
             call ocn_tend_thick(tendPool, forcingPool, diagnosticsPool, meshPool)
 
             block => block % next
@@ -1581,6 +1583,7 @@ module ocn_time_integration_split
 
             if(config_enable_nonhydrostatic_mode) call ocn_tend_vvel(tendPool, statePool, &
                           forcingPool, diagnosticsPool, meshPool, scratchPool, 2, dt)
+         
             block => block % next
          end do
          call mpas_timer_stop('se tracer tend')
@@ -1667,7 +1670,7 @@ module ocn_time_integration_split
 
                ! Only need T & S for earlier iterations,
                ! then all the tracers needed the last time through.
-
+print *, '3'
                if(config_enable_nonhydrostatic_mode) then
                  !$omp parallel
                  !$omp do schedule(runtime) private(k, temp_h)
@@ -1680,6 +1683,7 @@ module ocn_time_integration_split
                  !$omp end do
                  !$omp end parallel
                end if
+               print *, '4'
                !$omp parallel
                !$omp do schedule(runtime) private(k, temp_h, temp, i)
                do iCell = 1, nCells
@@ -1769,6 +1773,7 @@ module ocn_time_integration_split
                   !$omp parallel
                   !$omp end do
                end if
+               print *, '5'
                !$omp parallel
                !$omp do schedule(runtime) private(k)
                do iCell = 1, nCells
@@ -2004,6 +2009,7 @@ module ocn_time_integration_split
 
       call mpas_dmpar_field_halo_exch(domain, 'surfaceFrictionVelocity')
 
+      print *, 'hihihih'
       block => domain % blocklist
       do while(associated(block))
         call mpas_pool_get_subpool(block % structs, 'state', statePool)
@@ -2018,6 +2024,8 @@ module ocn_time_integration_split
         block => block % next
       end do
 
+   
+      print *, 'hi'
       if(config_enable_nonhydrostatic_mode) then
          block => domain % blocklist
          do while(associated(block))
@@ -2034,10 +2042,12 @@ module ocn_time_integration_split
             call mpas_pool_get_array(statePool, 'layerThickness', layerThicknessNew, 2)
             call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressure,2)
 
+            print *,'going to solve'
             dminfo = domain % dminfo
             call ocn_nonhydrostatic_pressure_tend(normalVelocityNew, verticalVelocityNew, &
               layerThicknessNew, layerThicknessEdge, nonhydrostaticPressure, dminfo % comm, dt)
 
+            print *, 'going to update vel'
             call mpas_timer_start('se NHpressure tend halo pressure')
             call mpas_dmpar_field_halo_exch(domain, 'nonhydrostaticPressure', timeLevel=2)
             call mpas_timer_stop('se NHpressure tend halo pressure')

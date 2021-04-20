@@ -317,7 +317,7 @@ subroutine ocn_tend_vvel(tendPool, statePool, forcingPool, diagnosticsPool, mesh
    !
    ! velocity tendency: pressure gradient
    !
-   call ocn_vvel_pgf_tend(meshPool, diagnosticsPool, pressure, tend_verticalVelocity, err)
+   call ocn_vvel_pgf_tend(meshPool, diagnosticsPool, nonhydrostaticPressure, tend_verticalVelocity, err)
 
    !
    ! velocity tendency: del2 dissipation, CALL STRAIGHT to hmix_del2 FOR NOW!!! \nu_2 \nabla^2 u

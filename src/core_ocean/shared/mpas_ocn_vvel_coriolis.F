@@ -182,6 +182,7 @@ contains
 
       err = 0
 
+      vertCoriolisOn = .true.
       if ( config_disable_vvel_coriolis .or.  &
           .not. config_enable_nonhydrostatic_mode ) vertCoriolisOn = .false.
 

@@ -134,7 +134,7 @@ contains
       do iCell= 1, nCells
 
          do k = 2, maxLevelCell(iCell)
-            tend(k, iCell) = tend(k, iCell) + 1.0_RKIND/rho_sw * (pressure(k-1,iCell) - &
+            tend(k, iCell) = tend(k, iCell) - 1.0_RKIND/rho_sw * (pressure(k-1,iCell) - &
                   pressure(k,iCell)) / (zMid(k-1,iCell) - zMid(k,iCell))
          end do
 
@@ -172,6 +172,7 @@ contains
 
       err = 0
 
+      vertPGFOn = .true.
       if ( .not. config_enable_nonhydrostatic_mode ) vertPGFOn = .false.
 
    !--------------------------------------------------------------------

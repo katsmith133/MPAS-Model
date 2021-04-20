@@ -109,7 +109,7 @@ contains
     real (kind=RKIND), dimension(:,:), pointer :: layerThickness, restingThickness
     real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers
 
-    real (kind=RKIND) :: botDepth
+    real (kind=RKIND) :: botDepth, randVal
 
     iErr = 0
 
@@ -171,6 +171,7 @@ contains
        ! Set vertCoordMovementWeights
        vertCoordMovementWeights(:) = 1.0_RKIND
 
+       call random_seed()
        do iCell = 1, nCellsSolve
 
           ! Set temperature
@@ -179,6 +180,11 @@ contains
              activeTracers(idx, k, iCell) = config_deep_convection_surface_temperature + refZmid(k)* &
                       config_deep_convection_temperature_stratification
           end do
+
+          ! add a random perturbation to the surface
+          k = 1
+          call random_number(randVal)
+          activeTracers(idx, k, iCell) = activeTracers(idx, k, iCell) + 0.01_RKIND*(randVal - 0.5)
 
           ! Set salinity
           idx = index_salinity
