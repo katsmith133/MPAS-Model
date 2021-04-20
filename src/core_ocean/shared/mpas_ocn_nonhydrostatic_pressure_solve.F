@@ -106,11 +106,9 @@ module ocn_compute_nonhydrostatic_pressure
 
     reuse_preconditioner = .false.
 
-    print *, '11'
     call ocn_nonhydrostatic_solver_fill_matVec(normalVelocityNew, &
       verticalVelocityNew, layerThickness, layerThicknessEdge, mpi_comm, dt)
 
-    print *, '22'
     call ocn_nonhydrostatic_pressure_solve(mpi_comm, reuse_preconditioner, nonhydrostaticPressure)
 
   end subroutine ocn_nonhydrostatic_pressure_tend
