@@ -184,7 +184,7 @@ contains
           ! add a random perturbation to the surface
           k = 1
           call random_number(randVal)
-          activeTracers(idx, k, iCell) = activeTracers(idx, k, iCell) + 0.01_RKIND*(randVal - 0.5)
+          activeTracers(idx, k, iCell) = activeTracers(idx, k, iCell) + 0.0001_RKIND*(randVal - 0.5)
 
           ! Set salinity
           idx = index_salinity

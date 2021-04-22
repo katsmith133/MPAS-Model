@@ -999,6 +999,10 @@
           description="Flag to enable the nonhydrostatic pressure calculation"
           possible_values=".true. or .false."
     />
+	<nml_option name="config_enable_vertMomentum_disable_nonHydro" type="logical" default_value=".false." units="unitless"
+		  description="flag to enable hydrostatic pressure with vertical momentum tendencies"
+		  possible_values=".true. or .false."
+	/>
     <nml_option name="config_nonhydrostatic_preconditioner" type="character" default_value="jacobi" units="unitless"
 		 description="String describing preconditioner to use, recommended options -- jacobi, bjacobi, ilu" 
 		 possible_values="jacobi, bjacobi, ilu"

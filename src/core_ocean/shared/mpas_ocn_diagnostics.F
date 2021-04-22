@@ -1195,7 +1195,7 @@ contains
       !$omp end parallel
 
       !LVR: 20201204 -- add in new vertical velocity prognostic variable
-      if(.not. config_enable_nonhydrostatic_mode) then
+      if(.not. config_enable_nonhydrostatic_mode .or. config_enable_vertMomentum_disable_nonHydro) then
         !$omp parallel
         !$omp do schedule(runtime) &
         !$omp private(k)
@@ -1384,14 +1384,6 @@ contains
         !$omp end parallel
 
       endif
-
-      if(config_enable_nonhydrostatic_mode) then
-         do iCell=1,nCells
-            do k=1,maxLevelCell(iCell)
-               pressure(k,iCell) = pressure(k,iCell) + nonhydrostaticPressure(k,iCell)
-            end do
-         end do
-      end if
 
    end subroutine ocn_diagnostic_solve_pressure!}}}
 
