@@ -27,7 +27,7 @@ module ocn_vvel_horiz_advection
    use mpas_pool_routines
    use mpas_io_units
    use mpas_threading
-
+   use ocn_config
    use mpas_tracer_advection_helpers
 
    implicit none
@@ -78,24 +78,22 @@ module ocn_vvel_horiz_advection
       integer, dimension(:, :), pointer :: edgeSignOnCell !< Input: Sign for flux from edge on each cell.
 
       integer :: i, iCell, iEdge, k, cell1, cell2
-      integer :: nVertLevels
-      integer, pointer :: nCells, nEdges, nCellsSolve, maxEdges
-      integer, dimension(:), pointer :: nEdgesOnCell
+      integer :: nVertLevels, nCells, nEdges
+      integer, pointer :: nCellsSolve, maxEdges
+      integer, dimension(:), pointer :: nEdgesOnCell, nCellsArray, nEdgesArray
       integer, dimension(:,:), pointer :: cellsOnEdge, cellsOnCell, edgesOnCell
 
       real (kind=RKIND) :: vvel_weight, invAreaCell1
       real (kind=RKIND), dimension(:), pointer :: dvEdge, areaCell
 
-      real (kind=RKIND), dimension(:,:), allocatable :: high_order_horiz_flux
+      real (kind=RKIND), dimension(:,:), allocatable :: high_order_horiz_flux, tendtmp
 
       real (kind=RKIND), parameter :: eps = 1.e-10_RKIND
 
       ! Get dimensions
-      call mpas_pool_get_dimension(meshPool, 'nCells', nCells)
       call mpas_pool_get_dimension(meshPool, 'nCellsSolve', nCellsSolve)
-      call mpas_pool_get_dimension(meshPool, 'nEdges', nEdges)
       call mpas_pool_get_dimension(meshPool, 'maxEdges', maxEdges)
-      nVertLevels = size(verticalVelocity,dim=2)
+      nVertLevels = size(verticalVelocity,dim=1)
 
       ! Initialize pointers
       call mpas_pool_get_array(meshPool, 'dvEdge', dvEdge)
@@ -104,14 +102,24 @@ module ocn_vvel_horiz_advection
       call mpas_pool_get_array(meshPool, 'cellsOnCell', cellsOnCell)
       call mpas_pool_get_array(meshPool, 'areaCell', areaCell)
       call mpas_pool_get_array(meshPool, 'nEdgesOnCell', nEdgesOnCell)
+      call mpas_pool_get_dimension(meshPool, 'nCellsArray', nCellsArray)
+      call mpas_pool_get_dimension(meshPool, 'nEdgesArray', nEdgesArray)
 
+      nCells = nCellsArray( 2 )
+      nEdges = nEdgesArray( 3 )
       allocate(high_order_horiz_flux(nVertLevels, nEdges))
+      allocate(tendtmp(nVertLevels,nCells))
 
        !$omp do schedule(runtime)
         do iEdge = 1, nEdges
            high_order_horiz_flux(:, iEdge) = 0.0_RKIND
         end do
         !$omp end do
+
+        !$omp do schedule(runtime)
+        do iCell = 1,nCells
+           tendtmp(:, iCell) = tend(:, iCell)
+        end do
 
         !  Compute the high order horizontal flux
         !$omp do schedule(runtime) private(cell1, cell2, k, vvel_weight, i, iCell)
@@ -124,10 +132,12 @@ module ocn_vvel_horiz_advection
             vvel_weight = iand(highOrderAdvectionMask(k, iEdge)+1, 1) * (dvEdge(iEdge) * 0.5_RKIND) &
                            * 0.5_RKIND*(normalTransportVelocity(k-1, iEdge) + normalTransportVelocity(k, iEdge))
 
+           vvel_weight = 0.5_RKIND*dvEdge(iEdge)*0.5_RKIND*(normalTransportVelocity(k-1, iEdge) + normalTransportVelocity(k, iEdge))
             high_order_horiz_flux(k, iEdge) = high_order_horiz_flux(k, iedge) + vvel_weight &
                                             * (verticalVelocity(k, cell1) + verticalVelocity(k, cell2))
           end do ! k loop
 
+          if(.not. config_disable_high_order_vvel_horiz_advection) then
           ! Compute 3rd or 4th fluxes where requested.
           do i = 1, nAdvCellsForEdge(iEdge)
             iCell = advCellsForEdge(i,iEdge)
@@ -140,6 +150,7 @@ module ocn_vvel_horiz_advection
               high_order_horiz_flux(k,iEdge) = high_order_horiz_flux(k,iEdge) + vvel_weight * verticalVelocity(k,iCell)
             end do ! k loop
           end do ! i loop over nAdvCellsForEdge
+          end if
         end do ! iEdge loop
         !$omp end do
 
@@ -149,15 +160,17 @@ module ocn_vvel_horiz_advection
           invAreaCell1 = 1.0_RKIND / areaCell(iCell)
           do i = 1, nEdgesOnCell(iCell)
             iEdge = edgesOnCell(i, iCell)
-            do k = 2, maxLevelEdgeTop(iEdge)
+            do k = 2, maxLevelEdgeTop(iEdge)-1
               tend(k, iCell) = tend(k, iCell) + edgeSignOnCell(i, iCell) * high_order_horiz_flux(k, iEdge) &
                                       * invAreaCell1
+              tendtmp(k,iCell) = tendtmp(k,iCell) - tend(k,iCell)
             end do
           end do
         end do
         !$omp end do
 
       deallocate(high_order_horiz_flux)
+      deallocate(tendtmp)
 
    end subroutine ocn_vvel_horiz_advection_tend!}}}
 

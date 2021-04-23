@@ -135,6 +135,7 @@ module ocn_time_integration_rk4
       logical, pointer :: config_prevent_drying
       logical, pointer :: config_zero_drying_velocity
       logical, pointer :: config_enable_nonhydrostatic_mode
+      logical, pointer :: config_enable_vertMomentum_disable_nonHydro
       character (len=StrKIND), pointer :: config_land_ice_flux_mode
 
       ! State indices
@@ -225,6 +226,7 @@ module ocn_time_integration_rk4
       call mpas_pool_get_config(domain % configs, 'config_use_tidal_forcing', config_use_tidal_forcing)
       call mpas_pool_get_config(domain % configs, 'config_tidal_forcing_type', config_tidal_forcing_type)
       call mpas_pool_get_config(domain % configs, 'config_enable_nonhydrostatic_mode', config_enable_nonhydrostatic_mode)
+      call mpas_pool_get_config(domain % configs, 'config_enable_vertMomentum_disable_nonHydro', config_enable_vertMomentum_disable_nonHydro)
 
       !
       ! Initialize time_levs(2) with state at current time
@@ -543,6 +545,7 @@ module ocn_time_integration_rk4
 
         call mpas_dmpar_field_halo_exch(domain, 'tendNormalVelocity')
         call mpas_dmpar_field_halo_exch(domain, 'tendLayerThickness')
+        call mpas_dmpar_field_halo_exch(domain, 'tendVerticalVelocity')
 
         call mpas_timer_stop("RK4 vel/thick prognostic halo update")
 
@@ -649,6 +652,7 @@ module ocn_time_integration_rk4
       call mpas_pool_get_subpool(statePool, 'tracers', tracersPool)
 
       call mpas_dmpar_field_halo_exch(domain, 'normalVelocity', timeLevel=2)
+      call mpas_dmpar_field_halo_exch(domain, 'verticalVelocity', timeLevel=2)
 
       call mpas_pool_begin_iteration(tracersPool)
       do while ( mpas_pool_get_next_member(tracersPool, groupItr) )
@@ -1635,7 +1639,7 @@ module ocn_time_integration_rk4
 
       call ocn_vmix_implicit(dt, meshPool, diagnosticsPool, statePool, forcingPool, scratchPool, err, 2)
 
-      if (config_enable_nonhydrostatic_mode) then
+      if (config_enable_nonhydrostatic_mode .and. .not. config_enable_vertMomentum_disable_nonHydro) then
          call ocn_nonhydrostatic_pressure_tend(normalVelocityNew, verticalVelocityNew, layerThicknessNew, &
               layerThicknessEdge, nonhydrostaticPressure, dminfo % comm, dt)
       end if

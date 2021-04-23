@@ -310,7 +310,7 @@ subroutine ocn_tend_vvel(tendPool, statePool, forcingPool, diagnosticsPool, mesh
    !
    ! velocity tendency: horizontal and vertical advection
    !
-   call ocn_vvel_advection_tend(verticalVelocity, normalThicknessFlux,       &
+   call ocn_vvel_advection_tend(verticalVelocity, normalTransportVelocity,       &
                                         layerThickness, dt, meshPool,          &
                                         scratchPool, diagnosticsPool, tend_verticalVelocity)
 

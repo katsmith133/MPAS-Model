@@ -70,7 +70,7 @@ module ocn_compute_nonhydrostatic_pressure
   PetscMPIInt :: petsc_rank, petsc_size
   PetscBool :: flag
   PetscScalar :: v, one, neg_one
-  Vec :: x, b, u ! approximate solution, right hand side vector, exact solution vector
+  Vec :: x, b, u, negOneVec ! approximate solution, right hand side vector, exact solution vector
   Mat :: Amat ! Matrix that defines the system
   Mat :: Pmat ! Preconditioner Matrix
   KSP :: ksp ! krylov subspace method context
@@ -148,6 +148,7 @@ module ocn_compute_nonhydrostatic_pressure
 
     nEdges = nEdgesHalo(2)
 
+    print *, 'update'
     ! loop over edges to update normalVelocity
     !$omp parallel
     !$omp do schedule(runtime) &
@@ -344,10 +345,11 @@ module ocn_compute_nonhydrostatic_pressure
   !--------------------------------------------------------------------
 
    integer :: jj,cell1, cell2, neighborInd, j, iEdge, iCell, k, matIndex
-   PetscScalar :: insertVal
+   PetscScalar :: insertVal, rhsSum
    PetscInt :: i
    real :: termSign, edge_tmp
 
+   print *, 'filling'
    jj=maxval(cellsOnEdge(:,1:nCellsOwned))
    !Make sure all entries are zero so there is no unintended overwrite
    call MatZeroEntries(Amat, petsc_err)
@@ -453,6 +455,15 @@ module ocn_compute_nonhydrostatic_pressure
 
   call VecAssemblyBegin(b,petsc_err)
   call VecAssemblyEnd(b,petsc_err)
+
+  if (config_nonhydrostatic_remove_rhs_mean) then
+     call VecSum(b, rhsSum, petsc_err)
+     rhsSum = rhsSum / globalM
+     print *, rhsSum
+     call VecAXPY(b, rhsSum, negOneVec, petsc_err)
+
+  end if
+
 
   end subroutine ocn_nonhydrostatic_solver_fill_matVec
 
@@ -600,6 +611,23 @@ module ocn_compute_nonhydrostatic_pressure
 
     call VecGetOwnershipRange(x,first,last,petsc_err)
 
+    call VecDuplicate(b, negOneVec, petsc_err)
+    if(petsc_err .ne. 0) then
+      call mpas_log_write("ERROR: Petsc VecCreate Duplicate, error_code = $i", MPAS_LOG_CRIT, &
+        intArgs=(/petsc_err/))
+      ierr = petsc_err
+    endif
+
+    call VecSetSizes(negOneVec, m, globalM, petsc_err)
+    if(petsc_err .ne. 0) then
+      call mpas_log_write("ERROR: Petsc VecSetSizes failed, error_code = $i", MPAS_LOG_CRIT, &
+        intArgs=(/petsc_err/))
+      ierr = petsc_err
+    endif
+
+    call VecGetOwnershipRange(negOneVec,first,last,petsc_err)
+
+
     call VecCreate(mpi_comm, local_x, petsc_err)
     if(petsc_err .ne. 0) then
       call mpas_log_write("ERROR: Petsc VecCreate failed, error_code = $i", MPAS_LOG_CRIT, &
@@ -622,10 +650,13 @@ module ocn_compute_nonhydrostatic_pressure
       do k=1,nVertLevels
          destIndex(iter) = (iCell-1)*nVertLevels + k - 1 + first
          origIndex(iter) = (indexToCellID(iCell)-1)*nVertLevels + k - 1
+         call VecSetValues(negOneVec, 1, origIndex(iter), -1.0_RKIND, INSERT_VALUES, petsc_err)
          iter = iter + 1
       end do
     end do
 
+    call VecAssemblyBegin(negOneVec, petsc_err)
+    call VecAssemblyEnd(negOneVec, petsc_err)
     call ISCreateGeneral(mpi_comm, globalM, origIndex, PETSC_COPY_VALUES, origIS, petsc_err)
     call ISCreateGeneral(mpi_comm, globalM, destIndex, PETSC_COPY_VALUES, destIS, petsc_err)
     call VecScatterCreate(x, origIS, local_x, destIS, scatter, petsc_err)
@@ -654,6 +685,7 @@ module ocn_compute_nonhydrostatic_pressure
     call MatDestroy(Amat,petsc_err)
     call VecDestroy(b,petsc_err)
     call VecDestroy(x,petsc_err)
+    call VecDestroy(negOneVec,petsc_err)
     call KSPDestroy(ksp,ierr2)
     call VecDestroy(local_x,petsc_err)
     call PetscFinalize(ierr2)
