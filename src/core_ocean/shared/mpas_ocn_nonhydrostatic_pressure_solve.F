@@ -54,7 +54,7 @@ module ocn_compute_nonhydrostatic_pressure
             ocn_nonhydrostatic_solver_fill_matvec, &
             ocn_nonhydrostatic_solver_finalize, &
             ocn_nonhydrostatic_pressure_solve, &
-            ocn_nonhydrostatic_pressue_update_velocity
+            ocn_nonhydrostatic_pressure_update_velocity
 
   !--------------------------------------------------------------------
   !
@@ -125,7 +125,7 @@ module ocn_compute_nonhydrostatic_pressure
   !
   !--------------------------------------------------------------------
 
-  subroutine ocn_nonhydrostatic_pressue_update_velocity(normalVelocityNew, &
+  subroutine ocn_nonhydrostatic_pressure_update_velocity(normalVelocityNew, &
       verticalVelocityNew, layerThickness, layerThicknessEdge,           &
       nonhydrostaticPressure, dt)
 
@@ -188,7 +188,7 @@ module ocn_compute_nonhydrostatic_pressure
     !$omp end do
     !$omp end parallel
 
-  end subroutine ocn_nonhydrostatic_pressue_update_velocity
+  end subroutine ocn_nonhydrostatic_pressure_update_velocity
 
   !--------------------------------------------------------------------
   ! 

@@ -2043,7 +2043,7 @@ module ocn_time_integration_split
             call mpas_dmpar_field_halo_exch(domain, 'nonhydrostaticPressure', timeLevel=2)
             call mpas_timer_stop('se NHpressure tend halo pressure')
 
-            call ocn_nonhydrostatic_pressue_update_velocity(normalVelocityNew, verticalVelocityNew, &
+            call ocn_nonhydrostatic_pressure_update_velocity(normalVelocityNew, verticalVelocityNew, &
               layerThicknessNew, layerThicknessEdge, nonhydrostaticPressure, dt)
 
             block => block % next

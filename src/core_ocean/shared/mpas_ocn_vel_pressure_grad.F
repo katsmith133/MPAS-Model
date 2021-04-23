@@ -436,7 +436,7 @@ contains
                   - density0Inv * ( nonhydrostaticPressure(k,cell2) - nonhydrostaticPressure(k,cell1) ) &
                   - dqdz*( zMid(k,cell2) - zMid(k,cell1) ) )
 
-               do k=1,maxLevelEdgeTop(iEdge)
+               do k=2,maxLevelEdgeTop(iEdge)-1
                   dqdz = 0.5_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k+1,cell1)) &
                     / (zMid(k-1,cell1) - zMid(k+1,cell1)) + (nonhydrostaticPressure(k-1,cell2) - &
                     nonhydrostaticPressure(k+1,cell2)) / (zMid(k-1,cell2) - zMid(k+1,cell2)))

@@ -1623,6 +1623,7 @@ contains
       ! and using ALE_Thickness for thickness at the new time.
 
       if(config_enable_nonhydrostatic_mode) then
+        !FIXME - need to add vertGMBolusVelocity here
         !$omp parallel
         !$omp do schedule(runtime) private(k)
         do iCell = 1,nCells
