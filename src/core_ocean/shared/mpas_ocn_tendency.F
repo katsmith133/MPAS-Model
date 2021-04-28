@@ -396,7 +396,7 @@ end subroutine ocn_tend_vvel!}}}
       call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocity, timeLevel)
       call mpas_pool_get_array(statePool, 'layerThickness', layerThickness, timeLevel)
       call mpas_pool_get_array(statePool, 'ssh', ssh, timeLevel)
-      call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressure, timeLevel)
+      call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressure, 1)
       call mpas_pool_get_array(tracersPool, 'activeTracers', activeTracers, timeLevel)
       call mpas_pool_get_dimension(tracersPool, 'index_temperature', indexTemperature)
       call mpas_pool_get_dimension(tracersPool, 'index_salinity', indexSalinity)

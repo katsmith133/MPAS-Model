@@ -160,7 +160,7 @@ module ocn_compute_nonhydrostatic_pressure
        cell1 = cellsOnEdge(1,iEdge)
        cell2 = cellsOnEdge(2,iEdge)
        do k = 1,maxLevelEdgeTop(iEdge)
-          normalVelocityNew(k,iEdge) = normalVelocityNew(k,iEdge) + dt * &
+          normalVelocityNew(k,iEdge) = normalVelocityNew(k,iEdge) - dt * &
             (nonhydrostaticPressure(k,cell2) - nonhydrostaticPressure(k,cell1)) / &
             dcEdge(iEdge)*edgeMask(k,iEdge) 
        end do
@@ -458,14 +458,16 @@ module ocn_compute_nonhydrostatic_pressure
   enddo
 
   do iCell=1,nCellsOwned
-     do j=1,nEdgesOnCell(iCell)
-        iEdge = edgesOnCell(j,iCell)
-        do k=1,maxLevelEdgeTop(iEdge)
-           insertVal = layerThicknessEdge(k,iEdge)*dvEdge(iEdge)*edgeSignOnCell(j,iCell)* &
-                          normalVelocityNew(k,iEdge)
-           row = (indexToCellId(iCell) - 1)*nVertLevels + k - 1
-           call VecSetValues(b, 1, row, insertVal, ADD_VALUES, petsc_err)
+     do k=1,maxLevelEdgeTop(iEdge)
+        insertVal = 0.0_RKIND
+        do j=1,nEdgesOnCell(iCell)
+           iEdge = edgesOnCell(j,iCell)
+
+           insertVal = insertVal - layerThicknessEdge(k,iEdge)*dvEdge(iEdge)*edgeSignOnCell(j,iCell)* &
+                       normalVelocityNew(k,iEdge)
         end do
+        row = (indexToCellId(iCell) - 1)*nVertLevels + k - 1
+        call VecSetValues(b, 1, row, insertVal, ADD_VALUES, petsc_err)
      end do
   end do
 
@@ -476,9 +478,7 @@ module ocn_compute_nonhydrostatic_pressure
      call VecSum(b, rhsSum, petsc_err)
      rhsSum = rhsSum / globalM
      call VecAXPY(b, rhsSum, negOneVec, petsc_err)
-
   end if
-
 
   end subroutine ocn_nonhydrostatic_solver_fill_matVec
 
@@ -502,6 +502,7 @@ module ocn_compute_nonhydrostatic_pressure
     PetscInt :: major, minor, subminor, release, locRow, locCol, locals(nCellsOwned)
     integer :: commsize, globalCells
     real(kind=RKIND) :: decimals, version
+    PetscReal :: val
     ISLocalToGlobalMapping :: mapping
     integer :: k, iCell, iter
 
@@ -672,6 +673,7 @@ module ocn_compute_nonhydrostatic_pressure
 
     call VecAssemblyBegin(negOneVec, petsc_err)
     call VecAssemblyEnd(negOneVec, petsc_err)
+
     call ISCreateGeneral(mpi_comm, globalM, origIndex, PETSC_COPY_VALUES, origIS, petsc_err)
     call ISCreateGeneral(mpi_comm, globalM, destIndex, PETSC_COPY_VALUES, destIS, petsc_err)
     call VecScatterCreate(x, origIS, local_x, destIS, scatter, petsc_err)

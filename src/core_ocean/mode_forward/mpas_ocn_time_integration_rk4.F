@@ -889,7 +889,7 @@ module ocn_time_integration_rk4
       call mpas_pool_get_array(statePool, 'layerThickness', layerThicknessCur, 1)
       call mpas_pool_get_array(statePool, 'ssh', sshCur, 1)
       call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocityCur, 1)
-      call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocity, 1)
+      call mpas_pool_get_array(provisStatePool, 'verticalVelocity', verticalVelocity, 1)
 
       call mpas_pool_get_array(diagnosticsPool, 'layerThicknessEdge', layerThicknessEdge)
       call mpas_pool_get_array(diagnosticsPool, 'vertAleTransportTop', vertAleTransportTop)
@@ -1153,7 +1153,7 @@ module ocn_time_integration_rk4
       call mpas_pool_get_array(statePool, 'layerThickness', layerThicknessCur, 1)
       call mpas_pool_get_array(statePool, 'ssh', sshCur, 1)
       call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocityCur, 1)
-      call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocity, 1)
+      call mpas_pool_get_array(provisStatePool, 'verticalVelocity', verticalVelocity, 1)
 
       call mpas_pool_get_array(diagnosticsPool, 'layerThicknessEdge', layerThicknessEdge)
       call mpas_pool_get_array(diagnosticsPool, 'vertAleTransportTop', vertAleTransportTop)
