@@ -6,7 +6,11 @@
 		<nml_option name="config_deep_convection_vertical_resolution" type="real" default_value="50" units="m"
 			description="vertical resolution for deep convection"
 			possible_values="positive real numbers"
-			/>
+		/>
+		<nml_option name="config_deep_convection_random_perturbation_strength" type="real" default_value="1e-8" units="unitless"
+			description="strength of perturbation in layer 1 to initiate convection"
+			possible_values="small positive reals"
+		/>
 		<nml_option name="config_deep_convection_surface_temperature" type="real" default_value="20" units="^oC"
 			description="Surface temperature"
 			possible_values="Real numbers between -2 and 40 degC"

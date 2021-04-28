@@ -180,7 +180,7 @@ module ocn_time_integration_split
       real (kind=RKIND), dimension(:,:), pointer :: normalVelocityCur, normalVelocityNew
       real (kind=RKIND), dimension(:,:), pointer :: layerThicknessCur, layerThicknessNew
       real (kind=RKIND), dimension(:,:), pointer :: verticalVelocityCur, verticalVelocityNew
-      real (kind=RKIND), dimension(:,:), pointer :: nonhydrostaticPressure
+      real (kind=RKIND), dimension(:,:), pointer :: nonhydrostaticPressure, nonhydrostaticPressureOld
       real (kind=RKIND), dimension(:,:), pointer :: highFreqThicknessCur, highFreqThicknessNew
       real (kind=RKIND), dimension(:,:), pointer :: lowFreqDivergenceCur, lowFreqDivergenceNew
       real (kind=RKIND), dimension(:,:,:), pointer :: tracersGroupCur, tracersGroupNew
@@ -2034,6 +2034,7 @@ module ocn_time_integration_split
             call mpas_pool_get_array(diagnosticsPool, 'layerThicknessEdge', layerThicknessEdge)
             call mpas_pool_get_array(statePool, 'layerThickness', layerThicknessNew, 2)
             call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressure,2)
+            call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressureOld,1)
 
             dminfo = domain % dminfo
             call ocn_nonhydrostatic_pressure_tend(normalVelocityNew, verticalVelocityNew, &
@@ -2044,7 +2045,7 @@ module ocn_time_integration_split
             call mpas_timer_stop('se NHpressure tend halo pressure')
 
             call ocn_nonhydrostatic_pressure_update_velocity(normalVelocityNew, verticalVelocityNew, &
-              layerThicknessNew, layerThicknessEdge, nonhydrostaticPressure, dt)
+              layerThicknessNew, layerThicknessEdge, nonhydrostaticPressure, nonhydrostaticPressureOld, dt)
 
             block => block % next
          end do

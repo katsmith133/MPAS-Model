@@ -179,7 +179,7 @@ module ocn_time_integration_rk4
       real (kind=RKIND), dimension(:,:), pointer :: layerThicknessCur, layerThicknessNew
       real (kind=RKIND), dimension(:,:), pointer :: highFreqThicknessCur, highFreqThicknessNew
       real (kind=RKIND), dimension(:,:), pointer :: lowFreqDivergenceCur, lowFreqDivergenceNew
-      real (kind=RKIND), dimension(:,:), pointer :: nonhydrostaticPressure
+      real (kind=RKIND), dimension(:,:), pointer :: nonhydrostaticPressure, nonhydrostaticPressureOld
 
       real (kind=RKIND), dimension(:), pointer :: sshCur, sshNew
 
@@ -712,13 +712,15 @@ module ocn_time_integration_rk4
       if (config_enable_nonhydrostatic_mode) then
 
          call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressure, 2)
+         call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressureOld, 1)
 
          call mpas_timer_start('RK4 NH pressure tend halo pressure')
          call mpas_dmpar_field_halo_exch(domain, 'nonhydrostaticPressure', timeLevel=2)
+         call mpas_dmpar_field_halo_exch(domain, 'nonhydrostaticPressure', timeLevel=1)
          call mpas_timer_stop('RK4 NH pressure tend halo pressure')
 
             call ocn_nonhydrostatic_pressure_update_velocity(normalVelocityNew, verticalVelocityNew, &
-                 layerThicknessNew, layerThicknessEdge, nonhydrostaticPressure, dt)
+                 layerThicknessNew, layerThicknessEdge, nonhydrostaticPressure, nonhydrostaticPressureOld, dt)
       end if
 
          if (config_prescribe_velocity) then

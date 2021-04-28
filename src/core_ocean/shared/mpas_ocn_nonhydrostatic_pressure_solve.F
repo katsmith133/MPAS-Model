@@ -30,6 +30,7 @@ module ocn_compute_nonhydrostatic_pressure
   use ocn_constants
   use ocn_config
   use ocn_mesh
+  use ocn_diagnostics_variables
 
   !PETSC includes for the matrix solve
   use petscsys
@@ -127,7 +128,7 @@ module ocn_compute_nonhydrostatic_pressure
 
   subroutine ocn_nonhydrostatic_pressure_update_velocity(normalVelocityNew, &
       verticalVelocityNew, layerThickness, layerThicknessEdge,           &
-      nonhydrostaticPressure, dt)
+      nonhydrostaticPressure, nonhydrostaticPressureOld, dt)
 
     real(KIND=RKIND),intent(in) :: dt
 
@@ -137,8 +138,11 @@ module ocn_compute_nonhydrostatic_pressure
 
     real(KIND=RKIND),dimension(:,:),intent(in) :: &
       layerThicknessEdge, &
-      layerThickness,     &
-      nonhydrostaticPressure
+      layerThickness
+
+    real(KIND=RKIND),dimension(:,:),intent(inout) :: &
+      nonhydrostaticPressure, &
+      nonhydrostaticPressureOld
 
     integer :: cell1, cell2, nEdges, iCell, iEdge, nCells, i, k
 
@@ -148,7 +152,6 @@ module ocn_compute_nonhydrostatic_pressure
 
     nEdges = nEdgesHalo(2)
 
-    print *, 'update'
     ! loop over edges to update normalVelocity
     !$omp parallel
     !$omp do schedule(runtime) &
@@ -157,9 +160,9 @@ module ocn_compute_nonhydrostatic_pressure
        cell1 = cellsOnEdge(1,iEdge)
        cell2 = cellsOnEdge(2,iEdge)
        do k = 1,maxLevelEdgeTop(iEdge)
-          normalVelocityNew(k,iEdge) = normalVelocityNew(k,iEdge) - dt / rho_sw * &
+          normalVelocityNew(k,iEdge) = normalVelocityNew(k,iEdge) + dt * &
             (nonhydrostaticPressure(k,cell2) - nonhydrostaticPressure(k,cell1)) / &
-            dcEdge(iEdge)*edgeMask(k,iEdge)
+            dcEdge(iEdge)*edgeMask(k,iEdge) 
        end do
     end do
     !$omp end do
@@ -184,6 +187,20 @@ module ocn_compute_nonhydrostatic_pressure
        verticalVelocityNew(maxLevelCell(iCell) + 1, iCell) = 0.0_RKIND
        do k=maxLevelCell(iCell),1,-1
           verticalVelocityNew(k,iCell) = verticalVelocityNew(k+1,iCell) - div_hu(k)
+       end do
+    end do
+    !$omp end do
+    !$omp end parallel
+
+    !Update the nonhydrostatic pressure to be second order accurate
+
+    !$omp parallel
+    !$omp do schedule(runtime)
+    !$omp private(k)
+    do iCell=1,nCells
+       do k = 1,nVertLevels
+          nonhydrostaticPressure(k,iCell) = nonhydrostaticPressureOld(k,iCell) + &
+                  nonhydrostaticPressure(k,iCell)
        end do
     end do
     !$omp end do
@@ -349,7 +366,6 @@ module ocn_compute_nonhydrostatic_pressure
    PetscInt :: i
    real :: termSign, edge_tmp
 
-   print *, 'filling'
    jj=maxval(cellsOnEdge(:,1:nCellsOwned))
    !Make sure all entries are zero so there is no unintended overwrite
    call MatZeroEntries(Amat, petsc_err)
@@ -363,7 +379,7 @@ module ocn_compute_nonhydrostatic_pressure
         cell1 = cellsOnEdge(1,iEdge)
         cell2 = cellsOnEdge(2,iEdge)
 
-        edge_tmp = dvEdge(iEdge)*dt/(dcEdge(iEdge))
+        edge_tmp = dvEdge(iEdge)*dt*edgeSignOnCell(j,iCell)/(dcEdge(iEdge))
 
         if(cell1 == iCell) then
           neighborInd = cell2
@@ -373,12 +389,12 @@ module ocn_compute_nonhydrostatic_pressure
 
         do k=1,maxLevelEdgeTop(iEdge)
           row = (indexToCellId(iCell)-1)*nVertLevels + k - 1
-          col = (indexToCellId(neighborInd)-1)*nVertLevels + k - 1
-          insertVal = edge_tmp*layerThicknessEdge(k,iEdge)
+          col = (indexToCellId(cell2)-1)*nVertLevels + k - 1
+          insertVal = -edge_tmp*layerThicknessEdge(k,iEdge)
           call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
 
-          col = (indexToCellId(iCell)-1)*nVertLevels + k - 1
-          insertVal = -edge_tmp*layerThicknessEdge(k,iEdge)
+          col = (indexToCellId(cell1)-1)*nVertLevels + k - 1
+          insertVal = edge_tmp*layerThicknessEdge(k,iEdge)
           call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
         end do
      end do !End loop over edges
@@ -435,7 +451,7 @@ module ocn_compute_nonhydrostatic_pressure
 
   do iCell=1,nCellsOwned
      do k=1,maxLevelCell(iCell)
-        insertVal = rho_sw*areaCell(iCell)*(verticalVelocityNew(k,iCell) - verticalVelocityNew(k+1,iCell))
+        insertVal = areaCell(iCell)*(verticalVelocityNew(k,iCell) - verticalVelocityNew(k+1,iCell))
         row = (indexToCellId(iCell) - 1)*nVertLevels + k - 1
         call VecSetValues(b, 1, row, insertVal, ADD_VALUES, petsc_err)
      enddo
@@ -445,7 +461,7 @@ module ocn_compute_nonhydrostatic_pressure
      do j=1,nEdgesOnCell(iCell)
         iEdge = edgesOnCell(j,iCell)
         do k=1,maxLevelEdgeTop(iEdge)
-           insertVal = rho_sw*layerThicknessEdge(k,iEdge)*dvEdge(iEdge)*edgeSignOnCell(j,iCell)* &
+           insertVal = layerThicknessEdge(k,iEdge)*dvEdge(iEdge)*edgeSignOnCell(j,iCell)* &
                           normalVelocityNew(k,iEdge)
            row = (indexToCellId(iCell) - 1)*nVertLevels + k - 1
            call VecSetValues(b, 1, row, insertVal, ADD_VALUES, petsc_err)
@@ -459,7 +475,6 @@ module ocn_compute_nonhydrostatic_pressure
   if (config_nonhydrostatic_remove_rhs_mean) then
      call VecSum(b, rhsSum, petsc_err)
      rhsSum = rhsSum / globalM
-     print *, rhsSum
      call VecAXPY(b, rhsSum, negOneVec, petsc_err)
 
   end if

@@ -33,6 +33,7 @@ module ocn_tendency
    use ocn_surface_land_ice_fluxes
    use ocn_frazil_forcing
    use ocn_tidal_forcing
+   use ocn_diagnostics_variables 
 
    use ocn_tracer_hmix
    use ocn_high_freq_thickness_hmix_del2
@@ -376,7 +377,7 @@ end subroutine ocn_tend_vvel!}}}
       integer :: timeLevel
 
       integer :: err, iEdge, iCell, k
-      integer, pointer :: indexTemperature, indexSalinity, nEdges, nCells
+      integer, pointer :: indexTemperature, indexSalinity, nEdges, nCells, nVertLevels
       integer, dimension(:), pointer :: maxLevelCell
 
       if (present(timeLevelIn)) then
@@ -388,6 +389,7 @@ end subroutine ocn_tend_vvel!}}}
       call mpas_pool_get_dimension(meshPool, 'nEdges', nEdges)
       call mpas_pool_get_dimension(meshPool, 'nCells', nCells)
 
+      call mpas_pool_get_dimension(meshPool, 'nVertLevels', nVertLevels)
       call mpas_pool_get_subpool(statePool, 'tracers', tracersPool)
 
       call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocity, timeLevel)
@@ -450,17 +452,35 @@ end subroutine ocn_tend_vvel!}}}
       ! Add top drag to surface stress
       call ocn_surface_land_ice_fluxes_vel(meshPool, diagnosticsPool, surfaceStress, surfaceStressMagnitude, err)
 
+      do iEdge=1,nEdges
+         do k=1,nVertLevels
+            velocityCoriolisTend(k,iEdge) = tend_normalVelocity(k,iEdge)
+         end do
+      end do
       !
       ! velocity tendency: nonlinear Coriolis term and grad of kinetic energy
       !
       call ocn_vel_hadv_coriolis_tend(meshPool, normalizedRelativeVorticityEdge, normalizedPlanetaryVorticityEdge, layerThicknessEdge, &
          normalVelocity, kineticEnergyCell, verticalVelocity, tend_normalVelocity, err)
 
+      do iEdge = 1,nEdges
+         do k=1,nVertLevels
+            velocityCoriolisTend(k,iEdge) = tend_normalVelocity(k,iEdge) - velocityCoriolisTend(k,iEdge)
+            velocityVadvTend(k,iEdge) = tend_normalVelocity(k,iEdge)
+         end do
+      end do
+
       !
       ! velocity tendency: vertical advection term -w du/dz
       !
       call ocn_vel_vadv_tend(meshPool, normalVelocity, layerThicknessEdge, vertAleTransportTop, tend_normalVelocity, err)
 
+      do iEdge = 1,nEdges
+         do k=1,nVertLevels
+            velocityVadvTend(k,iEdge) = tend_normalVelocity(k,iEdge) - velocityVadvTend(k,iEdge)
+            velocityPGFTend(k,iEdge) = tend_normalVelocity(k,iEdge)
+         end do
+      end do
       !
       ! velocity tendency: pressure gradient
       !
@@ -476,6 +496,13 @@ end subroutine ocn_tend_vvel!}}}
               indexTemperature, indexSalinity, activeTracers, tend_normalVelocity, err, &
               inSituThermalExpansionCoeff,inSituSalineContractionCoeff)
       endif
+
+      do iEdge=1,nEdges
+         do k=1,nVertLevels
+            velocityPGFtend(k,iEdge) = tend_normalVelocity(k,iEdge) - velocityPGFtend(k,iEdge)
+            velocityHmixtend(k,iEdge) = tend_normalVelocity(k,iEdge)
+         end do
+      end do
 
       !
       ! velocity tendency: tidal potential (if needed)
@@ -494,6 +521,13 @@ end subroutine ocn_tend_vvel!}}}
       call ocn_vel_hmix_tend(meshPool, scratchPool, divergence, relativeVorticity, normalVelocity, tangentialVelocity, viscosity, &
          tend_normalVelocity, err)
 
+      do iEdge=1,nEdges
+         do k=1,nVertLevels
+            velocityHmixtend(k,iEdge) = tend_normalVelocity(k,iEdge) - velocityHmixtend(k,iEdge)
+            velocityForcingtend(k,iEdge) = tend_normalVelocity(k,iEdge)
+         end do
+      end do
+
       !
       ! velocity tendency: forcing and bottom drag
       !
@@ -501,6 +535,12 @@ end subroutine ocn_tend_vvel!}}}
               surfaceStress, kineticEnergyCell, layerThicknessEdge, &
                                 tend_normalVelocity, err)
 
+      do iEdge=1,nEdges
+         do k=1,nVertLevels
+            velocityForcingTend(k,iEdge) = tend_normalVelocity(k,iEdge) - velocityForcingTend(k,iEdge)
+         end do
+      end do
+      
       !
       ! velocity tendency: zero if drying
       !

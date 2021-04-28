@@ -130,6 +130,14 @@ module ocn_diagnostics_variables
    real (kind=RKIND), dimension(:,:), pointer :: wettingVelocity
    type (field2DReal), pointer :: wettingVelocityField
 
+   real (kind=RKIND), dimension(:,:), pointer :: &
+      velocityVmixtend, &
+      velocityHmixtend, &
+      velocityCoriolisTend, &
+      velocityVadvTend, &
+      velocityForcingTend, &
+      velocityPGFtend
+
    real (kind=RKIND), dimension(:,:), pointer :: vertDiffTopOfCell
    real (kind=RKIND), dimension(:,:,:), pointer :: vertNonLocalFlux
    integer, dimension(:,:), pointer :: rediLimiterCount
@@ -412,6 +420,12 @@ contains
       call mpas_pool_get_array(diagnosticsPool, 'c_visbeck', c_visbeck)
       call mpas_pool_get_array(diagnosticsPool, 'gmResolutionTaper', gmResolutionTaper)
 
+      call mpas_pool_get_array(diagnosticsPool, 'velocityForcingTend', velocityForcingTend)
+      call mpas_pool_get_array(diagnosticsPool, 'velocityPGFtend', velocityPGFtend)
+      call mpas_pool_get_array(diagnosticsPool, 'velocityVadvTend', velocityVadvTend)
+      call mpas_pool_get_array(diagnosticsPool, 'velocityHmixTend', velocityHmixTend)
+      call mpas_pool_get_array(diagnosticsPool, 'velocityVmixTend', velocityVmixTend)
+      call mpas_pool_get_array(diagnosticsPool, 'velocityCoriolisTend', velocityCoriolisTend)
     end subroutine ocn_diagnostics_variables_init!}}}
 
 !***********************************************************************

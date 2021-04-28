@@ -38,6 +38,8 @@ module ocn_vvel_horiz_advection
    real (kind=RKIND) :: &
       coef3rdOrder       !< coefficient for blending high-order terms
 
+   real (kind=RKIND) :: advCoeffOrderVal
+
    ! public method interfaces
    public :: ocn_vvel_horiz_advection_tend, &
              ocn_vvel_horiz_advection_init
@@ -121,6 +123,7 @@ module ocn_vvel_horiz_advection
            tendtmp(:, iCell) = tend(:, iCell)
         end do
 
+        !FIXME -- will need to update for boundaries, maybe add edgeMask
         !  Compute the high order horizontal flux
         !$omp do schedule(runtime) private(cell1, cell2, k, vvel_weight, i, iCell)
         do iEdge = 1, nEdges
@@ -129,20 +132,20 @@ module ocn_vvel_horiz_advection
 
           ! Compute 2nd order fluxes where needed.
           do k = 2, maxLevelEdgeTop(iEdge)
-            vvel_weight = iand(highOrderAdvectionMask(k, iEdge)+1, 1) * (dvEdge(iEdge) * 0.5_RKIND) &
+            vvel_weight = advCoeffOrderVal * (dvEdge(iEdge) * 0.5_RKIND) &
                            * 0.5_RKIND*(normalTransportVelocity(k-1, iEdge) + normalTransportVelocity(k, iEdge))
 
-           vvel_weight = 0.5_RKIND*dvEdge(iEdge)*0.5_RKIND*(normalTransportVelocity(k-1, iEdge) + normalTransportVelocity(k, iEdge))
+           vvel_weight = advCoeffOrderVal * 0.5_RKIND*dvEdge(iEdge)*0.5_RKIND*(normalTransportVelocity(k-1, iEdge) + normalTransportVelocity(k, iEdge))
             high_order_horiz_flux(k, iEdge) = high_order_horiz_flux(k, iedge) + vvel_weight &
                                             * (verticalVelocity(k, cell1) + verticalVelocity(k, cell2))
           end do ! k loop
 
-          if(.not. config_disable_high_order_vvel_horiz_advection) then
+          if(advCoeffOrderVal == 0.0_RKIND) then
           ! Compute 3rd or 4th fluxes where requested.
           do i = 1, nAdvCellsForEdge(iEdge)
             iCell = advCellsForEdge(i,iEdge)
             do k = 2, maxLevelCell(iCell)
-              vvel_weight = highOrderAdvectionMask(k, iEdge) * (adv_coefs(i,iEdge) + coef3rdOrder &
+              vvel_weight = (1.0_RKIND - advCoeffOrderVal) * (adv_coefs(i,iEdge) + coef3rdOrder &
                             * sign(1.0_RKIND,0.5_RKIND*(normalTransportVelocity(k-1,iEdge) +          &
                             normalTransportVelocity(k,iEdge)))*adv_coefs_3rd(i,iEdge))
 
@@ -150,7 +153,8 @@ module ocn_vvel_horiz_advection
               high_order_horiz_flux(k,iEdge) = high_order_horiz_flux(k,iEdge) + vvel_weight * verticalVelocity(k,iCell)
             end do ! k loop
           end do ! i loop over nAdvCellsForEdge
-          end if
+        endif
+
         end do ! iEdge loop
         !$omp end do
 
@@ -208,10 +212,13 @@ module ocn_vvel_horiz_advection
 
       err = 0 ! set error code to success
 
+      advCoeffOrderVal = 0.0_RKIND
+
       ! set 3rd order coefficient based on horizontal order choice
       select case (horzAdvOrder)
       case (2)
          coef3rdOrder = 0.0_RKIND
+         advCoeffOrderVal = 1.0_RKIND
       case (3)
          coef3rdOrder = inCoef3rdOrder
       case (4)

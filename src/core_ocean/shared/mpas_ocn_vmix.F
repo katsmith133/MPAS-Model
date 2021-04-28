@@ -26,6 +26,7 @@ module ocn_vmix
    use mpas_derived_types
    use mpas_pool_routines
    use mpas_timer
+   use ocn_diagnostics_variables
 
    use mpas_constants
    use ocn_constants
@@ -1216,6 +1217,7 @@ contains
       call mpas_timer_stop('vmix coefs')
 
       nCells = nCellsArray(1)
+      nEdges = nEdgesArray(1)
       call mpas_pool_get_array(diagnosticsPool, 'vertNonLocalFlux', vertNonLocalFlux)
       ! if using CVMix, then viscosity has to be averaged from cell centers to cell edges
       if ( config_use_cvmix ) then
@@ -1236,6 +1238,12 @@ contains
          !$omp end parallel
          call mpas_timer_stop('CVMix avg')
       endif
+
+      do iEdge=1,nEdges
+         do k=1,nVertLevels
+            velocityVmixtend(k,iEdge) = normalVelocity(k,iEdge)
+         end do
+      end do
 
       !
       !  Implicit vertical solve for momentum
@@ -1267,6 +1275,12 @@ contains
          call ocn_vertVel_vmix_tend_implicit(meshPool, dt, vertViscTopOfCell, layerThickness, &
                                                verticalVelocity, err)
       endif
+
+      do iEdge=1,nEdges
+         do k=1,nVertLevels
+            velocityVmixTend(k,iEdge) = (normalVelocity(k,iEdge) - velocityvmixtend(k,iEdge)) / dt
+         end do
+      end do
 
       !
       !  Implicit vertical solve for all tracers

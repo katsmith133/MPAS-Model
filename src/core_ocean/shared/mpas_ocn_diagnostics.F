@@ -1630,7 +1630,7 @@ contains
            vertAleTransportTop(1,iCell) = 0.0_RKIND
            vertAleTransportTop(maxLevelCell(iCell)+1,iCell) = 0.0_RKIND
            do k = maxLevelCell(iCell),2,-1
-              vertAleTransportTop(k,iCell) = vertAleTransportTop(k+1,iCell) - verticalVelocity(k,iCell) & !LPV changed for nonhydrostatic mode
+              vertAleTransportTop(k,iCell) = vertAleTransportTop(k+1,iCell) + verticalVelocity(k,iCell) & !LPV changed for nonhydrostatic mode
                 - (ALE_Thickness(k,iCell) - oldLayerThickness(k,iCell))/dt
            end do
         end do
@@ -1640,9 +1640,9 @@ contains
         !$omp parallel
         !$omp do schedule(runtime) private(k)
         do iCell = 1,nCells
-           vertAleTransportTop(1,iCell) = 0.0_RKIND
+         !  vertAleTransportTop(1,iCell) = 0.0_RKIND
            vertAleTransportTop(maxLevelCell(iCell)+1,iCell) = 0.0_RKIND
-           do k = maxLevelCell(iCell),2,-1
+           do k = maxLevelCell(iCell),1,-1
               vertAleTransportTop(k,iCell) = vertAleTransportTop(k+1,iCell) - div_hu(k,iCell) &
                 - (ALE_Thickness(k,iCell) - oldLayerThickness(k,iCell))/dt
            end do
