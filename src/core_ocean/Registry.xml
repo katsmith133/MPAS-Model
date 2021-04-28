@@ -915,6 +915,10 @@
 					description="Order of polynomial used for vertical velocity reconstruction at cell edges"
 					possible_values="2, 3 and 4"
 		/>
+		<nml_option name="config_vvel_advection_use_vector_invariant_form" type="logical" default_value=".false." units="unitless"
+					description="flag to use vector invariant form for vertical velocity advection"
+					possible_values=".true. or .false."
+		/>
 		<nml_option name="config_coef_3rd_order" type="real" default_value="0.25" units="non-dimensional"
 					description="Reconstruction of 3rd-order reconstruction to blend with 4th-order reconstuction"
 					possible_values="any real between 0 and 1"

@@ -125,11 +125,13 @@ mpas_ocn_vvel_pgf.o: mpas_ocn_constants.o mpas_ocn_config.o
 
 mpas_ocn_vvel_vert_advection: mpas_ocn_constants.o mpas_ocn_config.o
 
-mpas_ocn_vvel_horiz_advection: mpas_ocn_constants.o mpas_ocn_config.o
+mpas_ocn_vvel_horiz_advection: mpas_ocn_constants.o mpas_ocn_diagnostics_variables.o mpas_ocn_config.o
+
+mpas_ocn_vvel_horiz_advection_old: mpas_ocn_constants.o mpas_ocn_diagnostics_variables.o mpas_ocn_config.o
 
 mpas_ocn_vvel_hmix_del2: mpas_ocn_constants.o mpas_ocn_config.o
 
-mpas_ocn_vvel_advection.o: mpas_ocn_constants.o mpas_ocn_config.o mpas_ocn_vvel_horiz_advection.o mpas_ocn_vvel_vert_advection.o
+mpas_ocn_vvel_advection.o: mpas_ocn_constants.o mpas_ocn_config.o mpas_ocn_vvel_horiz_advection_old.o mpas_ocn_vvel_horiz_advection.o mpas_ocn_vvel_vert_advection.o
 
 mpas_ocn_nonhydrostatic_pressure_solve.o: mpas_ocn_constants.o mpas_ocn_config.o mpas_ocn_mesh.o mpas_ocn_diagnostics_variables.o
 

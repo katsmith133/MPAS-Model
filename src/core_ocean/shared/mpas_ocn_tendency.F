@@ -263,7 +263,7 @@ subroutine ocn_tend_vvel(tendPool, statePool, forcingPool, diagnosticsPool, mesh
    call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocity, timeLevel)
    call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocity, timeLevel)
    call mpas_pool_get_array(statePool, 'layerThickness', layerThickness, timeLevel)
-   call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressure, timeLevel)
+   call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressure, 1)
 
    call mpas_pool_get_array(diagnosticsPool, 'layerThicknessEdge', layerThicknessEdge)
    call mpas_pool_get_array(diagnosticsPool, 'vertAleTransportTop', vertAleTransportTop)
@@ -312,7 +312,7 @@ subroutine ocn_tend_vvel(tendPool, statePool, forcingPool, diagnosticsPool, mesh
    ! velocity tendency: horizontal and vertical advection
    !
    call ocn_vvel_advection_tend(verticalVelocity, normalTransportVelocity,       &
-                                        layerThickness, dt, meshPool,          &
+                                        layerThickness, layerThicknessEdge, dt, meshPool,          &
                                         scratchPool, diagnosticsPool, tend_verticalVelocity)
 
    !

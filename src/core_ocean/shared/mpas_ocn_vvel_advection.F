@@ -29,6 +29,7 @@ module ocn_vvel_advection
    use mpas_hash
    use mpas_timer
 
+   use ocn_vvel_horiz_advection_vector_invariant
    use ocn_vvel_horiz_advection
    use ocn_vvel_vert_advection
 
@@ -65,7 +66,7 @@ module ocn_vvel_advection
 !-------------------------------------------------------------------------------
 
    subroutine ocn_vvel_advection_tend(verticalVelocity, normalThicknessFlux,       &
-                                        layerThickness, dt, meshPool,          &
+                                        layerThickness, layerThicknessEdge, dt, meshPool,          &
                                         scratchPool, diagnosticsPool, tend)!{{{
 
       !*** Input/Output parameters
@@ -80,7 +81,8 @@ module ocn_vvel_advection
       real (kind=RKIND), dimension(:,:), intent(in) :: &
          normalThicknessFlux !< [in] Thickness weighted horizontal velocity
       real (kind=RKIND), dimension(:,:), intent(in) :: &
-         layerThickness      !< [in] Thickness field
+         layerThickness,     &      !< [in] Thickness field at cell centers
+         layerThicknessEdge
       real (kind=RKIND), intent(in) :: &
          dt                  !< [in] Time step
       type (mpas_pool_type), intent(in) :: &
@@ -125,10 +127,18 @@ module ocn_vvel_advection
       call mpas_pool_get_array(meshPool, 'advCellsForEdge', advCellsForEdge)
 
 
-      call ocn_vvel_horiz_advection_tend(verticalVelocity, advCoefs, advCoefs3rd, &
-            nAdvCellsForEdge, advCellsForEdge, normalThicknessFlux, layerThickness, &
-            dt, meshPool, tend, maxLevelCell, maxLevelEdgeTop, &
-            highOrderAdvectionMask, edgeSignOnCell)
+      if(config_vvel_advection_use_vector_invariant_form) then
+         call ocn_vvel_horiz_vector_invariant_advection_tend(verticalVelocity, advCoefs, advCoefs3rd, &
+               nAdvCellsForEdge, advCellsForEdge, normalThicknessFlux, layerThicknessEdge, &
+               dt, meshPool, tend, maxLevelCell, maxLevelEdgeTop, &
+               highOrderAdvectionMask, edgeSignOnCell)
+      else
+         call ocn_vvel_horiz_advection_tend(verticalVelocity, advCoefs, advCoefs3rd, &
+               nAdvCellsForEdge, advCellsForEdge, normalThicknessFlux, layerThickness, &
+               dt, meshPool, tend, maxLevelCell, maxLevelEdgeTop, &
+               highOrderAdvectionMask, edgeSignOnCell)
+      end if
+
       call ocn_vvel_vert_advection_tend( verticalVelocity, layerThickness, dt, meshPool, &
                                                 tend, maxLevelCell, maxLevelEdgeTop)
 
@@ -169,8 +179,14 @@ module ocn_vvel_advection
       vvelAdvOn = .not. config_disable_vvel_adv
 
       ! set all other options from submodule initialization routines
-      call ocn_vvel_horiz_advection_init(config_vert_vvel_adv_order,   &
+      if(config_vvel_advection_use_vector_invariant_form) then
+         call ocn_vvel_horiz_vector_invariant_advection_init(config_vert_vvel_adv_order,   &
                                          config_coef_3rd_order,  errTmp)
+      else
+         call ocn_vvel_horiz_advection_init(config_vert_vvel_adv_order, &
+                                         config_coef_3rd_order, errTmp)
+      end if
+
       call ocn_vvel_horiz_advection_init(config_horiz_vvel_adv_order,    &
                                          config_coef_3rd_order, err)
 
