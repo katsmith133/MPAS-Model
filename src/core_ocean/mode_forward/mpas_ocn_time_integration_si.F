@@ -41,6 +41,7 @@ module ocn_time_integration_si
    use ocn_gm
    use ocn_config
 
+   use ocn_compute_nonhydrostatic_pressure
    use ocn_equation_of_state
    use ocn_vmix
    use ocn_time_average_coupled
@@ -180,11 +181,14 @@ module ocn_time_integration_si
       real (kind=RKIND), dimension(:,:), pointer :: highFreqThicknessCur, highFreqThicknessNew
       real (kind=RKIND), dimension(:,:), pointer :: lowFreqDivergenceCur, lowFreqDivergenceNew
       real (kind=RKIND), dimension(:,:,:), pointer :: tracersGroupCur, tracersGroupNew
+      !Nonhydrostatic parts
+      real (kind=RKIND), dimension(:,:), pointer :: nonhydrostaticPressure, nonhydrostaticPressureOld
+      real (kind=RKIND), dimension(:,:), pointer :: verticalVelocityCur, verticalVelocityNew
 
       ! Tend Array Pointers
       real (kind=RKIND), dimension(:), pointer :: sshTend
       real (kind=RKIND), dimension(:,:), pointer :: highFreqThicknessTend
-      real (kind=RKIND), dimension(:,:), pointer :: lowFreqDivergenceTend
+      real (kind=RKIND), dimension(:,:), pointer :: lowFreqDivergenceTend, verticalVelocityTend
       real (kind=RKIND), dimension(:,:), pointer :: normalVelocityTend, layerThicknessTend
       real (kind=RKIND), dimension(:,:,:), pointer :: tracersGroupTend, activeTracersTend
 
@@ -193,7 +197,7 @@ module ocn_time_integration_si
       real (kind=RKIND), dimension(:,:), pointer :: layerThicknessEdge, normalTransportVelocity, normalGMBolusVelocity
       real (kind=RKIND), dimension(:,:), pointer :: verticalVelocity, vertAleTransportTop
       real (kind=RKIND), dimension(:,:), pointer :: velocityX, velocityY, velocityZ
-      real (kind=RKIND), dimension(:,:), pointer :: velocityZonal, velocityMeridional
+      real (kind=RKIND), dimension(:,:), pointer :: velocityZonal, velocityMeridional, nhPressureCorrection
       real (kind=RKIND), dimension(:), pointer :: gradSSH
       real (kind=RKIND), dimension(:), pointer :: gradSSHX, gradSSHY, gradSSHZ
       real (kind=RKIND), dimension(:), pointer :: gradSSHZonal, gradSSHMeridional
@@ -288,6 +292,12 @@ module ocn_time_integration_si
          call mpas_pool_get_array(statePool, 'layerThickness', layerThicknessCur, 1)
          call mpas_pool_get_array(statePool, 'layerThickness', layerThicknessNew, 2)
 
+         if(config_enable_nonhydrostatic_mode) then
+            call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityNew, 2)
+            call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityCur, 1)
+            call mpas_pool_get_array(diagnosticsPool, 'nhPressureCorrection', nhPressureCorrection)
+         end if
+
          call mpas_pool_get_array(statePool, 'highFreqThickness', highFreqThicknessCur, 1)
          call mpas_pool_get_array(statePool, 'highFreqThickness', highFreqThicknessNew, 2)
 
@@ -336,6 +346,18 @@ module ocn_time_integration_si
          !$omp end do
          !$omp end parallel
 
+         if(config_enable_nonhydrostatic_mode) then
+            !$omp parallel
+            !$omp do schedule(runtime) private(k)
+            do iCell=1,nCells
+               do k = 2, maxLevelCell(iCell)
+                  verticalVelocityNew(k,iCell) = verticalVelocityCur(k,iCell)
+               end do
+            end do
+            !$omp end do
+            !$omp end parallel
+         end if
+         
          call mpas_pool_begin_iteration(tracersPool)
          do while ( mpas_pool_get_next_member(tracersPool, groupItr))
             if ( groupItr % memberType == MPAS_POOL_FIELD ) then
@@ -2807,6 +2829,7 @@ module ocn_time_integration_si
             call mpas_pool_get_array(diagnosticsPool, 'layerThicknessEdge', layerThicknessEdge)
             call mpas_pool_get_array(diagnosticsPool, 'normalTransportVelocity', normalTransportVelocity)
             call mpas_pool_get_array(diagnosticsPool, 'vertAleTransportTop', vertAleTransportTop)
+            call mpas_pool_get_array(diagnosticsPool, 'nhPressureCorrection', nhPressureCorrection)
 
             ! compute vertAleTransportTop.  Use normalTransportVelocity for advection of layerThickness and tracers.
             ! Use time level 1 values of layerThickness and layerThicknessEdge because
@@ -2815,11 +2838,11 @@ module ocn_time_integration_si
             if (associated(highFreqThicknessNew)) then
                call ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, &
                  layerThicknessCur, layerThicknessEdge, normalTransportVelocity, &
-                 verticalVelocity, sshCur, dt, vertAleTransportTop, err, highFreqThicknessNew)
+                 verticalVelocity, sshCur, dt, vertAleTransportTop, nhPressureCorrection, err, highFreqThicknessNew)
             else
                call ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, &
                  layerThicknessCur, layerThicknessEdge, normalTransportVelocity, &
-                 verticalVelocity, sshCur, dt, vertAleTransportTop, err)
+                 verticalVelocity, sshCur, dt, vertAleTransportTop, nhPressureCorrection, err)
             endif
             call mpas_timer_stop('thick vert trans vel top')
 
@@ -2850,6 +2873,9 @@ module ocn_time_integration_si
             call mpas_pool_get_subpool(block % structs, 'shortwave', swForcingPool)
             call ocn_tend_tracer(tendPool, statePool, forcingPool, diagnosticsPool, meshPool, swForcingPool, scratchPool, &
                     dt, activeTracersOnly, 2)
+
+            if(config_enable_nonhydrostatic_mode) call ocn_tend_vvel(tendPool, statePool, &
+                          forcingPool, diagnosticsPool, meshPool, scratchPool, 2, dt)
 
             block => block % next
          end do
@@ -2915,6 +2941,12 @@ module ocn_time_integration_si
 
             call mpas_pool_get_array(tracersTendPool, 'activeTracersTend', activeTracersTend)
 
+            if(config_enable_nonhydrostatic_mode) then
+               call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityCur, 1)
+               call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityNew, 2)
+               call mpas_pool_get_array(tendPool, 'verticalVelocityTend', verticalVelocityTend)
+            end if
+
             nCells = nCellsPtr
             nEdges = nEdgesPtr
 
@@ -2928,6 +2960,19 @@ module ocn_time_integration_si
                ! Get indices for dynamic tracers (Includes T&S).
                call mpas_pool_get_dimension(tracersPool, 'activeGRP_start', startIndex)
                call mpas_pool_get_dimension(tracersPool, 'activeGRP_end', endIndex)
+
+               if(config_enable_nonhydrostatic_mode) then
+                  !$omp parallel
+                  !$omp do schedule(runtime) private(k, temp_h)
+                  do iCell=1,nCells
+                     do k=2,maxLevelCell(iCell)
+                        temp_h = verticalVelocityCur(k,iCell) + dt * verticalVelocityTend(k,iCell)
+                        verticalVelocityNew(k,iCell) = 0.5_RKIND*(verticalVelocityCur(k,iCell) + temp_h)
+                     end do
+                  end do
+                  !$omp end do
+                  !$omp end parallel
+               end if
 
                ! Only need T & S for earlier iterations,
                ! then all the tracers needed the last time through.
@@ -3009,6 +3054,18 @@ module ocn_time_integration_si
             !
             !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             elseif (split_implicit_step == config_n_ts_iter) then
+
+               if(config_enable_nonhydrostatic_mode) then
+                  !$omp parallel
+                  !$omp do schedule(runtime) private(k)
+                  do iCell=1,nCells
+                     do k=1,maxLevelCell(iCell)
+                        verticalVelocityNew(k,iCell) = verticalVelocityCur(k,iCell) + dt*verticalVelocityTend(k,iCell)
+                     end do
+                  end do
+                  !$omp end do
+                  !$omp end parallel
+               end if
 
                !$omp parallel
                !$omp do schedule(runtime) private(k)
@@ -3206,6 +3263,42 @@ module ocn_time_integration_si
         block => block % next
       end do
 
+      if(config_enable_nonhydrostatic_mode) then
+         block => domain % blocklist
+         do while(associated(block))
+            call mpas_pool_get_subpool(block % structs, 'state', statePool)
+            call mpas_pool_get_subpool(statePool, 'tracers', tracersPool)
+            call mpas_pool_get_subpool(block % structs, 'mesh', meshPool)
+            call mpas_pool_get_subpool(block % structs, 'diagnostics', diagnosticsPool)
+   ! pull out the variables needed!!
+            call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocityNew, 2)
+            call mpas_pool_get_array(statePool, 'normalVelocity', normalVelocityCur, 1)
+            call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityNew, 2)
+            call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityCur, 1)
+            call mpas_pool_get_array(diagnosticsPool, 'layerThicknessEdge', layerThicknessEdge)
+            call mpas_pool_get_array(statePool, 'layerThickness', layerThicknessNew, 2)
+            call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressure,2)
+            call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressureOld,1)
+            call mpas_pool_get_array(diagnosticsPool, 'nhPressureCorrection', nhPressureCorrection)
+
+            dminfo = domain % dminfo
+            call ocn_nonhydrostatic_pressure_tend(normalVelocityNew, verticalVelocityNew, &
+              layerThicknessNew, layerThicknessEdge, nhPressureCorrection, dminfo % comm, dt)
+
+            call mpas_timer_start('se NHpressure tend halo pressure')
+            call mpas_dmpar_field_halo_exch(domain, 'nonhydrostaticPressure', timeLevel=2)
+            call mpas_dmpar_field_halo_exch(domain, 'nonhydrostaticPressure', timelevel=1)
+            call mpas_dmpar_field_halo_exch(domain, 'nhPressureCorrection')
+            call mpas_timer_stop('se NHpressure tend halo pressure')
+
+            call ocn_nonhydrostatic_pressure_update_velocity(normalVelocityNew, verticalVelocityNew, &
+              layerThicknessNew, layerThicknessEdge, nonhydrostaticPressure, nonhydrostaticPressureOld, &
+              nhPressureCorrection, dt)
+
+            block => block % next
+         end do
+      end if
+
       ! Update halo on u and tracers, which were just updated for implicit vertical mixing.  If not done,
       ! this leads to lack of volume conservation.  It is required because halo updates in stage 3 are only
       ! conducted on tendencies, not on the velocity and tracer fields.  So this update is required to
@@ -3367,11 +3460,12 @@ module ocn_time_integration_si
 !>  stepper.
 !
 !-----------------------------------------------------------------------
-   subroutine ocn_time_integration_si_init(domain)!{{{
+   subroutine ocn_time_integration_si_init(domain, dt)!{{{
    ! Initialize splitting variables
 
       type (domain_type), intent(inout) :: domain
 
+      real (kind=RKIND), intent(in) :: dt
       integer :: i, iCell, iEdge, iVertex, k
       type (block_type), pointer :: block
 
@@ -3547,19 +3641,21 @@ module ocn_time_integration_si
             allocate(R1_alpha1s_g_dts(config_n_ts_iter))
             allocate(R1_alpha1s_g_dt(config_n_ts_iter))
 
-            read(config_dt(1:2),*) ihh
-            read(config_dt(4:5),*) imm
-            read(config_dt(7:8),*) iss
+            !210512 LPV -- REMOVE config_dt read and pass in dt instead
+!            print *, config_dt
+!            read(config_dt(1:2),*) ihh
+!            read(config_dt(4:5),*) imm
+!            read(config_dt(7:8),*) iss
 
-            tmp1 = ihh * 3600.0_RKIND + imm * 60.0_RKIND + iss
+ !           tmp1 = ihh * 3600.0_RKIND + imm * 60.0_RKIND + iss
 
-            if ( tmp1 > 3600.0_RKIND .or. config_n_ts_iter == 1 ) then
-               dt_si(1) = tmp1 * 2.0_RKIND
-               dt_si(2) = tmp1 * 2.0_RKIND
+            if ( dt > 3600.0_RKIND .or. config_n_ts_iter == 1 ) then
+               dt_si(1) = dt * 2.0_RKIND
+               dt_si(2) = dt * 2.0_RKIND
                si_opt = 1
             else
-               dt_si(1) = tmp1
-               dt_si(2) = tmp1
+               dt_si(1) = dt
+               dt_si(2) = dt
                si_opt = 2
             endif
 

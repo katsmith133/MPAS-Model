@@ -79,7 +79,7 @@ contains
 !-----------------------------------------------------------------------
 
    subroutine ocn_vel_pressure_grad_tend(meshPool, ssh, nonhydrostaticPressure, pressure, montgomeryPotential, zMid, &
-       density, potentialDensity, indexT, indexS, tracers, tend, err, inSituThermalExpansionCoeff,inSituSalineContractionCoeff)!{{{
+       density, potentialDensity, indexT, indexS, tracers, tend, err, inSituThermalExpansionCoeff,inSituSalineContractionCoeff)
 
       !-----------------------------------------------------------------
       !
@@ -141,7 +141,8 @@ contains
       real (kind=RKIND), dimension(:), pointer :: dcEdge
       real (kind=RKIND), dimension(:), allocatable :: JacobianDxDs,JacobianTz,JacobianSz,T1,T2,S1,S2
       real (kind=RKIND), dimension(:,:), allocatable :: FXTop, work1, work2
-      real (kind=RKIND) :: dqdz, invdcEdge, pGrad, sumAJTop, AJTop, FC, FCPrev, alpha, beta
+      real (kind=RKIND), dimension(:), allocatable :: dqdz
+      real (kind=RKIND) :: dqdza, invdcEdge, pGrad, sumAJTop, AJTop, FC, FCPrev, alpha, beta
 
       err = 0
 
@@ -193,7 +194,7 @@ contains
             do k=1,maxLevelEdgeTop(iEdge)
                tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * (    &
                  - density0Inv * ( pressure(k,cell2) - pressure(k,cell1) )          &
-                 - gdensity0Inv * 0.5_RKIND*(density(k,cell1)+density(k,cell2)) *   &
+                 - gdensity0Inv * (density(k,cell1)+density(k,cell2)) *   &
                  ( zMid(k,cell2) - zMid(k,cell1) ) )
             end do
          end do
@@ -201,24 +202,48 @@ contains
          !$omp end parallel
 
          if(config_enable_nonhydrostatic_mode) then
+           allocate(dqdz(nVertLevels))
             !$omp parallel
-            !$omp do schedule(runtime) private(cell1, cell2, invdcEdge, k)
+            !$omp do schedule(runtime) private(cell1, cell2, invdcEdge, k, dqdz)
             do iEdge=1,nEdges
                cell1 = cellsOnEdge(1,iEdge)
                cell2 = cellsOnEdge(2,iEdge)
                invdcEdge = 1.0_RKIND / dcEdge(iEdge)
+               dqdz(:) = 0.0_RKIND
+
+               ! Compute dq/dz (assume q=0 at the surface)
+               dqdz(1) = 0.25_RKIND*(-2.0_RKIND*nonhydrostaticPressure(1,cell1) / (zMid(1,cell1) - &
+                          zMid(2,cell1)) - 2.0_RKIND*nonhydrostaticPressure(1,cell2) / &
+                          (zMid(1,cell2) - zMid(2,cell2)) + (nonhydrostaticPressure(1,cell1) - &
+                          nonhydrostaticPressure(2,cell1)) / (zMid(1,cell1) - zMid(2,cell1)) + &
+                          (nonhydrostaticPressure(1,cell2) - nonhydrostaticPressure(2,cell2)) / &
+                           (zMid(1,cell2) - zMid(2,cell2)))
+               do k=2,maxLevelEdgeTop(iEdge)-1
+                  dqdz(k) = 0.5_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k+1,cell1)) / &
+                             (zMid(k-1,cell1) - zMid(k+1,cell1)) + (nonhydrostaticPressure(k-1,cell2) - &
+                             nonhydrostaticPressure(k+1,cell2)) /  (zMid(k-1,cell2) - zMid(k,cell2)))
+               end do
+
+               k = maxLevelEdgeTop(iEdge)
+               dqdz(k) = 0.25_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k,cell1)) / &
+                          (zMid(k-1,cell1) - zMid(k,cell1)) + (nonhydrostaticPressure(k-1,cell2) - &
+                          nonhydrostaticPressure(k,cell2)) / (zMid(k-1,cell2) - zMid(k,cell2)) + &
+                          2.0_RKIND*nonhydrostaticPressure(k,cell1) / (zMid(k-1,cell1) - zMid(k,cell1)) + &
+                          2.0_RKIND*nonhydrostaticPressure(k,cell2) / (zMid(k-1,cell2) - zMid(k,cell2)))
 
                !FIXME: may need to revisit later for sloping surfaces, but okay for now
                !only for strongly varying layer thickness
                do k=1,maxLevelEdgeTop(iEdge)
                   tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
                     - density0Inv * ( nonhydrostaticPressure(k,cell2) -             &
-                    nonhydrostaticPressure(k,cell1) ) )
+                    nonhydrostaticPressure(k,cell1) ) + dqdz(k)*density0Inv*        &
+                    (zMid(k,cell2) - zMid(k,cell1)))
                enddo
 
            end do
            !$omp end do
            !$omp end parallel
+           deallocate(dqdz)
         endif
       elseif (config_pressure_gradient_type.eq.'MontgomeryPotential') then
 
@@ -326,29 +351,29 @@ contains
                invdcEdge = 1.0_RKIND / dcEdge(iEdge)
 
                k=1
-               dqdz = 0.5_RKIND*((nonhydrostaticPressure(k,cell1) - nonhydrostaticPressure(k+1,cell1)          &
+               dqdza = 0.5_RKIND*((nonhydrostaticPressure(k,cell1) - nonhydrostaticPressure(k+1,cell1)          &
                   ) / (zMid(k,cell1) - zMid(k+1,cell1)) + (nonhydrostaticPressure(k,cell2) - &
                   nonhydrostaticPressure(k+1,cell2)) / (zMid(k,cell2) - zMid(k+1,cell2)))
                tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
                   - density0Inv * ( nonhydrostaticPressure(k,cell2) - nonhydrostaticPressure(k,cell1) ) &
-                  - dqdz*( zMid(k,cell2) - zMid(k,cell1) ) )
+                  - dqdza*( zMid(k,cell2) - zMid(k,cell1) ) )
 
                do k=1,maxLevelEdgeTop(iEdge)
-                  dqdz = 0.5_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k+1,cell1)) &
+                  dqdza = 0.5_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k+1,cell1)) &
                     / (zMid(k-1,cell1) - zMid(k+1,cell1)) + (nonhydrostaticPressure(k-1,cell2) - &
                     nonhydrostaticPressure(k+1,cell2)) / (zMid(k-1,cell2) - zMid(k+1,cell2)))
 
                   tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
                     - density0Inv * ( nonhydrostaticPressure(k,cell2) -             &
-                    nonhydrostaticPressure(k,cell1) ) - dqdz * (zMid(k,cell2) - zMid(k,cell1)))
+                    nonhydrostaticPressure(k,cell1) ) - dqdza * (zMid(k,cell2) - zMid(k,cell1)))
                enddo
                k=maxLevelEdgeTop(iEdge)
-               dqdz = 0.5_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k,cell1)) / &
+               dqdza = 0.5_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k,cell1)) / &
                  (zMid(k-1,cell1) - zMid(k,cell1)) + (nonhydrostaticPressure(k-1,cell2) - &
                  nonhydrostaticPressure(k,cell2)) / (zMid(k-1,cell2) - zMid(k,cell1)))
                tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
                  -density0Inv * ( nonhydrostaticPressure(k,cell2) - nonhydrostaticPressure(k,cell1) ) - &
-                 dqdz * (zMid(k,cell2) - zMid(k,cell1)))
+                 dqdza * (zMid(k,cell2) - zMid(k,cell1)))
 
            end do
            !$omp end do
@@ -429,29 +454,29 @@ contains
                invdcEdge = 1.0_RKIND / dcEdge(iEdge)
 
                k=1
-               dqdz = 0.5_RKIND*((nonhydrostaticPressure(k,cell1) - nonhydrostaticPressure(k+1,cell1)          &
+               dqdza = 0.5_RKIND*((nonhydrostaticPressure(k,cell1) - nonhydrostaticPressure(k+1,cell1)          &
                   ) / (zMid(k,cell1) - zMid(k+1,cell1)) + (nonhydrostaticPressure(k,cell2) - &
                   nonhydrostaticPressure(k+1,cell2)) / (zMid(k,cell2) - zMid(k+1,cell2)))
                tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
                   - density0Inv * ( nonhydrostaticPressure(k,cell2) - nonhydrostaticPressure(k,cell1) ) &
-                  - dqdz*( zMid(k,cell2) - zMid(k,cell1) ) )
+                  - dqdza*( zMid(k,cell2) - zMid(k,cell1) ) )
 
                do k=2,maxLevelEdgeTop(iEdge)-1
-                  dqdz = 0.5_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k+1,cell1)) &
+                  dqdza = 0.5_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k+1,cell1)) &
                     / (zMid(k-1,cell1) - zMid(k+1,cell1)) + (nonhydrostaticPressure(k-1,cell2) - &
                     nonhydrostaticPressure(k+1,cell2)) / (zMid(k-1,cell2) - zMid(k+1,cell2)))
 
                   tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
                     - density0Inv * ( nonhydrostaticPressure(k,cell2) -             &
-                    nonhydrostaticPressure(k,cell1) ) - dqdz * (zMid(k,cell2) - zMid(k,cell1)))
+                    nonhydrostaticPressure(k,cell1) ) - dqdza * (zMid(k,cell2) - zMid(k,cell1)))
                enddo
                k=maxLevelEdgeTop(iEdge)
-               dqdz = 0.5_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k,cell1)) / &
+               dqdza = 0.5_RKIND*((nonhydrostaticPressure(k-1,cell1) - nonhydrostaticPressure(k,cell1)) / &
                  (zMid(k-1,cell1) - zMid(k,cell1)) + (nonhydrostaticPressure(k-1,cell2) - &
                  nonhydrostaticPressure(k,cell2)) / (zMid(k-1,cell2) - zMid(k,cell1)))
                tend(k,iEdge) = tend(k,iEdge) + edgeMask(k,iEdge) * invdcEdge * ( &
                  -density0Inv * ( nonhydrostaticPressure(k,cell2) - nonhydrostaticPressure(k,cell1) ) - &
-                 dqdz * (zMid(k,cell2) - zMid(k,cell1)))
+                 dqdza * (zMid(k,cell2) - zMid(k,cell1)))
 
            end do
            !$omp end do
@@ -472,7 +497,7 @@ contains
 
    !--------------------------------------------------------------------
 
-   end subroutine ocn_vel_pressure_grad_tend!}}}
+   end subroutine ocn_vel_pressure_grad_tend
 
 !***********************************************************************
 !
@@ -770,7 +795,7 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   subroutine ocn_vel_pressure_grad_init(err)!{{{
+   subroutine ocn_vel_pressure_grad_init(err)
 
    !--------------------------------------------------------------------
 
@@ -804,7 +829,7 @@ contains
 
    !--------------------------------------------------------------------
 
-   end subroutine ocn_vel_pressure_grad_init!}}}
+   end subroutine ocn_vel_pressure_grad_init
 
 !***********************************************************************
 

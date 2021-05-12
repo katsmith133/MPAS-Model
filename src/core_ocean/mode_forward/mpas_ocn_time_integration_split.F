@@ -181,6 +181,7 @@ module ocn_time_integration_split
       real (kind=RKIND), dimension(:,:), pointer :: layerThicknessCur, layerThicknessNew
       real (kind=RKIND), dimension(:,:), pointer :: verticalVelocityCur, verticalVelocityNew
       real (kind=RKIND), dimension(:,:), pointer :: nonhydrostaticPressure, nonhydrostaticPressureOld
+      real (kind=RKIND), dimension(:,:), pointer :: nhPressureCorrection
       real (kind=RKIND), dimension(:,:), pointer :: highFreqThicknessCur, highFreqThicknessNew
       real (kind=RKIND), dimension(:,:), pointer :: lowFreqDivergenceCur, lowFreqDivergenceNew
       real (kind=RKIND), dimension(:,:,:), pointer :: tracersGroupCur, tracersGroupNew
@@ -313,6 +314,8 @@ module ocn_time_integration_split
             call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityCur, 1)
             call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityNew, 2)
          end if
+
+         call mpas_pool_get_array(diagnosticsPool, 'nhPressureCorrection', nhPressureCorrection)
 
          call mpas_pool_get_array(statePool, 'highFreqThickness', highFreqThicknessCur, 1)
          call mpas_pool_get_array(statePool, 'highFreqThickness', highFreqThicknessNew, 2)
@@ -542,17 +545,19 @@ module ocn_time_integration_split
            call mpas_pool_get_array(diagnosticsPool, 'layerThicknessEdge', layerThicknessEdge)
            call mpas_pool_get_array(diagnosticsPool, 'vertAleTransportTop', vertAleTransportTop)
            call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityCur, 1)
+           call mpas_pool_get_array(diagnosticsPool, 'nhPressureCorrection', nhPressureCorrection)
 
            ! compute vertAleTransportTop.  Use u (rather than normalTransportVelocity) for momentum advection.
            ! Use the most recent time level available.
            if (associated(highFreqThicknessNew)) then
               call ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, &
                  layerThicknessCur, layerThicknessEdge, normalVelocityCur, &
-                 verticalVelocityCur, sshCur, dt, vertAleTransportTop, err, highFreqThicknessNew)
+                 verticalVelocityCur, sshCur, dt, vertAleTransportTop, nhPressureCorrection, &
+                 err, highFreqThicknessNew)
             else
                call ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, &
                   layerThicknessCur, layerThicknessEdge, normalVelocityCur, &
-                  verticalVelocityCur, sshCur, dt, vertAleTransportTop, err)
+                  verticalVelocityCur, sshCur, dt, vertAleTransportTop, nhPressureCorrection, err)
             endif
 
            call ocn_tend_vel(tendPool, statePool, forcingPool, diagnosticsPool, meshPool, scratchPool, stage1_tend_time, dt)
@@ -1535,6 +1540,7 @@ module ocn_time_integration_split
             call mpas_pool_get_array(diagnosticsPool, 'normalTransportVelocity', normalTransportVelocity)
             call mpas_pool_get_array(diagnosticsPool, 'vertAleTransportTop', vertAleTransportTop)
             call mpas_pool_get_array(statePool, 'verticalVelocity', verticalVelocityCur, 1)
+            call mpas_pool_get_array(diagnosticsPool, 'nhPressureCorrection', nhPressureCorrection)
 
             ! compute vertAleTransportTop.  Use normalTransportVelocity for advection of layerThickness and tracers.
             ! Use time level 1 values of layerThickness and layerThicknessEdge because
@@ -1543,11 +1549,12 @@ module ocn_time_integration_split
             if (associated(highFreqThicknessNew)) then
                call ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, &
                  layerThicknessCur, layerThicknessEdge, normalTransportVelocity, &
-                 verticalVelocityCur, sshCur, dt, vertAleTransportTop, err, highFreqThicknessNew)
+                 verticalVelocityCur, sshCur, dt, vertAleTransportTop, nhPressureCorrection, &
+                 err, highFreqThicknessNew)
             else
                call ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, &
                  layerThicknessCur, layerThicknessEdge, normalTransportVelocity, &
-                 verticalVelocityCur, sshCur, dt, vertAleTransportTop, err)
+                 verticalVelocityCur, sshCur, dt, vertAleTransportTop, nhPressureCorrection, err)
             endif
             call mpas_timer_stop('thick vert trans vel top')
 
@@ -1766,8 +1773,8 @@ module ocn_time_integration_split
                         verticalVelocityNew(k,iCell) = verticalVelocityCur(k,iCell) + dt * verticalVelocityTend(k,iCell)
                      end do
                   end do
-                  !$omp parallel
-                  !$omp end do
+                  !$omp end do 
+                  !$omp end parallel
                end if
                !$omp parallel
                !$omp do schedule(runtime) private(k)
@@ -2035,17 +2042,21 @@ module ocn_time_integration_split
             call mpas_pool_get_array(statePool, 'layerThickness', layerThicknessNew, 2)
             call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressure,2)
             call mpas_pool_get_array(statePool, 'nonhydrostaticPressure', nonhydrostaticPressureOld,1)
+            call mpas_pool_get_array(diagnosticsPool, 'nhPressureCorrection', nhPressureCorrection)
 
             dminfo = domain % dminfo
             call ocn_nonhydrostatic_pressure_tend(normalVelocityNew, verticalVelocityNew, &
-              layerThicknessNew, layerThicknessEdge, nonhydrostaticPressure, dminfo % comm, dt)
+              layerThicknessNew, layerThicknessEdge, nhPressureCorrection, dminfo % comm, dt)
 
             call mpas_timer_start('se NHpressure tend halo pressure')
             call mpas_dmpar_field_halo_exch(domain, 'nonhydrostaticPressure', timeLevel=2)
+            call mpas_dmpar_field_halo_exch(domain, 'nonhydrostaticPressure', timeLevel=1)
+            call mpas_dmpar_field_halo_exch(domain, 'nhPressureCorrection')
             call mpas_timer_stop('se NHpressure tend halo pressure')
 
             call ocn_nonhydrostatic_pressure_update_velocity(normalVelocityNew, verticalVelocityNew, &
-              layerThicknessNew, layerThicknessEdge, nonhydrostaticPressure, nonhydrostaticPressureOld, dt)
+              layerThicknessNew, layerThicknessEdge, nonhydrostaticPressure, nonhydrostaticPressureOld, &
+              nhPressureCorrection, dt)
 
             block => block % next
          end do

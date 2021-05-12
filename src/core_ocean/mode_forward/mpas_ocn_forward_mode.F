@@ -269,10 +269,13 @@ module ocn_forward_mode
 
       call ocn_init_routines_compute_max_level(domain)
 
+      timeStep = mpas_get_clock_timestep(domain % clock, ierr=err_tmp)
+      call mpas_get_timeInterval(timeStep, dt=dt)
+
       call mpas_pool_get_config(domain % configs, 'config_time_integrator', config_time_integrator)
 
       if (trim(config_time_integrator) == 'semi_implicit' ) then
-        call ocn_time_integration_si_init(domain)
+        call ocn_time_integration_si_init(domain, dt)
       else
         call ocn_time_integration_split_init(domain)
       endif
@@ -332,10 +335,6 @@ module ocn_forward_mode
         call ocn_nonhydrostatic_solver_init(domain % dminfo % comm, err_tmp)
         ierr = ior(ierr, err_tmp)
       endif
-
-
-      timeStep = mpas_get_clock_timestep(domain % clock, ierr=err_tmp)
-      call mpas_get_timeInterval(timeStep, dt=dt)
 
       block => domain % blocklist
       do while (associated(block))

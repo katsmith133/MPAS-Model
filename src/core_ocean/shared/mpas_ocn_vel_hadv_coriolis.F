@@ -181,7 +181,7 @@ contains
          end do
 
          do k = 1, maxLevelEdgeTop(iEdge)
-            tend(k, iEdge) = tend(k, iEdge) + edgeMask(k, iEdge) * ( qArr(k) - ( kineticEnergyCell(k, cell2) &
+            tend(k, iEdge) = tend(k, iEdge) + edgeMask(k, iEdge) * (qArr(k) - ( kineticEnergyCell(k, cell2) &
                           - kineticEnergyCell(k, cell1) ) * invLength )
          end do
 

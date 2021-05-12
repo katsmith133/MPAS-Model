@@ -1172,7 +1172,7 @@ contains
                divergence(k, iCell) = divergence(k, iCell) - edgeSignOnCell_temp * r_tmp
                div_hu(k) = div_hu(k) - layerThicknessEdge(k, iEdge) * edgeSignOnCell_temp * r_tmp
                kineticEnergyCell(k, iCell) = kineticEnergyCell(k, iCell) &
-                                              + 0.25 * r_tmp * dcEdge_temp * normalVelocity(k,iEdge)
+                                              + 0.5 * r_tmp * dcEdge_temp * normalVelocity(k,iEdge)
                ! Compute vertical velocity from the horizontal total transport
                div_huTransport(k) = div_huTransport(k) &
                                     - layerThicknessEdge(k, iEdge) * edgeSignOnCell_temp &
@@ -1195,7 +1195,7 @@ contains
       !$omp end parallel
 
       !LVR: 20201204 -- add in new vertical velocity prognostic variable
-      if(.not. config_enable_nonhydrostatic_mode .or. config_enable_vertMomentum_disable_nonHydro) then
+      if(.not. config_enable_nonhydrostatic_mode .and. config_disable_ALE) then
         !$omp parallel
         !$omp do schedule(runtime) &
         !$omp private(k)
@@ -1491,7 +1491,8 @@ contains
 !
 !-----------------------------------------------------------------------
    subroutine ocn_vert_transport_velocity_top(meshPool, verticalMeshPool, scratchPool, oldLayerThickness, layerThicknessEdge, &
-     normalVelocity, verticalVelocity, oldSSH, dt, vertAleTransportTop, err, newHighFreqThickness)!{{{
+     normalVelocity, verticalVelocity, oldSSH, dt, vertAleTransportTop, nhPressureCorrection, err, &
+     newHighFreqThickness)!{{{
 
       !-----------------------------------------------------------------
       !
@@ -1527,6 +1528,9 @@ contains
       real (kind=RKIND), dimension(:,:), intent(in), optional :: &
          newHighFreqThickness   !< Input: high frequency thickness.  Alters ALE thickness.
 
+      real (kind=RKIND), dimension(:,:), intent(in) :: &
+         nhPressureCorrection
+
       real (kind=RKIND), intent(in) :: &
          dt     !< Input: time step
 
@@ -1547,7 +1551,7 @@ contains
       !
       !-----------------------------------------------------------------
 
-      integer :: iEdge, iCell, k, i, nCells
+      integer :: iEdge, iCell, k, i, nCells, cell1, cell2
 
       real (kind=RKIND) :: flux, invAreaCell, div_hu_btr
       integer, dimension(:, :), pointer :: edgeSignOnCell
@@ -1606,6 +1610,33 @@ contains
       !$omp end do
       !$omp end parallel
 
+      if(config_enable_nonhydrostatic_mode .and. iCell == -1) then
+         !$omp parallel
+         !$omp do schedule(runtime) private(invAreaCell, i, iEdge, k, flux, div_hu_btr)
+         do iCell=1,nCells
+            div_hu_btr = 0.0_RKIND
+            invAreaCell = 1.0_RKIND / areaCell(iCell)
+            do i = 1, nEdgesOnCell(iCell)
+               iEdge = edgesOnCell(i, iCell)
+               cell1 = cellsOnEdge(1, iEdge)
+               cell2 = cellsOnEdge(2, iEdge)
+
+               do k=1, maxLevelEdgeTop(iEdge)
+                  flux = layerThicknessEdge(k,iEdge)*dvEdge(iEdge)*edgeSignOnCell(i,iCell)*invAreaCell* &
+                      (nhPressureCorrection(k,cell2) - nhPressureCorrection(k,cell1)) / dcEdge(iEdge)
+
+                  div_hu(k,iCell) = div_hu(k,iCell) + flux
+               end do
+            end do
+
+            do k=1,maxLevelCell(iCell)
+               div_hu_btr = div_hu_btr + div_hu(k,iCell)
+            end do
+            projectedSSH(iCell) = oldSSH(iCell) - dt*div_hu_btr
+         end do
+         !$omp end do
+         !$omp end parallel
+      end if
       !
       ! Compute desired thickness at new time
       !
@@ -1622,34 +1653,22 @@ contains
       ! Here we are using solving the continuity equation for vertAleTransportTop ($w^t$),
       ! and using ALE_Thickness for thickness at the new time.
 
-      if(config_enable_nonhydrostatic_mode) then
-        !FIXME - need to add vertGMBolusVelocity here
-        !$omp parallel
+       !$omp parallel
         !$omp do schedule(runtime) private(k)
         do iCell = 1,nCells
            vertAleTransportTop(1,iCell) = 0.0_RKIND
            vertAleTransportTop(maxLevelCell(iCell)+1,iCell) = 0.0_RKIND
            do k = maxLevelCell(iCell),2,-1
-              vertAleTransportTop(k,iCell) = vertAleTransportTop(k+1,iCell) + verticalVelocity(k,iCell) & !LPV changed for nonhydrostatic mode
+             vertAleTransportTop(k,iCell) = vertAleTransportTop(k+1,iCell) - div_hu(k,iCell) &
                 - (ALE_Thickness(k,iCell) - oldLayerThickness(k,iCell))/dt
            end do
+           if(config_disable_ALE) then
+              k=1
+              vertAleTransportTop(k,iCell) = vertAleTransportTop(k+1,iCell) - div_hu(k,iCell)
+           end if
         end do
         !$omp end do
         !$omp end parallel
-      else
-        !$omp parallel
-        !$omp do schedule(runtime) private(k)
-        do iCell = 1,nCells
-         !  vertAleTransportTop(1,iCell) = 0.0_RKIND
-           vertAleTransportTop(maxLevelCell(iCell)+1,iCell) = 0.0_RKIND
-           do k = maxLevelCell(iCell),1,-1
-              vertAleTransportTop(k,iCell) = vertAleTransportTop(k+1,iCell) - div_hu(k,iCell) &
-                - (ALE_Thickness(k,iCell) - oldLayerThickness(k,iCell))/dt
-           end do
-        end do
-        !$omp end do
-        !$omp end parallel
-      endif
 
       deallocate(div_hu, &
                  projectedSSH, &

@@ -31,4 +31,8 @@
 			description="f-plane strength for Coriolis"
 			possible_values="small real numbers"
 			/>
+		<nml_option name="config_deep_convection_smooth_passes" type="integer" default_value="0" unit="unitless"
+		    description="number of smoothing passes of layer 1 temperature"
+			possible_values="positive integers"
+			/>
 	</nml_record>

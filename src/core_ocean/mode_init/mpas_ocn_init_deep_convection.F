@@ -90,10 +90,10 @@ contains
     type (mpas_pool_type), pointer :: forcingPool
 
     ! local variables
-    integer :: iCell, k, idx
+    integer :: iCell, k, idx, edgeCount, iNeighbor, nEdges, iEdge
     real (kind=RKIND) :: yMin, yMax, xMin, xMax, dcEdgeMin, dcEdgeMinGlobal
     real (kind=RKIND) :: yMinGlobal, yMaxGlobal, yMidGlobal, xMinGlobal, xMaxGlobal
-    real (kind=RKIND) :: localVar1, localVar2
+    real (kind=RKIND) :: localVar1, localVar2, areaSum
     real (kind=RKIND), dimension(:), pointer :: interfaceLocations
 
     ! Define dimension pointers
@@ -102,13 +102,15 @@ contains
 
     ! Define variable pointers
     logical, pointer :: on_a_sphere
-    integer, dimension(:), pointer :: maxLevelCell
+    integer, dimension(:), pointer :: maxLevelCell, nEdgesOnCell
+    integer, dimension(:,:), pointer :: cellsOnCell, cellMask
     real (kind=RKIND), dimension(:), pointer :: refBottomDepth, refZMid, &
          vertCoordMovementWeights, bottomDepth, &
-         fCell, fEdge, fVertex, latentHeatFlux
+         fCell, fEdge, fVertex, latentHeatFlux, areaCell
     real (kind=RKIND), dimension(:,:), pointer :: layerThickness, restingThickness
     real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers
 
+    real (kind=RKIND), dimension(:), allocatable :: sstSmooth
     real (kind=RKIND) :: botDepth, randVal
 
     iErr = 0
@@ -145,6 +147,10 @@ contains
        call mpas_pool_get_dimension(tracersPool, 'index_temperature', index_temperature)
        call mpas_pool_get_dimension(tracersPool, 'index_salinity', index_salinity)
 
+       call mpas_pool_get_array(meshPool, 'areaCell', areaCell)
+       call mpas_pool_get_array(meshPool, 'nEdgesOnCell', nEdgesOnCell)
+       call mpas_pool_get_array(meshPool, 'cellMask', cellMask)
+       call mpas_pool_get_array(meshPool, 'cellsOnCell', cellsOnCell)
        call mpas_pool_get_array(meshPool, 'refBottomDepth', refBottomDepth)
        call mpas_pool_get_array(meshPool, 'vertCoordMovementWeights', vertCoordMovementWeights)
        call mpas_pool_get_array(meshPool, 'bottomDepth', bottomDepth)
@@ -168,6 +174,7 @@ contains
           refZMid(k) = - 0.5_RKIND * (interfaceLocations(k+1) + interfaceLocations(k)) * botDepth
        end do
 
+       allocate(sstSmooth(nCellsSolve))
        ! Set vertCoordMovementWeights
        vertCoordMovementWeights(:) = 1.0_RKIND
 
@@ -212,6 +219,32 @@ contains
           ! Set latent heat flux
           latentHeatFlux(iCell) = config_deep_convection_surface_cooling_strength
 
+       end do
+
+       !Smooth the initial noise
+       do k=1,config_deep_convection_smooth_passes
+          idx = index_temperature
+          do iCell=1,nCellsSolve
+             sstSmooth(iCell) = 0.0_RKIND
+             nEdges = nEdgesOnCell(iCell)
+             areaSum = 0.0_RKIND
+             edgeCount = 0
+
+             do iEdge = 1,nEdges
+                iNeighbor = cellsOnCell(iEdge,iCell)
+                sstSmooth(iCell) = sstSmooth(iCell) + 2.0_RKIND * areaCell(iNeighbor) * &
+                                   activeTracers(idx,1,iNeighbor)
+                areaSum = areaSum + 2.0_RKIND * areaCell(iNeighbor)
+                edgeCount = edgeCount + 1 
+             end do
+             areaSum = areaSum + edgeCount*areaCell(iCell)
+             sstSmooth(iCell) = sstSmooth(iCell) + activeTracers(idx, 1, iCell) * edgeCount * areaCell(iCell)
+             sstSmooth(iCell) = sstSmooth(iCell) / areaSum
+          end do
+
+          do iCell = 1,nCellsSolve
+             activeTracers(idx,1,iCell) = sstSmooth(iCell)
+          end do
        end do
 
        block_ptr => block_ptr % next

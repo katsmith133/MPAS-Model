@@ -134,8 +134,8 @@ contains
       do iCell= 1, nCells
 
          do k = 2, maxLevelCell(iCell)
-            tend(k, iCell) = tend(k, iCell) - 1.0_RKIND/rho_sw * (pressure(k-1,iCell) - &
-                  pressure(k,iCell)) / (zMid(k-1,iCell) - zMid(k,iCell))
+            tend(k, iCell) = tend(k, iCell) - (pressure(k-1,iCell) - &
+                  pressure(k,iCell)) / (rho_sw*(zMid(k-1,iCell) - zMid(k,iCell)))
          end do
 
       end do
