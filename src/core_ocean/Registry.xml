@@ -1003,6 +1003,10 @@
           description="Flag to enable the nonhydrostatic pressure calculation"
           possible_values=".true. or .false."
     />
+    <nml_option name="config_nonhydrostatic_solve_surface_boundary_condition" type="character" default_value="noGradient" units="unitless"
+		  description="setting for surface boundary condition for the pressure correction solve"
+		  possible_values="noGradient or no pressure"
+	/>
 	<nml_option name="config_enable_vertMomentum_disable_nonHydro" type="logical" default_value=".false." units="unitless"
 		  description="flag to enable hydrostatic pressure with vertical momentum tendencies"
 		  possible_values=".true. or .false."

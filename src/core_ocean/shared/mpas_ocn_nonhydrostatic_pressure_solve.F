@@ -87,6 +87,7 @@ module ocn_compute_nonhydrostatic_pressure
   Vec :: local_x ! local value of things to grab from global vector
   PetscInt,allocatable,dimension(:) :: destIndex, origIndex
   PetscScalar,pointer :: values(:)
+  real(kind=RKIND) :: surfaceBoundaryCondition
 
   contains
 
@@ -406,7 +407,7 @@ module ocn_compute_nonhydrostatic_pressure
      row = (indexToCellId(iCell) - 1)*nVertLevels + k - 1
      ! k value
      insertVal = -dt*areaCell(iCell)*(1.0_RKIND / (0.5_RKIND*(layerThickness(k,iCell) + layerThickness(k+1,iCell) + 1.0E-15_RKIND)) + &
-                    2.0_RKIND / (layerThickness(k,iCell) + 1.0E-15_RKIND))
+                    surfaceBoundaryCondition*2.0_RKIND / (layerThickness(k,iCell) + 1.0E-15_RKIND))
      call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
 
      ! k + 1 value
@@ -442,7 +443,7 @@ module ocn_compute_nonhydrostatic_pressure
      !k value
      col = (indexToCellId(iCell) - 1)*nVertLevels + k - 1 
      insertVal = -dt*areaCell(iCell)*(1.0/(0.5_RKIND*(layerThickness(k-1,iCell) + layerThickness(k,iCell) + 1.0E-15_RKIND)) + &
-                  2.0_RKIND / (layerThickness(k,iCell) + 1.0E-15_RKIND))
+                  surfaceBoundaryCondition*2.0_RKIND / (layerThickness(k,iCell) + 1.0E-15_RKIND))
      call MatSetValues(Amat, 1, row, 1, col, insertVal, ADD_VALUES, petsc_err)
   end do !iCell loop
 
@@ -508,6 +509,12 @@ module ocn_compute_nonhydrostatic_pressure
     PetscReal :: val
     ISLocalToGlobalMapping :: mapping
     integer :: k, iCell, iter
+
+    if(config_nonhydrostatic_solve_surface_boundary_condition == 'noGradient') then
+       surfaceBoundaryCondition = 0.0_RKIND
+    else
+       surfaceBoundaryCondition = 1.0_RKIND
+    endif
 
     call MPI_comm_size(mpi_comm, commsize, ierr)
 
