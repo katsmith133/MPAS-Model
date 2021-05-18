@@ -265,8 +265,8 @@ module ocn_adc_mixing_fused
 
         sfcFrictionVelocitySquared = sqrt(uwsfc(iCell)**2 + vwsfc(iCell)**2)
         do k=1,2
-          u2(k,1,iCell) = sfcFrictionVelocitySquared !+ 0.3*wstar**2.0
-          v2(k,1,iCell) = sfcFrictionVelocitySquared !+ 0.3*wstar**2.0
+          u2(k,1,iCell) = uwsfc(iCell)! sfcFrictionVelocitySquared !+ 0.3*wstar**2.0
+          v2(k,1,iCell) = vwsfc(iCell)! sfcFrictionVelocitySquared !+ 0.3*wstar**2.0
           uw(k,1,iCell) = -uwsfc(iCell)
           vw(k,1,iCell) = -vwsfc(iCell)
           wt(k,1,iCell) = wtsfc(iCell)
