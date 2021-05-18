@@ -236,6 +236,8 @@ module ocn_adc_mixing_fused
       real,dimension(nVertLevels,nCells) :: tauw3, tauTemp, tauSalt, tauVel, tauvVel
       real,dimension(nVertLevels,nCells) :: areaFractionMid, tumdMid, McMid, wumdMid, sumdMid
 
+      real :: Swk
+
       dt_small = config_adc_timestep
       niter = dt / dt_small
 
@@ -443,8 +445,14 @@ module ocn_adc_mixing_fused
 !                    wumd(k,iCell)**2.0_RKIND - (1.0_RKIND -                                &
 !                    2.0_RKIND*areaFraction(k+1,iCell))*wumd(k+1,iCell)**2.0_RKIND) / dz
               !Revert to QNA for the w4 term and combine with transport term, zeroing out w3tend2 as its unneeded
-              w3tend2(k,iCell) = 0.0_RKIND
-              w3tend3(k,iCell) = -1.5_RKIND*(w2(i1,k,iCell)**2.0 - w2(i1,k+1,iCell)**2.0) / dz
+
+              Swk   =  -(1.0_RKIND-2.0_RKIND*sigav)/(sigav*(1.0_RKIND-sigav))**0.5 
+              w3tend2(k,iCell) = -((3.0_RKIND + Swk**2.0)*(w2(i1,k,iCell)**2.0) - &
+                                   (3.0_RKIND + Swk**2.0)*(w2(i1,k+1,iCell)**2.0) ) / dz
+              w3tend3(k,iCell) = 1.5_RKIND*(w2(i1,k,iCell)**2.0 - w2(i1,k+1,iCell)**2.0) / dz
+
+!              w3tend2(k,iCell) = 0.0_RKIND
+!              w3tend3(k,iCell) = -1.5_RKIND*(w2(i1,k,iCell)**2.0 - w2(i1,k+1,iCell)**2.0) / dz
               w3tend4(k,iCell) = -3.0_RKIND*(1.0_RKIND - 2.0_RKIND*sigav)*Mcav*wumdav*Swumd(k,iCell) - &
                     tauw3(k,iCell)*w3(i1,k,iCell)
               w3tend5(k,iCell) = 3.0_RKIND*(1.0_RKIND - c11)*grav*(alphaT(k,iCell)*w2t(k,iCell) - &
