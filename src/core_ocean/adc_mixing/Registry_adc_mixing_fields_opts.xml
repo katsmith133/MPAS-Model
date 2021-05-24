@@ -106,7 +106,39 @@
     <nml_option name="config_adc_kappaW3" type="real" default_value="0" units="m^2/s"
       description="background diffusion coefficient for w3"
       possible_values="small positive real numbers"
-      />
+	  />
+	<nml_option name="config_adc_bc_wstar" type="real" default_value="0.3" units="unitless"
+	  description="scaling factor in front of the surface boundary condition on wstar"
+	  possible_values="small positive real numbers"
+	/>
+	<nml_option name="config_adc_frictionVelocityMin" type="real" default_value="1.0e-5" units="m^2/s^2"
+	  description="minimum allowable surface friction velocity squared"
+	  possible_values="very small positive real numbers"
+	/>
+	<nml_option name="config_adc_bc_const" type="real" default_value="1.8" units="unitless"
+	  description="constant multiplying surface boundary condition, taken from CLUBB"
+	  possible_values="small positive real numbers"
+	/>
+	<nml_option name="config_adc_bc_const_wp2" type="real" default_value="1.8" units="unitless"
+	  description="identical to previous parameter but for wp2 to allow disabling"
+	  possible_values="small positive real numbers or zero"
+	/>
+	<nml_option name="config_adc_use_splat_parameterization" type="logical" default_value=".true." units="unitless"
+	  description="flag to use the splat parameterization"
+	  possible_values=".true. or .false."
+	/>
+	<nml_option name="config_adc_splat_tend_max" type="real" default_value="1.0e-5" units="m^2/s^3"
+	  description="maximum tendency of the splat term"
+	  possible_values="very small positive values"
+	/>
+	<nml_option name="config_adc_splat_wp2_val" type="real" default_value="2.0" units="unitless"
+	  description="factor multiplying the splat term in wp2 and wp3"
+	  possible_values="small positive real numbers"
+	/>
+	<nml_option name="config_adc_up2_vp2_factor" type="real" default_value="4.0" units="unitless"
+	  description="factor multiplying the boundary condition on up2 and vp2"
+	  possible_values="small positive real numbers"
+	/>
 	</nml_record>
 	<packages>
 		<package name="adcMixingPKG" description="This package includes variables required for the assumed distribution closure model."/>
@@ -241,6 +273,9 @@
     <var name="w2tend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
 			 description="shear production term"
        />
+	<var name="w2tend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+			 description="conversion of w2 due to splat effects"
+	/>
     <var name="w3tend1" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
 			 description="entrainment production term -- similar to dissipation"
 		/>
@@ -255,7 +290,10 @@
 		/>
     <var name="w3tend5" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
 			 description="third order moment of buoyancy, turb transport of buoyancy fluxes"
-       />
+			 />
+	<var name="w3tend6" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
+			 description="destruction due to splat effects"
+	/>
     <var name="wttend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
 			 description="divergence of turbulent transport of flux"
 		/>
@@ -336,7 +374,10 @@
 		/>
     <var name="u2tend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
 			 description="return to isotropy"
-       />
+    />
+	<var name="u2tend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+			 description="production due to splatting of w'2"
+	/>
     <var name="v2tend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
 			 description="divergence of turbulent transport of flux"
 		/>
@@ -351,7 +392,10 @@
 		/>
     <var name="v2tend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
 			 description="return to isotropy"
-    />
+	/>
+	<var name="v2tend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+			 description="production due to splatting of w'2"
+	/>
     <var name="u2cliptend" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
        description="if less than zero, it is reset to zero, this stores when that is active"
     />

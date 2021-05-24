@@ -59,14 +59,14 @@ module ocn_turbulence
                        Detrainment, tumd, sumd, wumd, Mc
 
    real(kind=RKIND), public, dimension(:,:), allocatable :: w2tend1, w2tend2,     &
-                       w2tend3, w2tend4, w2tend5, wttend1, wttend2,   &
-                       wttend3, wttend4, wttend5, wttend6,w3tend1, w3tend2,   &
-                       w3tend3, w3tend5, w3tend4, wstend1, wstend2,   &
+                       w2tend3, w2tend4, w2tend5, w2tend6, wttend1, wttend2,   &
+                       wttend3, wttend4, wttend5, wttend6, w3tend1, w3tend2,   &
+                       w3tend3, w3tend5, w3tend4, w3tend6, wstend1, wstend2,   &
                        wstend3, wstend4, wstend5, uwtend1, uwtend2,   &
                        uwtend3, uwtend4, uwtend5, vwtend1, vwtend2,   &
                        vwtend3, vwtend4, vwtend5, u2tend1, u2tend2,   &
-                       u2tend3, u2tend4, u2tend5, v2tend1, v2tend2,   &
-                       v2tend3, v2tend4, v2tend5, u2cliptend,         &
+                       u2tend3, u2tend4, u2tend5, u2tend6, v2tend1, v2tend2,   &
+                       v2tend3, v2tend4, v2tend5, v2tend6, u2cliptend,         &
                        v2cliptend, w2cliptend, wstend6
 
    real(kind=RKIND), public, dimension(:,:,:), allocatable :: u2, v2, w2, t2, s2, &
@@ -114,14 +114,14 @@ module ocn_turbulence
                        DetrainmentTmp, tumdTmp, sumdTmp, wumdTmp, McTmp, lendnTmp, lenupTmp
 
    real(kind=RKIND), dimension(:,:), pointer :: w2tend1Tmp, w2tend2Tmp,     &
-                       w2tend3Tmp, w2tend4Tmp, w2tend5Tmp, wttend1Tmp, wttend2Tmp,   &
+                       w2tend3Tmp, w2tend4Tmp, w2tend5Tmp, w2tend6Tmp, wttend1Tmp, wttend2Tmp,   &
                        wttend3Tmp, wttend4Tmp, wttend5Tmp, wttend6Tmp, w3tend1Tmp, w3tend2Tmp,   &
-                       w3tend3Tmp, w3tend5Tmp, w3tend4Tmp, wstend1Tmp, wstend2Tmp,   &
+                       w3tend3Tmp, w3tend5Tmp, w3tend4Tmp, w3tend6Tmp, wstend1Tmp, wstend2Tmp,   &
                        wstend3Tmp, wstend4Tmp, wstend5Tmp, uwtend1Tmp, uwtend2Tmp,   &
                        uwtend3Tmp, uwtend4Tmp, uwtend5Tmp, vwtend1Tmp, vwtend2Tmp,   &
                        vwtend3Tmp, vwtend4Tmp, vwtend5Tmp, u2tend1Tmp, u2tend2Tmp,   &
-                       u2tend3Tmp, u2tend4Tmp, u2tend5Tmp, v2tend1Tmp, v2tend2Tmp,   &
-                       v2tend3Tmp, v2tend4Tmp, v2tend5Tmp, u2cliptendTmp,         &
+                       u2tend3Tmp, u2tend4Tmp, u2tend5Tmp, u2tend6Tmp, v2tend1Tmp, v2tend2Tmp,   &
+                       v2tend3Tmp, v2tend4Tmp, v2tend5Tmp, v2tend6Tmp, u2cliptendTmp,         &
                        v2cliptendTmp, w2cliptendTmp, wstend6Tmp
 
    real(kind=RKIND), dimension(:,:), pointer :: u2Tmp, v2Tmp, w2Tmp, t2Tmp, s2Tmp, &
@@ -282,11 +282,13 @@ module ocn_turbulence
       call mpas_pool_get_array(adcTendPool, 'w2tend3', w2tend3Tmp)
       call mpas_pool_get_array(adcTendPool, 'w2tend4', w2tend4Tmp)
       call mpas_pool_get_array(adcTendPool, 'w2tend5', w2tend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w2tend6', w2tend6Tmp)
       call mpas_pool_get_array(adcTendPool, 'w3tend1', w3tend1Tmp)
       call mpas_pool_get_array(adcTendPool, 'w3tend2', w3tend2Tmp)
       call mpas_pool_get_array(adcTendPool, 'w3tend3', w3tend3Tmp)
       call mpas_pool_get_array(adcTendPool, 'w3tend4', w3tend4Tmp)
       call mpas_pool_get_array(adcTendPool, 'w3tend5', w3tend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w3tend6', w3tend6Tmp)
       call mpas_pool_get_array(adcTendPool, 'wttend1', wttend1Tmp)
       call mpas_pool_get_array(adcTendPool, 'wttend2', wttend2Tmp)
       call mpas_pool_get_array(adcTendPool, 'wttend3', wttend3Tmp)
@@ -314,11 +316,13 @@ module ocn_turbulence
       call mpas_pool_get_array(adcTendPool, 'u2tend3', u2tend3Tmp)
       call mpas_pool_get_array(adcTendPool, 'u2tend4', u2tend4Tmp)
       call mpas_pool_get_array(adcTendPool, 'u2tend5', u2tend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'u2tend6', u2tend6Tmp)
       call mpas_pool_get_array(adcTendPool, 'v2tend1', v2tend1Tmp)
       call mpas_pool_get_array(adcTendPool, 'v2tend2', v2tend2Tmp)
       call mpas_pool_get_array(adcTendPool, 'v2tend3', v2tend3Tmp)
       call mpas_pool_get_array(adcTendPool, 'v2tend4', v2tend4Tmp)
       call mpas_pool_get_array(adcTendPool, 'v2tend5', v2tend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'v2tend6', v2tend6Tmp)
       call mpas_pool_get_array(adcTendPool, 'u2cliptend', u2cliptendTmp)
       call mpas_pool_get_array(adcTendPool, 'v2cliptend', v2cliptendTmp)
       call mpas_pool_get_array(adcTendPool, 'w2cliptend', w2cliptendTmp)
@@ -328,6 +332,7 @@ module ocn_turbulence
       allocate( w2tend3( nVertLevelsP1, nCells ))
       allocate( w2tend4( nVertLevelsP1, nCells ))
       allocate( w2tend5( nVertLevelsP1, nCells ))
+      allocate( w2tend6( nVertLevelsP1, nCells ))
       allocate( wttend1( nVertLevelsP1, nCells ))
       allocate( wttend2( nVertLevelsP1, nCells ))
       allocate( wttend3( nVertLevelsP1, nCells ))
@@ -355,16 +360,19 @@ module ocn_turbulence
       allocate( v2tend3( nVertLevelsP1, nCells ))
       allocate( v2tend4( nVertLevelsP1, nCells ))
       allocate( v2tend5( nVertLevelsP1, nCells ))
+      allocate( v2tend6( nVertLevelsP1, nCells ))
       allocate( u2tend1( nVertLevelsP1, nCells ))
       allocate( u2tend2( nVertLevelsP1, nCells ))
       allocate( u2tend3( nVertLevelsP1, nCells ))
       allocate( u2tend4( nVertLevelsP1, nCells ))
       allocate( u2tend5( nVertLevelsP1, nCells ))
+      allocate( u2tend6( nVertLevelsP1, nCells ))
       allocate( w3tend1( nVertLevels, nCells ))
       allocate( w3tend2( nVertLevels, nCells ))
       allocate( w3tend3( nVertLevels, nCells ))
       allocate( w3tend4( nVertLevels, nCells ))
       allocate( w3tend5( nVertLevels, nCells ))
+      allocate( w3tend6( nVertLevels, nCells ))
       allocate( u2cliptend( nVertLevelsP1, nCells ))
       allocate( v2cliptend( nVertLevelsP1, nCells ))
       allocate( w2cliptend( nVertLevelsP1, nCells ))
@@ -374,11 +382,13 @@ module ocn_turbulence
       w2tend3 = w2tend3Tmp
       w2tend4 = w2tend4Tmp
       w2tend5 = w2tend5Tmp
+      w3tend6 = w2tend6Tmp
       w3tend1 = w3tend1Tmp
       w3tend2 = w3tend2Tmp
       w3tend3 = w3tend3Tmp
       w3tend4 = w3tend4Tmp
       w3tend5 = w3tend5Tmp
+      w3tend6 = w3tend6Tmp
       wttend1 = wttend1Tmp
       wttend2 = wttend2Tmp
       wttend3 = wttend3Tmp
@@ -406,11 +416,13 @@ module ocn_turbulence
       u2tend3 = u2tend3Tmp
       u2tend4 = u2tend4Tmp
       u2tend5 = u2tend5Tmp
+      u2tend6 = u2tend6Tmp
       v2tend1 = v2tend1Tmp
       v2tend2 = v2tend2Tmp
       v2tend3 = v2tend3Tmp
       v2tend4 = v2tend4Tmp
       v2tend5 = v2tend5Tmp
+      v2tend6 = v2tend6Tmp
       u2cliptend = u2cliptendTmp
       v2cliptend = v2cliptendTmp
       w2cliptend = w2cliptendTmp
@@ -608,11 +620,13 @@ module ocn_turbulence
       !$acc                  w2tend3,     &
       !$acc                  w2tend4,     &
       !$acc                  w2tend5,     &
+      !$acc                  w2tend6,     &
       !$acc                  w3tend1,     &
       !$acc                  w3tend2,     &
       !$acc                  w3tend3,     &
       !$acc                  w3tend4,     &
       !$acc                  w3tend5,     &
+      !$acc                  w3tend6,     &
       !$acc                  wttend1,     &
       !$acc                  wttend2,     &
       !$acc                  wttend3,     &
@@ -640,11 +654,13 @@ module ocn_turbulence
       !$acc                  u2tend3,     &
       !$acc                  u2tend4,     &
       !$acc                  u2tend5,     &
+      !$acc                  u2tend6,     &
       !$acc                  v2tend1,     &
       !$acc                  v2tend2,     &
       !$acc                  v2tend3,     &
       !$acc                  v2tend4,     &
       !$acc                  v2tend5,     &
+      !$acc                  v2tend6,     &
       !$acc                  u2cliptend,  &
       !$acc                  v2cliptend,  &
       !$acc                  w2cliptend,  &
@@ -706,14 +722,14 @@ module ocn_turbulence
                        DetrainmentTmp, tumdTmp, sumdTmp, wumdTmp, McTmp, lendnTmp, lenupTmp
 
    real(kind=RKIND), dimension(:,:), pointer :: w2tend1Tmp, w2tend2Tmp,     &
-                       w2tend3Tmp, w2tend4Tmp, w2tend5Tmp, wttend1Tmp, wttend2Tmp,   &
+                       w2tend3Tmp, w2tend4Tmp, w2tend5Tmp, w2tend6Tmp, wttend1Tmp, wttend2Tmp,   &
                        wttend3Tmp, wttend4Tmp, wttend5Tmp, wttend6Tmp, w3tend1Tmp, w3tend2Tmp,   &
-                       w3tend3Tmp, w3tend5Tmp, w3tend4Tmp, wstend1Tmp, wstend2Tmp,   &
+                       w3tend3Tmp, w3tend5Tmp, w3tend4Tmp, w3tend6Tmp, wstend1Tmp, wstend2Tmp,   &
                        wstend3Tmp, wstend4Tmp, wstend5Tmp, uwtend1Tmp, uwtend2Tmp,   &
                        uwtend3Tmp, uwtend4Tmp, uwtend5Tmp, vwtend1Tmp, vwtend2Tmp,   &
                        vwtend3Tmp, vwtend4Tmp, vwtend5Tmp, u2tend1Tmp, u2tend2Tmp,   &
-                       u2tend3Tmp, u2tend4Tmp, u2tend5Tmp, v2tend1Tmp, v2tend2Tmp,   &
-                       v2tend3Tmp, v2tend4Tmp, v2tend5Tmp, u2cliptendTmp,         &
+                       u2tend3Tmp, u2tend4Tmp, u2tend5Tmp, u2tend6Tmp, v2tend1Tmp, v2tend2Tmp,   &
+                       v2tend3Tmp, v2tend4Tmp, v2tend5Tmp, v2tend6Tmp, u2cliptendTmp,         &
                        v2cliptendTmp, w2cliptendTmp, wstend6Tmp
 
    real(kind=RKIND), dimension(:,:), pointer :: u2Tmp, v2Tmp, w2Tmp, t2Tmp, s2Tmp, &
@@ -810,11 +826,13 @@ module ocn_turbulence
       !$acc                  w2tend3,     &
       !$acc                  w2tend4,     &
       !$acc                  w2tend5,     &
+      !$acc                  w2tend6,     &
       !$acc                  w3tend1,     &
       !$acc                  w3tend2,     &
       !$acc                  w3tend3,     &
       !$acc                  w3tend4,     &
       !$acc                  w3tend5,     &
+      !$acc                  w3tend6,     &
       !$acc                  wttend1,     &
       !$acc                  wttend2,     &
       !$acc                  wttend3,     &
@@ -842,11 +860,13 @@ module ocn_turbulence
       !$acc                  u2tend3,     &
       !$acc                  u2tend4,     &
       !$acc                  u2tend5,     &
+      !$acc                  u2tend6,     &
       !$acc                  v2tend1,     &
       !$acc                  v2tend2,     &
       !$acc                  v2tend3,     &
       !$acc                  v2tend4,     &
       !$acc                  v2tend5,     &
+      !$acc                  v2tend6,     &
       !$acc                  u2cliptend,  &
       !$acc                  v2cliptend,  &
       !$acc                  w2cliptend,  &
@@ -974,11 +994,13 @@ module ocn_turbulence
       call mpas_pool_get_array(adcTendPool, 'w2tend3', w2tend3Tmp)
       call mpas_pool_get_array(adcTendPool, 'w2tend4', w2tend4Tmp)
       call mpas_pool_get_array(adcTendPool, 'w2tend5', w2tend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w2tend6', w2tend6Tmp)
       call mpas_pool_get_array(adcTendPool, 'w3tend1', w3tend1Tmp)
       call mpas_pool_get_array(adcTendPool, 'w3tend2', w3tend2Tmp)
       call mpas_pool_get_array(adcTendPool, 'w3tend3', w3tend3Tmp)
       call mpas_pool_get_array(adcTendPool, 'w3tend4', w3tend4Tmp)
       call mpas_pool_get_array(adcTendPool, 'w3tend5', w3tend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w3tend6', w3tend6Tmp)
       call mpas_pool_get_array(adcTendPool, 'wttend1', wttend1Tmp)
       call mpas_pool_get_array(adcTendPool, 'wttend2', wttend2Tmp)
       call mpas_pool_get_array(adcTendPool, 'wttend3', wttend3Tmp)
@@ -1006,11 +1028,13 @@ module ocn_turbulence
       call mpas_pool_get_array(adcTendPool, 'u2tend3', u2tend3Tmp)
       call mpas_pool_get_array(adcTendPool, 'u2tend4', u2tend4Tmp)
       call mpas_pool_get_array(adcTendPool, 'u2tend5', u2tend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'u2tend6', u2tend6Tmp)
       call mpas_pool_get_array(adcTendPool, 'v2tend1', v2tend1Tmp)
       call mpas_pool_get_array(adcTendPool, 'v2tend2', v2tend2Tmp)
       call mpas_pool_get_array(adcTendPool, 'v2tend3', v2tend3Tmp)
       call mpas_pool_get_array(adcTendPool, 'v2tend4', v2tend4Tmp)
       call mpas_pool_get_array(adcTendPool, 'v2tend5', v2tend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'v2tend6', v2tend6Tmp)
       call mpas_pool_get_array(adcTendPool, 'u2cliptend', u2cliptendTmp)
       call mpas_pool_get_array(adcTendPool, 'v2cliptend', v2cliptendTmp)
       call mpas_pool_get_array(adcTendPool, 'w2cliptend', w2cliptendTmp)
@@ -1020,11 +1044,13 @@ module ocn_turbulence
       w2tend3Tmp = w2tend3
       w2tend4Tmp = w2tend4
       w2tend5Tmp = w2tend5
+      w2tend6Tmp = w2tend6
       w3tend1Tmp = w3tend1
       w3tend2Tmp = w3tend2
       w3tend3Tmp = w3tend3
       w3tend4Tmp = w3tend4
       w3tend5Tmp = w3tend5
+      w3tend6Tmp = w3tend6
       wttend1Tmp = wttend1
       wttend2Tmp = wttend2
       wttend3Tmp = wttend3
@@ -1052,11 +1078,13 @@ module ocn_turbulence
       u2tend3Tmp = u2tend3
       u2tend4Tmp = u2tend4
       u2tend5Tmp = u2tend5
+      u2tend6Tmp = u2tend6
       v2tend1Tmp = v2tend1
       v2tend2Tmp = v2tend2
       v2tend3Tmp = v2tend3
       v2tend4Tmp = v2tend4
       v2tend5Tmp = v2tend5
+      v2tend6Tmp = v2tend6
       u2cliptendTmp = u2cliptend
       v2cliptendTmp = v2cliptend
       w2cliptendTmp = w2cliptend
@@ -1257,11 +1285,13 @@ module ocn_turbulence
       !$acc                  w2tend3,     &
       !$acc                  w2tend4,     &
       !$acc                  w2tend5,     &
+      !$acc                  w2tend6,     &
       !$acc                  w3tend1,     &
       !$acc                  w3tend2,     &
       !$acc                  w3tend3,     &
       !$acc                  w3tend4,     &
       !$acc                  w3tend5,     &
+      !$acc                  w3tend6,     &
       !$acc                  wttend1,     &
       !$acc                  wttend2,     &
       !$acc                  wttend3,     &
@@ -1289,11 +1319,13 @@ module ocn_turbulence
       !$acc                  u2tend3,     &
       !$acc                  u2tend4,     &
       !$acc                  u2tend5,     &
+      !$acc                  u2tend6,     &
       !$acc                  v2tend1,     &
       !$acc                  v2tend2,     &
       !$acc                  v2tend3,     &
       !$acc                  v2tend4,     &
       !$acc                  v2tend5,     &
+      !$acc                  v2tend6,     &
       !$acc                  u2cliptend,  &
       !$acc                  v2cliptend,  &
       !$acc                  w2cliptend,  &
@@ -1373,11 +1405,13 @@ module ocn_turbulence
                  w2tend3,     &
                  w2tend4,     &
                  w2tend5,     &
+                 w2tend6,     &
                  w3tend1,     &
                  w3tend2,     &
                  w3tend3,     &
                  w3tend4,     &
                  w3tend5,     &
+                 w3tend6,     &
                  wttend1,     &
                  wttend2,     &
                  wttend3,     &
@@ -1405,11 +1439,13 @@ module ocn_turbulence
                  u2tend3,     &
                  u2tend4,     &
                  u2tend5,     &
+                 u2tend6,     &
                  v2tend1,     &
                  v2tend2,     &
                  v2tend3,     &
                  v2tend4,     &
                  v2tend5,     &
+                 v2tend6,     &
                  u2cliptend,  &
                  v2cliptend,  &
                  w2cliptend,  &

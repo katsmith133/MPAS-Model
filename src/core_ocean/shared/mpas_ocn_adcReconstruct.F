@@ -229,15 +229,17 @@ module ocn_adc_mixing_fused
       real :: KEm1, KEp1, tauUP, tauDN, tomUP, tomDN
       real :: tauM1, tau, tauP1, tauAV, utemp, vtemp
       real :: B, Cval, diff, wtav, dzmid, Ksps, Sz, Tz, w4k, w4kp1, w2k, w2kp1
-      real :: lareaFraction, wstar, Q, w3av, tempMoment
+      real :: lareaFraction, wstar, Q, w3av, tempMoment, frictionVelocity
       real :: sfcFrictionVelocitySquared, wtSumUp, wtSumDn, wsSumUp, wsSumDn
 
       real,dimension(nVertLevels,nCells) :: Swumd
       real,dimension(nVertLevels,nCells) :: tauw3, tauTemp, tauSalt, tauVel, tauvVel
       real,dimension(nVertLevels,nCells) :: areaFractionMid, tumdMid, McMid, wumdMid, sumdMid
 
-      real :: Swk
+      real :: Swk, tau_sfc, d_sqrt_wp2_dz, tp2, sp2, min_wp2_sfc_val, wp2_splat_sfc_correction
+      real :: min_wps_sfc_val
 
+      min_wps_sfc_val = 1.0E-10_RKIND
       dt_small = config_adc_timestep
       niter = dt / dt_small
 
@@ -246,6 +248,7 @@ module ocn_adc_mixing_fused
 
       stopflag = .false.
 
+      do iIter=1,niter
       !on further examination build_diagnostics array can live outside the iter loop
       do iCell=1,nCells
         Q = grav*(alphaT(1,iCell)*wtsfc(iCell) - betaS(1,iCell)*wssfc(iCell))* &
@@ -263,10 +266,13 @@ module ocn_adc_mixing_fused
         w2t(1,iCell) = -0.3_RKIND*wstar * wtsfc(iCell)
         w2s(1,iCell) = 0.3_RKIND*wstar * wssfc(iCell)
 
-        sfcFrictionVelocitySquared = sqrt(uwsfc(iCell)**2 + vwsfc(iCell)**2)
+        sfcFrictionVelocitySquared = uwsfc(iCell) + vwsfc(iCell)
+        frictionVelocity = sqrt(sfcFrictionVelocitySquared + config_adc_bc_wstar * wstar * wstar)
+        frictionVelocity = max( config_adc_frictionVelocityMin, frictionVelocity )
         do k=1,2
-          u2(k,1,iCell) = uwsfc(iCell)! sfcFrictionVelocitySquared !+ 0.3*wstar**2.0
-          v2(k,1,iCell) = vwsfc(iCell)! sfcFrictionVelocitySquared !+ 0.3*wstar**2.0
+          u2(k,1,iCell) = config_adc_up2_vp2_factor*config_adc_bc_const*frictionVelocity**2.0
+          v2(k,1,iCell) = config_adc_up2_vp2_factor*config_adc_bc_const*frictionVelocity**2.0
+          w2(k,1,iCell) = config_adc_bc_const_wp2*frictionVelocity**2.0
           uw(k,1,iCell) = -uwsfc(iCell)
           vw(k,1,iCell) = -vwsfc(iCell)
           wt(k,1,iCell) = wtsfc(iCell)
@@ -276,45 +282,87 @@ module ocn_adc_mixing_fused
         enddo
       enddo
 
-      do iIter=1,niter
-         do iCell=1,nCells-1000000
-          do k=2,nVertLevels  
-            w3av = 0.5_RKIND*(w2(i1,k-1,iCell) + w2(i1,k,iCell))
+      ! compute the splat effect, adds w3tend and w2tend
+      if(config_adc_use_splat_parameterization) then
+         ! do k=1 separately for performance reasons, for k=1 we use one sided derivatives
+         ! note that the splat_factor forces the term to be smaller than factor * dt
+         k=1
+         do iCell=1,nCells
+            d_sqrt_wp2_dz = (sqrt(w2(i1,1,iCell)) - sqrt(0.5_RKIND*(w2(i1,1,iCell)+ &
+                              w2(i1,2,iCell)))) / (ze(1,iCell) - zm(1,iCell))
+            tau_sfc = length(1,iCell) / sqrt(0.5_RKIND*(u2(i1,k,iCell) + v2(i1,k,iCell)))
+            w2tend6(1,iCell) = min(max(-config_adc_splat_tend_max, -w2(i1,1,iCell)*      &
+                                config_adc_splat_wp2_val*tau_sfc*d_sqrt_wp2_dz**2),      &
+                                config_adc_splat_tend_max)
+            tau_sfc = 0.5_RKIND*(length(1,iCell) + length(2,iCell)) / sqrt(0.5_RKIND*( &
+                      0.5_RKIND*(u2(i1,1,iCell) + u2(i1,2,iCell)) + 0.5_RKIND*(          &
+                      v2(i1,1,iCell) + v2(i1,2,iCell)) + 0.5_RKIND*(w2(i1,1,iCell) +      &
+                      w2(i1,2,iCell))))
+            d_sqrt_wp2_dz = (sqrt(w2(i1,1,iCell)) - sqrt(w2(i1,2,iCell))) / &
+                              (ze(1,iCell) - ze(2,iCell))
+            w3tend6(1,iCell) = min(max(-config_adc_splat_tend_max, -w3(i1,1,iCell)*      &
+                                   config_adc_splat_wp2_val*tau_sfc*d_sqrt_wp2_dz**2),   &
+                                   config_adc_splat_tend_max)
+         end do
 
-            Sw = w3(i1,k-1,iCell) / (w3av**1.5_RKIND + 1.0E-15_RKIND)
-            lareaFraction = 0.5_RKIND + 0.5_RKIND*Sw / sqrt(4.0_RKIND + Sw**2)
+         do iCell=1,nCells
+            do k=2,nVertLevels
+               d_sqrt_wp2_dz = (sqrt(w2(i1,k-1,iCell)) - sqrt(w2(i1,k+1,iCell))) / &
+                                (ze(k-1,iCell) - ze(k+1,iCell))
+               tau_sfc = length(k,iCell) / sqrt(0.5_RKIND*(u2(i1,k,iCell) + v2(i1,k,iCell) + &
+                                w2(i1,k,iCell)))
+               w2tend6(k,iCell) = min(max(-config_adc_splat_tend_max, -w2(i1,k,iCell)*      &
+                                   config_adc_splat_wp2_val*tau_sfc*d_sqrt_wp2_dz**2),      &
+                                   config_adc_splat_tend_max)
+               tau_sfc = 0.5_RKIND*(length(k,iCell) + length(k+1,iCell)) / sqrt(0.5_RKIND*( &
+                      0.5_RKIND*(u2(i1,k,iCell) + u2(i1,k+1,iCell)) + 0.5_RKIND*(          &
+                      v2(i1,k,iCell) + v2(i1,k+1,iCell)) + 0.5_RKIND*(w2(i1,k,iCell) +      &
+                      w2(i1,k+1,iCell))))
+               d_sqrt_wp2_dz = (sqrt(w2(i1,k,iCell)) - sqrt(w2(i1,k+1,iCell))) / &
+                              (ze(k,iCell) - ze(k+1,iCell))
+               w3tend6(1,iCell) = min(max(-config_adc_splat_tend_max, -w3(i1,k,iCell)*         &
+                                           config_adc_splat_wp2_val*tau_sfc*d_sqrt_wp2_dz**2), &
+                                           config_adc_splat_tend_max)
+            end do
+         end do
 
-            !This clips w3 to be consistent with the clipped areaFraction
-            if(lareaFraction < 0.01_RKIND) then
-               w3(i1,k-1,iCell) = -9.85_RKIND*w3av**1.5
+         do iCell=1,nCells
+            tp2 = 0.4_RKIND * config_adc_bc_const * (wt(i1,1,iCell) / frictionVelocity)**2
+            sp2 = 0.4_RKIND * config_adc_bc_const * (ws(i1,1,iCell) / frictionVelocity)**2
+            min_wp2_sfc_val = max(1.0E-10_RKIND, wt(i1,1,iCell)**2 / (tp2 * 0.99_RKIND**2 + 1.0E-15_RKIND), &
+                                    ws(i1,1,iCell)**2 / (sp2 * 0.99_RKIND**2 + 1.0E-15_RKIND))
+            tau_sfc = length(1,iCell) / sqrt(0.5_RKIND*(u2(i1,1,iCell) + v2(i1,1,iCell)))
+
+            if(w2(k,1,iCell) + tau_sfc * w2tend6(1,iCell) < min_wps_sfc_val) then
+               wp2_splat_sfc_correction = -w2(i1,1,iCell) + min_wp2_sfc_val
+               w2(i1,1,iCell) = min_wp2_sfc_val
+            else
+               wp2_splat_sfc_correction = tau_sfc * w2tend6(1,iCell)
+               w2(i1,1,iCell) = w2(i1,1,iCell) + wp2_splat_sfc_correction
             end if
+            u2(i1,1,iCell) = u2(i1,1,iCell) - 0.5_RKIND * wp2_splat_sfc_correction
+            v2(i1,1,iCell) = v2(i1,1,iCell) - 0.5_RKIND * wp2_splat_sfc_correction
+        end do
 
-            if(lareaFraction > 0.99_RKIND) then
-               w3(i1,k-1,iCell) = 9.85_RKIND*w3av**1.5
-            end if
-
-            Sw = w3(i1,k-1,iCell) / (w3av**1.5 + 1.0E-15_RKIND)
-            lareaFraction = 0.5_RKIND + 0.5_RKIND*Sw / sqrt(4.0_RKIND + Sw**2)
-
-            areaFractionMid(k-1,iCell) = lareaFraction
-            wumdMid(k-1,iCell) = sqrt(w3av / (areaFractionMid(k-1,iCell) * &
-              (1.0_RKIND - areaFractionMid(k-1,iCell))))
-            McMid(k-1,iCell) = areaFractionMid(k-1,iCell)*(1.0_RKIND - &
-              areaFractionMid(k-1,iCell)) * wumdMid(k-1,iCell)
-            tumdMid(k-1,iCell) = (0.5*(wt(i1,k-1,iCell) + wt(i1,k,iCell))) / &
-              (1.0E-12_RKIND + McMid(k-1,iCell))
-            sumdMid(k-1,iCell) = (0.5*(ws(i1,k-1,iCell) + ws(i1,k,iCell))) / &
-              (1.0E-12_RKIND + McMid(k-1,iCell))
-            if(w3av <= epsilon + 1.0e-9) then
-               areaFractionMid(k-1,iCell) = 0.5_RKIND
-        !       wumdMid(k-1,iCell) = 0.0_RKIND
-               tumdMid(k-1,iCell) = 0.0_RKIND
-               sumdMid(k-1,iCell) = 0.0_RKIND
-        !       McMid(k-1,iCell) = 0.0_RKIND
-            endif
-        enddo
-      enddo
-
+        !build up splat tend for u2 and v2
+        do iCell=1,nCells
+           do k=2,nVertLevels
+              u2tend6(k,iCell) = -0.5_RKIND*w2tend6(k,iCell)
+              v2tend6(k,iCell) = -0.5_RKIND*w2tend6(k,iCell)
+           end do
+        end do
+     else
+        do iCell=1,nCells
+           do k=1,nVertLevels
+              w3tend6(k,iCell) = 0.0_RKIND
+              w2tend6(k,iCell) = 0.0_RKIND
+              u2tend6(k,iCell) = 0.0_RKIND
+              v2tend6(k,iCell) = 0.0_RKIND
+           end do
+        end do
+     end if ! end use splat correction
+          
+         
       !Kernel 1 inlined versions of the base arrays, needed for later to make them collapsible
          do iCell=1,nCells
           do k=2,nVertLevels
@@ -459,7 +507,7 @@ module ocn_adc_mixing_fused
                     betaS(k,iCell)*w2s(k,iCell))
 
               w3tend(i3_f,k,iCell) = w3tend1(k,iCell) + w3tend2(k,iCell) + w3tend3(k,iCell) + &
-                w3tend4(k,iCell) + w3tend5(k,iCell)
+                w3tend4(k,iCell) + w3tend5(k,iCell) + w3tend6(k,iCell)
 
               if(k>1 .and. k < nVertLevels .and. kappa_w3 > 0.0) then
                  w3tend(i3_f,k,iCell) = w3tend(i3_f,k,iCell) + kappa_w3*(w3(i1,k-1,iCell) &
@@ -527,7 +575,7 @@ module ocn_adc_mixing_fused
                 Mc(k,iCell)*(Swumd(k-1,iCell) + Swumd(k,iCell))
 
               w2tend(i3_f,k,iCell) = w2tend1(k,iCell) + w2tend2(k,iCell) + &
-                w2tend3(k,iCell) + w2tend4(k,iCell) + w2tend5(k,iCell)
+                w2tend3(k,iCell) + w2tend4(k,iCell) + w2tend5(k,iCell) + w2tend6(k,iCell)
 
               wttend1(k,iCell) = -1.0_RKIND*(Entrainment(k,iCell) + Detrainment(k,iCell)) * &
                 wumd(k,iCell)*tumd(k,iCell)
@@ -621,7 +669,7 @@ module ocn_adc_mixing_fused
                 1.0_RKIND - areaFraction(k,iCell))*wumd(k,iCell)**2)/3.0_RKIND
 
               u2tend(i3_f,k,iCell) = u2tend1(k,iCell) + u2tend2(k,iCell) + &
-                u2tend3(k,iCell) + u2tend4(k,iCell) + u2tend5(k,iCell)
+                u2tend3(k,iCell) + u2tend4(k,iCell) + u2tend5(k,iCell) + u2tend6(k,iCell)
 
               v2tend1(k,iCell) = -(v2w(k-1,iCell) - v2w(k,iCell)) / dzmid
               v2tend2(k,iCell) = (1.0_RKIND/3.0_RKIND*alpha1 + alpha2 - &
@@ -635,7 +683,7 @@ module ocn_adc_mixing_fused
                 1.0_RKIND - areaFraction(k,iCell))*wumd(k,iCell)**2)/3.0_RKIND
 
               v2tend(i3_f,k,iCell) = v2tend1(k,iCell) + v2tend2(k,iCell) + &
-                v2tend3(k,iCell) + v2tend4(k,iCell) + v2tend5(k,iCell)
+                v2tend3(k,iCell) + v2tend4(k,iCell) + v2tend5(k,iCell) + v2tend6(k,iCell)
 
               uttend(i3_f,k,iCell) = (-(uwt(k-1,iCell) - uwt(k,iCell))/dz -  &
                 uw(i1,k,iCell)*Tz - (1.0_RKIND - alpha3)*wt(i1,k,iCell) &
