@@ -44,9 +44,9 @@ module ocn_turbulence
    !type, public :: adcMixingType
 
    real(kind=RKIND),public :: epsilon, &! small value below which w2, v2, u2 cannot go
-                       sigmat, Ko, gamma1, beta5, c1, c2, c8, c10, c11, &
-                       alpha1, alpha2, alpha3, B1, Kt, grav, c_1, c_2, c_mom, &
-                       c_therm, c_mom_w3, c_Temp, c_Salt, c_Vel, c_vVel, c_epsilon, &
+                       sigmat, Ko, c_b, c_b_tracer, alpha_tracer1, alpha_tracer2, c11, &
+                       alpha_0, alpha_1, alpha_2, B1, Kt, grav, c_mom, &
+                       c_therm, c_mom_w3, c_epsilon, c_slow, c_slow_tracer, slow_w_factor, &
                        kappa_FL, kappa_w3, kappa_VAR, Cww_D, Cww_E
 
    integer,public :: iterCount, nCells, nVertLevels
@@ -152,27 +152,22 @@ module ocn_turbulence
       grav = gravity
       epsilon = config_adc_epsilon
       Ko = config_adc_Ko
-      gamma1 = config_adc_gamma1
-      beta5 = config_adc_beta5
-      c1 = 2.88_RKIND
-      c2 = 3.84_RKIND
-      c8 = 3.0_RKIND
-      c10 = 5.0_RKIND
-      alpha1 = 0.984_RKIND
-      alpha2 = 0.568_RKIND
-      alpha3 = 0.8_RKIND
+      C_b_tracer = config_adc_c_b_tracer
+      alpha_0 = config_adc_alpha_0
+      alpha_1 = config_adc_alpha_1
+      alpha_2 = config_adc_alpha_2
+      alpha_tracer1 = config_adc_alpha_tracer1
+      alpha_tracer2 = config_adc_alpha_tracer2
       B1 = 16.6_RKIND
       Kt = 0.4_RKIND
-      c_1 = config_adc_c1
-      c_2 = config_adc_c2
+      c_b = config_adc_c_b
       c11 = config_adc_c11
       c_mom = config_adc_Cmom
       c_therm = config_adc_Ctherm
       c_mom_w3 = config_adc_Cmom_w3
-      c_Temp = config_adc_cTemp
-      c_Salt = config_adc_cSalt
-      c_Vel = config_adc_cVel
-      c_vVel = config_adc_cwVel
+      c_slow_tracer = config_adc_c_slow_tracer
+      c_slow = config_adc_c_slow
+      slow_w_factor = config_adc_slow_w_factor
       c_epsilon = config_adc_dissipation_constant
       Cww_D = config_adc_CwwD
       Cww_E = config_adc_CwwE
@@ -537,7 +532,7 @@ module ocn_turbulence
       epstend(i,:,:) = epstendTmp(:,:nCells)
       KspsUtend(i,:,:) = KspsUtendTmp(:,:nCells)
       KspsDtend(i,:,:) = KspsDtendTmp(:,:nCells)
-      end do 
+      end do
       block => block % next
    end do
 !   at end could do a copy to accelerator
@@ -1164,7 +1159,7 @@ module ocn_turbulence
         KspsUtendTmp(:,:nCells) = KspsUtend(i,:,:nCells)
         KspsDtendTmp(:,:nCells) = KspsDtend(i,:,:nCells)
 
-      end do  
+      end do
       block => block % next
    end do
 !   at end could do a copy to accelerator
@@ -1180,27 +1175,22 @@ module ocn_turbulence
       sigmat = 0.0_RKIND
       epsilon = 0.0_RKIND
       Ko = 0.0_RKIND
-      gamma1 = 0.0_RKIND
-      beta5 = 0.0_RKIND
-      c1 = 0.0_RKIND
-      c2 = 0.0_RKIND
-      c8 = 0.0_RKIND
-      c10 = 0.0_RKIND
+      c_b = 0.0_RKIND
+      c_b_tracer = 0.0_RKIND
       c11 = 0.0_RKIND
-      alpha1 = 0.0_RKIND
-      alpha2 = 0.0_RKIND
-      alpha3 = 0.0_RKIND
+      alpha_0 = 0.0_RKIND
+      alpha_1 = 0.0_RKIND
+      alpha_2 = 0.0_RKIND
+      alpha_tracer1 = 0.0_RKIND
+      alpha_tracer2 = 0.0_RKIND
       B1 = 0.0_RKIND
       Kt = 0.0_RKIND
-      c_1 = 0.0_RKIND
-      c_2 = 0.0_RKIND
       c_mom = 0.0_RKIND
       c_therm = 0.0_RKIND
       c_mom_w3 = 0.0_RKIND
-      c_Temp = 0.0_RKIND
-      c_Salt = 0.0_RKIND
-      c_Vel = 0.0_RKIND
-      c_vVel = 0.0_RKIND
+      c_slow = 0.0_RKIND
+      c_slow_tracer = 0.0_RKIND
+      slow_w_factor = 0.0_RKIND
       c_epsilon = 0.0_RKIND
       Cww_D = 0.0_RKIND
       Cww_E = 0.0_RKIND
