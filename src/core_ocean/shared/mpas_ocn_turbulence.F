@@ -377,7 +377,7 @@ module ocn_turbulence
       w2tend3 = w2tend3Tmp
       w2tend4 = w2tend4Tmp
       w2tend5 = w2tend5Tmp
-      w3tend6 = w2tend6Tmp
+      w2tend6 = w2tend6Tmp
       w3tend1 = w3tend1Tmp
       w3tend2 = w3tend2Tmp
       w3tend3 = w3tend3Tmp
@@ -1470,7 +1470,10 @@ module ocn_turbulence
                  vs,          &
                  ts,          &
                  s2,          &
-                 eps)
+                 eps,         &
+                 Mc,          &
+                 KspsDtend,   &
+                 KspsUtend)
 
    end subroutine ocn_turbulenceDestroy
 

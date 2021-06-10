@@ -520,27 +520,33 @@ contains
 
      integer, intent(out) :: ierr
 
-     deallocate(KspsU, KspsD, ze, zm,          &
-                eps, length, lenspsD, lenspsU, &
-                KhU, KhD, KmU, KmD,            &
-                wt_spsU, wt_spsD, ws_spsU, ws_spsD, &
-                uw2, vw2, u2w, v2w, w2t,  &
-                w2s, wts, uvw, uwt, vwt,  &
+     deallocate(KspsU, KspsD, ze, zm, eps, epsSPS,   &
+                length, lenspsD, lenspsU,            &
+                KhU, KhD, KmU, KmD, lenup, lendn,    &
+                wt_spsU, wt_spsD, ws_spsU, ws_spsD,  &
+                uw2, vw2, u2w, v2w, w2t,             &
+                w2s, wts, uvw, uwt, vwt, uws, vws,   &
                 ws2, wt2, areaFraction, Entrainment, &
                 Detrainment, tumd, sumd, wumd,       &
                 w2tend1, w2tend2, w2tend3, w2tend4,  &
-                w2tend5, wttend1, wttend2, wttend3,  &
+                w2tend5, w2tend6, w3tend1, w3tend2,  &
+                w3tend3, w3tend4, w3tend5, w3tend6,  &
+                wttend1, wttend2, wttend3, wttend6,  &
                 wttend4, wttend5, wstend1, wstend2,  &
-                wstend3, wstend4, wstend5, uwtend1,  &
-                uwtend2, uwtend3, uwtend4, uwtend5,  &
-                vwtend1, vwtend2, vwtend3, vwtend4,  &
-                vwtend5, u2tend1, u2tend2, u2tend3,  &
-                u2tend4, u2tend5, v2tend1, v2tend2,  &
-                v2tend3, v2tend4, v2tend5, u2cliptend, &
-                v2cliptend, w2cliptend, u2, v2,      &
-                w2, wt, ws, uw, vw,        &
-                w3, uv, t2, s2, ut,        &
-                vt, us, vs, ts)
+                wstend3, wstend4, wstend5, wstend6,  &
+                uwtend1, uwtend2, uwtend3, uwtend4,  &
+                uwtend5, vwtend1, vwtend2, vwtend3,  &
+                vwtend4, vwtend5, u2tend1, u2tend2,  &
+                u2tend3, u2tend4, u2tend5, u2tend6,  &
+                v2tend1, v2tend2, v2tend3, v2tend4,  &
+                v2tend5, v2tend6, u2cliptend,        &
+                v2cliptend, w2cliptend, u2tend,      &
+                v2tend, w2tend, wttend, wstend,      &
+                uwtend, vwtend, w3tend, uvtend,      &
+                epstend, uttend, vttend, ustend,     &
+                vstend, tstend, u2, v2, w2, wt, ws,  &
+                uw, vw, w3, uv, t2, s2, ut, vt, us,  &
+                vs, ts, Mc, KspsUtend, KspsDtend)
 
    end subroutine ocn_vmix_adc_finalize
 
