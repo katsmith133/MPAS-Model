@@ -333,7 +333,7 @@ module ocn_adc_mixing_fused
                                     ws(i1,1,iCell)**2 / (sp2 * 0.99_RKIND**2 + 1.0E-15_RKIND))
             tau_sfc = length(1,iCell) / sqrt(0.5_RKIND*(u2(i1,1,iCell) + v2(i1,1,iCell)))
 
-            if(w2(k,1,iCell) + tau_sfc * w2tend6(1,iCell) < min_wps_sfc_val) then
+            if(w2(i1,1,iCell) + tau_sfc * w2tend6(1,iCell) < min_wps_sfc_val) then
                wp2_splat_sfc_correction = -w2(i1,1,iCell) + min_wp2_sfc_val
                w2(i1,1,iCell) = min_wp2_sfc_val
             else
