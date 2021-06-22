@@ -19,6 +19,10 @@
 	      description="number of decimal places to keep, inverse is position of decimal rounding"
 	      possible_values="large positive reals"
 	      />
+  <nml_option name="config_adc_convert_to_CGS" type="logical" default_value=".false." units="unitless"
+	      description="flag to convert mass flux closure calculation to centimeter-grams-seconds units"
+	      possible_values=".true. or .false."
+	      />
   <nml_option name="config_adc_tau_o" type="real" default_value="1800" units="s^{-1}"
 	      description="characterstic eddy turnover timescale"
 	      possible_values="positive real numbers"
