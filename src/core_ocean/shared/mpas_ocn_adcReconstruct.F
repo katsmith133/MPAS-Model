@@ -447,6 +447,11 @@ module ocn_adc_mixing_fused
                       - w3(i1,k+1,iCell)) / (zm(k-1,iCell) - zm(k+1,iCell))**2.0_RKIND
                  endif
 
+                 if (config_adc_truncate_tend) then
+                    w3tend(i3_f,k,iCell) = FLOAT (INT(w3tend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
+
 !     now get all the downgradient TOMs
                  KE = 0.5_RKIND*(u2(i1,k,iCell) + v2(i1,k,iCell) + w2(i1,k,iCell))
                  KEp1 = 0.5_RKIND*(u2(i1,k+1,iCell) + v2(i1,k+1,iCell) + w2(i1,k+1,iCell))
@@ -503,7 +508,12 @@ module ocn_adc_mixing_fused
                    Mc(k,iCell)*(Swumd(k-1,iCell) + Swumd(k,iCell))
 
                  w2tend(i3_f,k,iCell) = w2tend1(k,iCell) + w2tend2(k,iCell) + &
-                 w2tend3(k,iCell) + w2tend4(k,iCell) + w2tend5(k,iCell) + w2tend6(k,iCell)
+                   w2tend3(k,iCell) + w2tend4(k,iCell) + w2tend5(k,iCell) + w2tend6(k,iCell)
+
+                 if (config_adc_truncate_tend) then
+                    w2tend(i3_f,k,iCell) = FLOAT (INT(w2tend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
 
                  wttend1(k,iCell) = -1.0_RKIND*(Entrainment(k,iCell) + Detrainment(k,iCell)) * &
                    wumd(k,iCell)*tumd(k,iCell)
@@ -531,6 +541,11 @@ module ocn_adc_mixing_fused
                  wttend(i3_f,k,iCell) = wttend1(k,iCell) + wttend2(k,iCell) +        &
                    wttend3(k,iCell) + wttend4(k,iCell) + wttend5(k,iCell) + wttend6(k,iCell)
 
+                 if (config_adc_truncate_tend) then
+                    wttend(i3_f,k,iCell) = FLOAT (INT(wttend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
+
                  wstend1(k,iCell) = -(Entrainment(k,iCell) + Detrainment(k,iCell)) * &
                    wumd(k,iCell)*sumd(k,iCell)
                  wstend2(k,iCell) = ((1.0_RKIND - 2.0_RKIND*areaFraction(k-1,iCell))* &
@@ -555,6 +570,11 @@ module ocn_adc_mixing_fused
                  wstend(i3_f,k,iCell) = wstend1(k,iCell) + wstend2(k,iCell) + &
                    wstend3(k,iCell) + wstend4(k,iCell) + wstend5(k,iCell) + wstend6(k,iCell)
 
+                 if (config_adc_truncate_tend) then
+                    wstend(i3_f,k,iCell) = FLOAT (INT(wstend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
+
                  uwtend1(k,iCell) = -(uw2(k-1,iCell) - uw2(k,iCell)) / dzmid
                  uwtend2(k,iCell) = 0.5_RKIND*((alpha_0 - 4.0_RKIND*alpha_1/3.0_RKIND)*KE**2.0_RKIND +  &
                    (alpha_1 - alpha_2)*u2(i1,k,iCell) + (alpha_1 +  &
@@ -570,6 +590,11 @@ module ocn_adc_mixing_fused
                  uwtend(i3_f,k,iCell) = uwtend1(k,iCell) + uwtend2(k,iCell) + &
                    uwtend3(k,iCell) + uwtend4(k,iCell) + uwtend5(k,iCell)
 
+                 if (config_adc_truncate_tend) then
+                    uwtend(i3_f,k,iCell) = FLOAT (INT(uwtend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
+
                  vwtend(i3_f,k,iCell) = (-(vw2(k-1,iCell) - vw2(k,iCell)) / dzmid  &
                    + 0.5_RKIND*((alpha_0 - 4.0_RKIND*alpha_1/3.0_RKIND)*KE**2.0_RKIND +  &
                    (alpha_1 - alpha_2)*v2(i1,k,iCell) + (alpha_1 +   &
@@ -579,11 +604,21 @@ module ocn_adc_mixing_fused
                    tauVel(k,iCell)*vw(i1,k,iCell) + kappa_FL*(vw(i1,k-1,iCell) &
                    - vw(i1,k+1,iCell)) / (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND
 
+                 if (config_adc_truncate_tend) then
+                    vwtend(i3_f,k,iCell) = FLOAT (INT(vwtend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
+
                  uvtend(i3_f,k,iCell) = (-(uvw(k-1,iCell) - uvw(k,iCell)) / dz - &
                    (1.0_RKIND - 0.5_RKIND*(alpha_1+alpha_2))*(uw(i1,k,iCell)*Vz &
                    + vw(i1,k,iCell)*Uz)) - tauVel(k,iCell)*uv(i1,k,iCell) +           &
                    kappa_VAR*(uv(i1,k-1,iCell) - uv(i1,k+1,iCell)) /       &
                    (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND
+
+                 if (config_adc_truncate_tend) then
+                    uvtend(i3_f,k,iCell) = FLOAT (INT(uvtend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
 
                  u2tend1(k,iCell) = -(u2w(k-1,iCell) - u2w(k,iCell)) / dzmid
                  u2tend2(k,iCell) = (1.0_RKIND/3.0_RKIND*alpha_1 + alpha_2 &
@@ -597,6 +632,11 @@ module ocn_adc_mixing_fused
                  u2tend(i3_f,k,iCell) = u2tend1(k,iCell) + u2tend2(k,iCell) + &
                    u2tend3(k,iCell) + u2tend4(k,iCell) + u2tend5(k,iCell) + u2tend6(k,iCell)
 
+                 if (config_adc_truncate_tend) then
+                    u2tend(i3_f,k,iCell) = FLOAT (INT(u2tend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
+                
                  v2tend1(k,iCell) = -(v2w(k-1,iCell) - v2w(k,iCell)) / dzmid
                  v2tend2(k,iCell) = (1.0_RKIND/3.0_RKIND*alpha_1 + alpha_2 &
                    - 2.0_RKIND)*vw(i1,k,iCell)*Vz
@@ -609,21 +649,46 @@ module ocn_adc_mixing_fused
                  v2tend(i3_f,k,iCell) = v2tend1(k,iCell) + v2tend2(k,iCell) + &
                    v2tend3(k,iCell) + v2tend4(k,iCell) + v2tend5(k,iCell) + v2tend6(k,iCell)
 
+                 if (config_adc_truncate_tend) then
+                    v2tend(i3_f,k,iCell) = FLOAT (INT(v2tend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
+
                  uttend(i3_f,k,iCell) = (-(uwt(k-1,iCell) - uwt(k,iCell))/dz -  &
                    uw(i1,k,iCell)*Tz - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 +  &
                    alpha_tracer2))*wt(i1,k,iCell)*Uz) - ut(i1,k,iCell)*tau_tracer(k,iCell)
+
+                 if (config_adc_truncate_tend) then
+                    uttend(i3_f,k,iCell) = FLOAT (INT(uttend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
 
                  vttend(i3_f,k,iCell) = (-(vwt(k-1,iCell) - vwt(k,iCell))/dz -  &
                    vw(i1,k,iCell)*Tz - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 +  &
                    alpha_tracer2))*wt(i1,k,iCell)*Vz) - vt(i1,k,iCell)*tau_tracer(k,iCell)
 
+                 if (config_adc_truncate_tend) then
+                    vttend(i3_f,k,iCell) = FLOAT (INT(vttend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
+
                  ustend(i3_f,k,iCell) = (-(uws(k-1,iCell) - uws(k,iCell))/dz -  &
                    uw(i1,k,iCell)*Sz - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 +  &
                    alpha_tracer2))*ws(i1,k,iCell)*Uz) - us(i1,k,iCell)*tau_tracer(k,ICell)
-                   
+                 
+                 if (config_adc_truncate_tend) then
+                    ustend(i3_f,k,iCell) = FLOAT (INT(ustend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
+
                  vstend(i3_f,k,iCell) = (-(vws(k-1,iCell) - vws(k,iCell))/dz -  &
                    vw(i1,k,iCell)*Sz - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 +  &
                    alpha_tracer2))*ws(i1,k,iCell)*Vz) - vs(i1,k,iCell)*tau_tracer(k,iCell)
+
+                 if (config_adc_truncate_tend) then
+                    vstend(i3_f,k,iCell) = FLOAT (INT(vstend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
 
                  t2(i2,k,iCell) = tumd(k,iCell)**2.0_RKIND*areaFraction(k,iCell)*&
                    (1.0_RKIND-areaFraction(k,iCell))
@@ -693,6 +758,11 @@ module ocn_adc_mixing_fused
                    eps(i1,k,iCell) / (2.0_RKIND*(1.0_RKIND - areaFraction(k,iCell))) + KmU(k,iCell)* &
                    (Uz**2.0_RKIND + Vz**2.0_RKIND)
 
+                 if (config_adc_truncate_tend) then
+                    KspsUtend(i3_f,k,iCell) = FLOAT (INT(KspsUtend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
+
                  if(k==2) then
                     Cval = 3.96_RKIND_RKIND
                  else
@@ -708,6 +778,11 @@ module ocn_adc_mixing_fused
                    Cval*KspsD(i1,k,iCell)**1.5_RKIND /(1.0E-15_RKIND + lenspsD(k,iCell)) +                   &
                    eps(i1,k,iCell) / (2.0_RKIND*(areaFraction(k,iCell))) + &
                    KmD(k,iCell)*(Uz**2.0_RKIND + Vz**2.0_RKIND)
+
+                 if (config_adc_truncate_tend) then
+                    KspsDtend(i3_f,k,iCell) = FLOAT (INT(KspsDtend(i3_f,k,iCell) * config_adc_decimals_to_keep &
+                      + 0.5_RKIND)) / config_adc_decimals_to_keep
+                 endif
 
               enddo           ! nVertLevels
            enddo                ! nCells

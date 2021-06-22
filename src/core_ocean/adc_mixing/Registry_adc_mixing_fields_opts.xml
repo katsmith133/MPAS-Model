@@ -11,6 +11,14 @@
 	      description="flag to use buoyancy length scale from previous closure, temporary"
 	      possible_values=".true. or .false."
 	      />
+  <nml_option name="config_adc_truncate_tend" type="logical" default_value=".false." units="unitless"
+	      description="flag to truncate tendency terms"
+	      possible_values=".true. or .false."
+	      />
+  <nml_option name="config_adc_decimals_to_keep" type="real" default_value="1.0E12" units="unitless"
+	      description="number of decimal places to keep, inverse is position of decimal rounding"
+	      possible_values="large positive reals"
+	      />
   <nml_option name="config_adc_tau_o" type="real" default_value="1800" units="s^{-1}"
 	      description="characterstic eddy turnover timescale"
 	      possible_values="positive real numbers"
