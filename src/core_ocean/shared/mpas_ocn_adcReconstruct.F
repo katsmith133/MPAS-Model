@@ -223,16 +223,16 @@ module ocn_adc_mixing_fused
               wumd(1,iCell) = 0.0_RKIND
               areaFraction(1,iCell) = 0.5_RKIND
               Mc(1,iCell) = 0.0_RKIND
-              w2t(1,iCell) = 0.0_RKIND !-0.3_RKIND*wstar * wtsfc(iCell)
-              w2s(1,iCell) = 0.0_RKIND !0.3_RKIND*wstar * wssfc(iCell)
+              w2t(1,iCell) = -0.3_RKIND*wstar * wtsfc(iCell)
+              w2s(1,iCell) = 0.3_RKIND*wstar * wssfc(iCell)
 
               sfcFrictionVelocitySquared = uwsfc(iCell) + vwsfc(iCell)
               frictionVelocity = sqrt(sfcFrictionVelocitySquared + config_adc_bc_wstar * wstar * wstar)
-!              frictionVelocity = max( config_adc_frictionVelocityMin, frictionVelocity )
+              frictionVelocity = max( config_adc_frictionVelocityMin*MtoCM, frictionVelocity )
               do k=1,3
                  u2(k,1,iCell) = config_adc_up2_vp2_factor*config_adc_bc_const*frictionVelocity**2.0_RKIND
                  v2(k,1,iCell) = config_adc_up2_vp2_factor*config_adc_bc_const*frictionVelocity**2.0_RKIND
-                 w2(k,1,iCell) = 0.0_RKIND !config_adc_bc_const_wp2*frictionVelocity**2.0_RKIND
+                 w2(k,1,iCell) = config_adc_bc_const_wp2*frictionVelocity**2.0_RKIND
                  uw(k,1,iCell) = -uwsfc(iCell)
                  vw(k,1,iCell) = -vwsfc(iCell)
                  wt(k,1,iCell) = wtsfc(iCell)
