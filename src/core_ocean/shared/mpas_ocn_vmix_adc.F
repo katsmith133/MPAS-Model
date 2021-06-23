@@ -142,8 +142,7 @@ contains
         normalVelocity, layerThickness, velocityZonal, velocityMeridional, &
         tracerGroupSurfaceFlux, tracerGroupSurfaceFluxRunoff, &
         tracerGroupSurfaceFluxRemoved, BruntVaisalaFreqTop,  &
-        inSituThermalExpansionCoeff, inSituSalineContractionCoeff, &
-        velocityZonalCM, velocityMeridionalCM
+        inSituThermalExpansionCoeff, inSituSalineContractionCoeff
 
       real (kind=RKIND), dimension(:,:,:), pointer :: activeTracers
       integer, pointer :: indexTemperature, indexSalinity
@@ -154,15 +153,12 @@ contains
       integer, dimension(:), pointer :: nCellsArray, nEdgesArray
       integer, dimension(:,:), pointer :: cellsOnEdge
      real (kind=RKIND), dimension(:), allocatable :: zonalAverage, meridionalAverage, uw_sfc, &
-                           vw_sfc, ws_sfc, wt_sfc, uw_sfcCM, vw_sfcCM, ws_sfcCM, wt_sfcCM, &
-                           dThreshMLDCM
+                           vw_sfc, ws_sfc, wt_sfc
 
       real (kind=RKIND), dimension(:,:), allocatable :: utend, vtend, ttend, stend
       real (kind=RKIND) :: fac, dep1, dep2, fracAbsorbed, fracAbsorbedRunoff,  &
                            etime
 
-      real (kind=RKIND) :: MtoCM, KGtoG
-                           
       !-----------------------------------------------------------------
       !
       ! call relevant routines for computing mixing-related fields
@@ -175,12 +171,6 @@ contains
       ! assume no errors during initialization and set to 1 when error is encountered
       !
       err=0
-
-      if (config_adc_convert_to_CGS) then
-         MtoCM = 1000.0_RKIND
-      else
-         MtoCM = 1.0_RKIND
-      endif
 
       if (present(timeLevelIn)) then
          timeLevel = timeLevelIn
@@ -248,11 +238,8 @@ contains
       nEdges = nEdgesArray( 3 )
 
       allocate(uw_sfc(nCells), vw_sfc(nCells), ws_sfc(nCells), wt_sfc(nCells))
-      allocate(uw_sfcCM(nCells), vw_sfcCM(nCells), ws_sfcCM(nCells), wt_sfcCM(nCells))
-      allocate(dThreshMLDCM(nCells))
       allocate(utend(nVertLevels,nCells), vtend(nVertLevels,nCells))
       allocate(ttend(nVertLevels,nCells), stend(nVertLevels,nCells))
-      allocate(velocityZonalCM(nVertLevels,nCells), velocityMeridionalCM(nVertLevels,nCells))
 
       !$omp do schedule(runtime)
       do iEdge=1,nEdges
@@ -316,13 +303,13 @@ contains
          vw_sfc(iCell) = stressMeridional(iCell) / rho_sw
 
          ze(1,iCell) = 0.0_RKIND
-         zm(1,iCell) = -MtoCM*layerThickness(1,iCell)/2.0_RKIND
+         zm(1,iCell) = -layerThickness(1,iCell)/2.0_RKIND
          do k=2,maxLevelCell(iCell)
-            ze(k,iCell) = ze(k-1,iCell) - MtoCM*layerThickness(k-1,iCell)
-            zm(k,iCell) = ze(k, iCell) - MtoCM*layerThickness(k,iCell)/2.0_RKIND
+            ze(k,iCell) = ze(k-1,iCell) - layerThickness(k-1,iCell)
+            zm(k,iCell) = ze(k, iCell) - layerThickness(k,iCell)/2.0_RKIND
          enddo
          k = maxLevelCell(iCell)+1
-         ze(k,iCell) = ze(k-1,iCell) - MtoCM*layerThickness(k-1,iCell)
+         ze(k,iCell) = ze(k-1,iCell) - layerThickness(k-1,iCell)
          do k = maxLevelCell(iCell) + 1, nVertLevels
             ze(k+1,iCell) = ze(maxLevelCell(iCell)+1,iCell)
             zm(k,iCell) = ze(maxLevelCell(iCell)+1,iCell)
@@ -345,20 +332,9 @@ contains
      ttend(:,:nCells) = activeTracers(1,:,:nCells)
      stend(:,:nCells) = activeTracers(2,:,:nCells)
 
-     velocityZonalCM(:,:nCells) = MtoCM*velocityZonal(:,:nCells)
-     velocityMeridionalCM(:,:nCells) = MtoCM*velocityMeridional(:,:nCells)
-     uw_sfcCM(:iCell) = MtoCM*MtoCM*uw_sfc(:nCells)
-     vw_sfcCM(:iCell) = MtoCM*MtoCM*vw_sfc(:nCells)
-     wt_sfcCM(:iCell) = MtoCM*wt_sfc(:nCells)
-     ws_sfcCM(:iCell) = MtoCM*ws_sfc(:nCells)
-     dThreshMLDCM(:iCell) = MtoCM*dThreshMLD(:nCells)
-
-     call compute_ADC_tends(local_nCells, nVertLevels, ntracers, dt, activeTracers, velocityZonalCM, velocityMeridionalCM, &
-         BruntVaisalaFreqTop, uw_sfcCM, vw_sfcCM, wt_sfcCM, ws_sfcCM, inSituThermalExpansionCoeff,        &
-          inSituSalineContractionCoeff, fCell, dThreshMLDCM)
-
-     velocityZonal(:,:nCells) = velocityZonalCM(:,:nCells)/MtoCM
-     velocityMeridional(:,:nCells) = velocityMeridionalCM(:,:nCells)/MtoCM
+     call compute_ADC_tends(local_nCells, nVertLevels, ntracers, dt, activeTracers, velocityZonal, velocityMeridional, &
+         BruntVaisalaFreqTop, uw_sfc, vw_sfc, wt_sfc, ws_sfc, inSituThermalExpansionCoeff,        &
+          inSituSalineContractionCoeff, fCell, dThreshMLD)
 
      utend(:,:nCells) = (velocityZonal(:,:nCells) - utend(:,:nCells)) / dt
      vtend(:,:nCells) = (velocityMeridional(:,:nCells) - vtend(:,:nCells)) / dt
