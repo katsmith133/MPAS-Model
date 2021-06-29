@@ -15,7 +15,7 @@
 	      description="flag to truncate tendency terms"
 	      possible_values=".true. or .false."
 	      />
-  <nml_option name="config_adc_decimals_to_keep" type="real" default_value="1.0E12" units="unitless"
+  <nml_option name="config_adc_decimals_to_keep" type="real" default_value="12" units="unitless"
 	      description="number of decimal places to keep, inverse is position of decimal rounding"
 	      possible_values="large positive reals"
 	      />
