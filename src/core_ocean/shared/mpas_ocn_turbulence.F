@@ -47,7 +47,7 @@ module ocn_turbulence
                        sigmat, Ko, c_b, c_b_tracer, alpha_tracer1, alpha_tracer2, c11, &
                        alpha_0, alpha_1, alpha_2, B1, Kt, grav, c_mom, &
                        c_therm, c_mom_w3, c_epsilon, c_slow, c_slow_tracer, slow_w_factor, &
-                       kappa_FL, kappa_w3, kappa_VAR, Cww_D, Cww_E
+                       kappa_FL, kappa_w3, kappa_VAR, Cww_D, Cww_E, adcRound
 
    integer,public :: iterCount, nCells, nVertLevels
 
@@ -174,6 +174,7 @@ module ocn_turbulence
       kappa_FL = config_adc_kappaFL
       kappa_VAR = config_adc_kappaVAR
       kappa_w3 = config_adc_kappaW3
+      adcRound = 10.0_RKIND**config_adc_decimals_to_keep
       iterCount = 1
 
       call mpas_pool_get_array(adcDiagnosticsPool, 'ze', zeTmp)

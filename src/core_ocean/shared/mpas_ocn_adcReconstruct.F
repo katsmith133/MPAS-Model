@@ -183,10 +183,9 @@ module ocn_adc_mixing_fused
       real(kind=RKIND),dimension(nVertLevels,nCells) :: areaFractionMid, tumdMid, McMid, wumdMid, sumdMid
 
       real(kind=RKIND) :: SwU, SwD, tau_sfc, d_sqrt_wp2_dz, tp2, sp2, min_wp2_sfc_val, wp2_splat_sfc_correction
-      real(kind=RKIND) :: min_wps_sfc_val, adcRound
+      real(kind=RKIND) :: min_wps_sfc_val
 
       min_wps_sfc_val = 1.0E-10_RKIND
-      adcRound = 10.0_RKIND**config_adc_decimals_to_keep
       dt_small = config_adc_timestep
       niter = dt / dt_small
 
