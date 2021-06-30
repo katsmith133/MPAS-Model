@@ -229,7 +229,6 @@ contains
       ! need to use RBFs to get stress at cell centers
       call mpas_pool_get_array(forcingPool, 'windStressZonal', stressZonal)
       call mpas_pool_get_array(forcingPool, 'windStressMeridional', stressMeridional)
-
       call mpas_pool_get_array(forcingPool, 'surfaceStress', surfaceStress)
       call mpas_pool_get_array(forcingPool, 'surfaceStressMagnitude', surfaceStressMagnitude)
 
@@ -292,8 +291,8 @@ contains
                         activeTracers(indexTemperature,1,iCell) + tracerGroupSurfaceFluxRunoff(indexTemperature,iCell) * &
                         fracAbsorbedRunoff)
 
-         ws_sfc(iCell) = tracerGroupSurfaceFlux(indexSalinity, iCell) - fracAbsorbed * surfaceThicknessFlux(iCell) *  &
-                        activeTracers(indexSalinity,1,iCell)
+         ws_sfc(iCell) = -(tracerGroupSurfaceFlux(indexSalinity, iCell) - fracAbsorbed * surfaceThicknessFlux(iCell) *  &
+                        activeTracers(indexSalinity,1,iCell))
 
          uw_sfc(iCell) = stressZonal(iCell) / rho_sw
 
