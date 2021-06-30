@@ -291,8 +291,8 @@ contains
                         activeTracers(indexTemperature,1,iCell) + tracerGroupSurfaceFluxRunoff(indexTemperature,iCell) * &
                         fracAbsorbedRunoff)
 
-         ws_sfc(iCell) = tracerGroupSurfaceFlux(indexSalinity, iCell) - fracAbsorbed * surfaceThicknessFlux(iCell) *  &
-                        activeTracers(indexSalinity,1,iCell)
+         ws_sfc(iCell) = -(tracerGroupSurfaceFlux(indexSalinity, iCell) - fracAbsorbed * surfaceThicknessFlux(iCell) *  &
+                        activeTracers(indexSalinity,1,iCell))
 
          uw_sfc(iCell) = stressZonal(iCell) / rho_sw
 

@@ -197,7 +197,7 @@ module ocn_adc_mixing_fused
       do iIter=1,niter
 !     on further examination build_diagnostics array can live outside the iter loop
          do iCell=1,nCells
-            Q = grav*(alphaT(1,iCell)*wtsfc(iCell) - betaS(1,iCell)*wssfc(iCell))* &
+            Q = grav*(alphaT(1,iCell)*wtsfc(iCell) + betaS(1,iCell)*wssfc(iCell))* &
               boundaryLayerDepth(iCell)
               if(Q > 0) then
                  wstar = abs(Q)**(1.0_RKIND/3.0_RKIND)
@@ -222,7 +222,7 @@ module ocn_adc_mixing_fused
                  uw(k,1,iCell) = -uwsfc(iCell)
                  vw(k,1,iCell) = -vwsfc(iCell)
                  wt(k,1,iCell) = wtsfc(iCell)
-                 ws(k,1,iCell) = wssfc(iCell)
+                 ws(k,1,iCell) = -wssfc(iCell)
                  KE = 0.5_RKIND*(u2(i1,1,iCell) + v2(i1,1,iCell))
                  eps(k,1,iCell) = KE**1.5_RKIND/(0.5_RKIND*(ze(1,iCell) - ze(2,iCell) + 1.0E-10_RKIND))
               enddo
