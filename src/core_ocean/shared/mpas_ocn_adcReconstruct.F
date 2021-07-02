@@ -420,22 +420,35 @@ module ocn_adc_mixing_fused
                  wumdav = wumdMid(k,ICell)
                  sigav = areaFractionMid(k,iCell)
                  Mcav = McMid(k,iCell)
-                 
+
+                SwU = -(1.0_RKIND-2.0_RKIND*areaFraction(k,iCell)) &
+                   /(areaFraction(k,iCell)*(1.0_RKIND-areaFraction(k,iCell)))**0.5_RKIND
+                SwD = -(1.0_RKIND-2.0_RKIND*areaFraction(k+1,iCell)) &
+                   /(areaFraction(k+1,iCell)*(1.0_RKIND-areaFraction(k+1,iCell)))**0.5_RKIND
+
+!      CALCULATE W3 TENDENCY TERMS
+!      Calculate the tendency (rate-of-change) terms for the w3 budget.
+!      The w3 tendency is the sum of the following terms (saved individually)
+!                   (1) entrainment and detrainment between plumes
+!                   (2) turbulent transport of w3 [ -d(w^4)/dz ] where w^4 is estimated using ADC
+!                   (3) gradient production of w3 [ (3/2)*w2*d(w2)/dz ]
+!                   (4) parameterized pressure terms (Rotta, buoyancy)
+!                   (5) buoyancy production and sub-plume scale effects
+!                   (6) splatting (calculated earlier)
+!      The tendency term is truncated if config_adc_truncate_tend flag it switched on
                  w3tend1(k,iCell) = -wumdav**3.0_RKIND*(Eav*(3.0_RKIND*sigav - 2.0_RKIND) &
                    + Dav*(3.0_RKIND*sigav - 1.0_RKIND))
 
-                 SwU = -(1.0_RKIND-2.0_RKIND*areaFraction(k,iCell)) &
-                   /(areaFraction(k,iCell)*(1.0_RKIND-areaFraction(k,iCell)))**0.5_RKIND
-                 SwD = -(1.0_RKIND-2.0_RKIND*areaFraction(k+1,iCell)) &
-                   /(areaFraction(k+1,iCell)*(1.0_RKIND-areaFraction(k+1,iCell)))**0.5_RKIND
                  w3tend2(k,iCell) = -((3.0_RKIND + SwU**2.0_RKIND)*(w2(i1,k,iCell)**2.0_RKIND) - &
                    (3.0_RKIND + SwD**2.0_RKIND)*(w2(i1,k+1,iCell)**2.0_RKIND) ) / dz
+
                  w3tend3(k,iCell) = 1.5_RKIND*(w2(i1,k,iCell)**2.0_RKIND - w2(i1,k+1,iCell)**2.0_RKIND) / dz
 
-                 w3tend4(k,iCell) = -3.0_RKIND*(1.0_RKIND - 2.0_RKIND*sigav)*Mcav*wumdav*Swumd(k,iCell) - &
-                   tauw3(k,iCell)*w3(i1,k,iCell)
-                 w3tend5(k,iCell) = 3.0_RKIND*(1.0_RKIND - c11)*grav*(alphaT(k,iCell)*w2t(k,iCell) - &
-                   betaS(k,iCell)*w2s(k,iCell))
+                 w3tend4(k,iCell) = - tauw3(k,iCell)*w3(i1,k,iCell) - &
+                   3.0_RKIND*c11*grav*(alphaT(k,iCell)*w2t(k,iCell) - betaS(k,iCell)*w2s(k,iCell))
+
+                 w3tend5(k,iCell) = 3.0_RKIND*grav*(alphaT(k,iCell)*w2t(k,iCell) - betaS(k,iCell)* &
+                   w2s(k,iCell)) - 3.0_RKIND*(1.0_RKIND - 2.0_RKIND*sigav)*Mcav*wumdav*Swumd(k,iCell)
 
                  w3tend(i3_f,k,iCell) = w3tend1(k,iCell) + w3tend2(k,iCell) + w3tend3(k,iCell) + &
                    w3tend4(k,iCell) + w3tend5(k,iCell) + w3tend6(k,iCell)
@@ -450,7 +463,7 @@ module ocn_adc_mixing_fused
                       + 0.5_RKIND)) / adcRound
                  endif
 
-!     now get all the downgradient TOMs
+!     now get all the downgradient third-order moments
                  KE = 0.5_RKIND*(u2(i1,k,iCell) + v2(i1,k,iCell) + w2(i1,k,iCell))
                  KEp1 = 0.5_RKIND*(u2(i1,k+1,iCell) + v2(i1,k+1,iCell) + w2(i1,k+1,iCell))
                  lenav = 0.5_RKIND*(length(k,iCell) + length(k+1,iCell))
@@ -493,37 +506,83 @@ module ocn_adc_mixing_fused
                  tauVel(k,iCell) = C_slow*KE / (1.0E-15_RKIND + length(k,iCell))
                  tauvVel(k,iCell) = slow_w_factor*C_slow*KE / (1.0E-15_RKIND + length(k,iCell))
 
+
+!      CALCULATE W2 TENDENCY TERMS
+!      Calculate the tendency (rate-of-change) terms for the w2 budget. These terms
+!      are separated based on the physical processes that cause each tendency term.
+!      The w2 tendency is the sum of the following terms (which are saved individually)
+!                   (1) entrainment and detrainment between plumes
+!                   (2) turbulent transport of w2 [ -d(www)/dz ]
+!                   (3) parameterized pressure-strain terms (Rotta, rapid, buoyancy, Stokes)
+!                   (4) production of w2 by buoyancy fluxes (conversion to/from potential energy)
+!                   (5) sub-plume scale effects (based on Lappen & Randall 2001)
+!                   (6) splatting (calculated earlier; converts w2 to u2/v2 near surface)
+!      The tendency term is truncated if config_adc_truncate_tend flag it switched on
+!      The parameterization consists of a slow (Rotta) term [Rotta, 1951],
+!      a rapid term that depends on gradients in mean velocity [Speziale et al., 1991],
+!      a buoyancy term [Umlauf & Burchard, 2005], and
+!      a Stokes drift term based on Pearson et al., 2019.
+!      Note that the slow pressure w2 term is included below so that w2tend3 an be compared directly to
+!      pressure-strain terms, but it is removed  as it is included implicitly in the timestepping
                  w2tend1(k,iCell) = -wumd(k,iCell)**2.0_RKIND*(         &
                    Entrainment(k,iCell) + Detrainment(k,iCell))
+
                  w2tend2(k,iCell) = (McMid(k-1,iCell)*(1.0_RKIND - 2.0_RKIND* &
                    areaFractionMid(k-1,iCell))*wumdMid(k-1,iCell)**2.0_RKIND - McMid(k,iCell)* &
                    (1.0_RKIND - 2.0_RKIND*areaFractionMid(k,iCell))*wumdMid(k,iCell)**2.0_RKIND) / dzmid
-                 w2tend3(k,iCell) = tauvVel(k,iCell)*(u2(i1,k,iCell) + v2(i1,k,iCell))/3.0_RKIND
-                 w2tend4(k,iCell) = (2.0_RKIND - 4.0_RKIND/3.0_RKIND*C_b)*Mc(k,iCell)* &
-                   (grav*alphaT(k,iCell)*tumd(k,iCell) - grav*betaS(k,iCell)*sumd(k,iCell))
-                 w2tend5(k,iCell) = (1.0_RKIND/3.0_RKIND*alpha_1 -            &
-                   alpha_2)*(uw(i1,k,iCell)*Uz + vw(i1,k,iCell)*Vz) +         &
-                   Mc(k,iCell)*(Swumd(k-1,iCell) + Swumd(k,iCell))
 
+                 w2tend3(k,iCell) = tauvVel(k,iCell)*(u2(i1,k,iCell) + v2(i1,k,iCell) &
+                 -2.0_RKIND*w2(i1,k,iCell))/3.0_RKIND + (1.0_RKIND/3.0_RKIND*alpha_1 - &
+                   alpha_2)*(uw(i1,k,iCell)*Uz + vw(i1,k,iCell)*Vz) - 4.0_RKIND/3.0_RKIND* &
+                   C_b*Mc(k,iCell)*(grav*alphaT(k,iCell)*tumd(k,iCell) - &
+                   grav*betaS(k,iCell)*sumd(k,iCell))
+
+                 w2tend4(k,iCell) = 2.0_RKIND*Mc(k,iCell)* &
+                   (grav*alphaT(k,iCell)*tumd(k,iCell) - grav*betaS(k,iCell)*sumd(k,iCell))
+
+                 w2tend5(k,iCell) = Mc(k,iCell)*(Swumd(k-1,iCell) + Swumd(k,iCell))
+!      Sum the above tendency terms to find the total w2 tendency.
+!      Note this includes a splatting term calculated earlier (w2tend6).
+!      Also, the w2 slow pressure term (within w2tend3) is removed here as it is
+!      included implicitly in the timestepping
                  w2tend(i3_f,k,iCell) = w2tend1(k,iCell) + w2tend2(k,iCell) + &
-                   w2tend3(k,iCell) + w2tend4(k,iCell) + w2tend5(k,iCell) + w2tend6(k,iCell)
+                   w2tend3(k,iCell) + w2tend4(k,iCell) + w2tend5(k,iCell) + &
+                   w2tend6(k,iCell) + 2.0_RKIND*tauvVel(k,iCell)*w2(i1,k,iCell)/3.0_RKIND
 
                  if (config_adc_truncate_tend) then
                     w2tend(i3_f,k,iCell) = FLOAT (INT(w2tend(i3_f,k,iCell) * adcRound &
                       + 0.5_RKIND)) / adcRound
                  endif
 
+
+!      CALCULATE WT TENDENCY TERMS
+!      The wt tendency is the sum of the following terms (which are saved individually)
+!                   (1) entrainment and detrainment between plumes
+!                   (2) turbulent transport of wt [ -d(wtw)/dz ]
+!                   (3) parameterized pressure-scalar terms (Rotta, rapid, buoyancy, Stokes)
+!                   (4) gradient and buoyancy production terms of wt [ -w2*dT/dz + t*buoyancy]
+!                   (5) dissipation of wt [ -kappa_FL*[d(wt)/dz]^2 ]
+!                   (6) sub-plume scale effects (based on Lappen & Randall 2001)
+!      The tendency term is truncated if config_adc_truncate_tend flag it switched on
                  wttend1(k,iCell) = -1.0_RKIND*(Entrainment(k,iCell) + Detrainment(k,iCell)) * &
                    wumd(k,iCell)*tumd(k,iCell)
-                 wttend2(k,iCell) = -(w2t(k-1,iCell) - w2t(k,iCell)) / (zm(k-1,iCell) - zm(k,iCell)) - &
-                   Mc(k,iCell)*wumd(k,iCell)*Tz*0.0_RKIND
-                 wttend3(k,iCell) = (1.0_RKIND - C_b_tracer)*areaFraction(k,iCell)*  &
+
+                 wttend2(k,iCell) = -(w2t(k-1,iCell) - w2t(k,iCell)) / (zm(k-1,iCell) - zm(k,iCell))
+
+                 wttend3(k,iCell) = - tau_tracer(k,iCell)*wt(i1,k,iCell) &
+                    - C_b_tracer*areaFraction(k,iCell)*  &
                    (1.0_RKIND - areaFraction(k,iCell))*grav*(alphaT(k,iCell) &
+                   *tumd(k,iCell)**2.0_RKIND - betaS(k,iCell)*tumd(k,iCell)*sumd(k,iCell)) + &
+                   0.5_RKIND*(alpha_tracer1 - alpha_tracer2)*(ut(i1,k,iCell)*Uz + &
+                   vt(i1,k,iCell)*Vz)
+
+                 wttend4(k,iCell) = - Mc(k,iCell)*wumd(k,iCell)*Tz + &
+                   areaFraction(k,iCell)*(1.0_RKIND - areaFraction(k,iCell))*grav*(alphaT(k,iCell) &
                    *tumd(k,iCell)**2.0_RKIND - betaS(k,iCell)*tumd(k,iCell)*sumd(k,iCell))
-                 wttend4(k,iCell) = 0.5_RKIND*(alpha_tracer1 - alpha_tracer2)*(ut(i1,k,iCell)*Uz + &
-                   vt(i1,k,iCell)*Vz) - Mc(k,iCell)*wumd(k,iCell)*Tz
+
                  wttend5(k,iCell) = kappa_FL*(wt(i1,k-1,iCell) -       &
                    wt(i1,k+1,iCell)) / (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND
+
                  wttend6(k,iCell) = areaFraction(k,iCell)*(1.0_RKIND - areaFraction(k,iCell))* &
                    tumd(k,iCell)*0.5_RKIND*(Swumd(k-1,iCell) + Swumd(k,iCell)) - Mc(k,iCell)* &
                    (1.0_RKIND / areaFraction(k,iCell) * (areaFraction(k-1,iCell)*wt_spsU(k-1,iCell) - &
@@ -531,28 +590,51 @@ module ocn_adc_mixing_fused
                    -1.0_RKIND/(1.0_RKIND - areaFraction(k,iCell))*((1.0_RKIND - areaFraction(k-1,iCell))* &
                    wt_spsD(k-1,iCell) - (1.0_RKIND - areaFraction(k+1,iCell))*wt_spsD(k+1,iCell)) / &
                    (ze(k-1,iCell) - ze(k+1,iCell)))
-
+!      Sum the above tendency terms to find the total wt tendency.
+!      Also, the wt slow pressure term (within wttend3) is removed here as it is
+!      included implicitly in the timestepping
                  wttend(i3_f,k,iCell) = wttend1(k,iCell) + wttend2(k,iCell) +        &
-                   wttend3(k,iCell) + wttend4(k,iCell) + wttend5(k,iCell) + wttend6(k,iCell)
+                   wttend3(k,iCell) + wttend4(k,iCell) + wttend5(k,iCell) + wttend6(k,iCell) + &
+                   tau_tracer(k,iCell)*wt(i1,k,iCell)
 
                  if (config_adc_truncate_tend) then
                     wttend(i3_f,k,iCell) = FLOAT (INT(wttend(i3_f,k,iCell) * adcRound &
                       + 0.5_RKIND)) / adcRound
                  endif
 
+
+!      CALCULATE WS TENDENCY TERMS
+!      The ws tendency is the sum of the following terms (which are saved individually)
+!                   (1) entrainment and detrainment between plumes
+!                   (2) turbulent transport of ws [ -d(wsw)/dz ]
+!                   (3) parameterized pressure-scalar terms (Rotta, rapid, buoyancy, Stokes)
+!                   (4) gradient and buoyancy production terms of ws [ -w2*dS/dz + s*buoyancy]
+!                   (5) dissipation of ws [ -kappa_FL*[d(ws)/dz]^2 ]
+!                   (6) sub-plume scale effects (based on Lappen & Randall 2001)
+!      The tendency term is truncated if config_adc_truncate_tend flag it switched on
                  wstend1(k,iCell) = -(Entrainment(k,iCell) + Detrainment(k,iCell)) * &
                    wumd(k,iCell)*sumd(k,iCell)
+
                  wstend2(k,iCell) = ((1.0_RKIND - 2.0_RKIND*areaFraction(k-1,iCell))* &
                    wumd(k-1,iCell)*sumd(k-1,iCell)*Mc(k-1,iCell) - (1.0_RKIND - 2.0_RKIND* &
                    areaFraction(k+1,iCell))*wumd(k+1,iCell)*sumd(k+1,iCell)*Mc(k+1,iCell)) &
-                   / (ze(k-1,iCell) - ze(k+1,iCell)) - Mc(k,iCell)*wumd(k,iCell)*Sz
-                 wstend3(k,iCell) = (1.0_RKIND - C_b_tracer)*grav*areaFraction(k,iCell)* &
+                   / (ze(k-1,iCell) - ze(k+1,iCell))
+
+                 wstend3(k,iCell) = - tau_tracer(k,iCell)*ws(i1,k,iCell) + &
+                   C_b_tracer*grav*areaFraction(k,iCell)* &
+                   (1.0_RKIND - areaFraction(k,iCell))*(alphaT(k,iCell) &
+                   *tumd(k,iCell)*sumd(k,iCell) - betaS(k,iCell)*sumd(k,iCell)*sumd(k,iCell)) + &
+                   0.5_RKIND*(alpha_tracer1 - alpha_tracer2)*(us(i1,k,iCell)*Uz + &
+                   vs(i1,k,iCell)*Vz)
+
+                 wstend4(k,iCell) = - Mc(k,iCell)*wumd(k,iCell)*Sz + &
+                    grav*areaFraction(k,iCell)* &
                    (1.0_RKIND - areaFraction(k,iCell))*(alphaT(k,iCell) &
                    *tumd(k,iCell)*sumd(k,iCell) - betaS(k,iCell)*sumd(k,iCell)*sumd(k,iCell))
-                 wstend4(k,iCell) = 0.5_RKIND*(alpha_tracer1 - alpha_tracer2)*(us(i1,k,iCell)*Uz + &
-                   vs(i1,k,iCell)*Vz)
+
                  wstend5(k,iCell) = kappa_FL*(ws(i1,k-1,iCell) -       &
                    ws(i1,k+1,iCell)) / (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND
+
                  wstend6(k,iCell) = areaFraction(k,iCell)*(1.0_RKIND - areaFraction(k,iCell))* &
                    sumd(k,iCell)*0.5_RKIND*(Swumd(k-1,iCell) + Swumd(k,iCell)) - Mc(k,iCell)* &
                    (1.0_RKIND / areaFraction(k,iCell) * (areaFraction(k-1,iCell)*ws_spsU(k-1,iCell) - &
@@ -560,27 +642,44 @@ module ocn_adc_mixing_fused
                    -1.0_RKIND/(1.0_RKIND - areaFraction(k,iCell))*((1.0_RKIND - areaFraction(k-1,iCell))* &
                    ws_spsD(k-1,iCell) - (1.0_RKIND - areaFraction(k+1,iCell))*ws_spsD(k+1,iCell)) / &
                    (ze(k-1,iCell) - ze(k+1,iCell)))
-
+!      Sum the above tendency terms to find the total ws tendency.
+!      Also, the ws slow pressure term (within wstend3) is removed here as it is
+!      included implicitly in the timestepping
                  wstend(i3_f,k,iCell) = wstend1(k,iCell) + wstend2(k,iCell) + &
-                   wstend3(k,iCell) + wstend4(k,iCell) + wstend5(k,iCell) + wstend6(k,iCell)
+                   wstend3(k,iCell) + wstend4(k,iCell) + wstend5(k,iCell) + wstend6(k,iCell) + &
+                   tau_tracer(k,iCell)*ws(i1,k,iCell)
 
                  if (config_adc_truncate_tend) then
                     wstend(i3_f,k,iCell) = FLOAT (INT(wstend(i3_f,k,iCell) * adcRound &
                       + 0.5_RKIND)) / adcRound
                  endif
 
-                 uwtend1(k,iCell) = -(uw2(k-1,iCell) - uw2(k,iCell)) / dzmid
-                 uwtend2(k,iCell) = 0.5_RKIND*((alpha_0 - 4.0_RKIND*alpha_1/3.0_RKIND)*KE**2.0_RKIND +  &
-                   (alpha_1 - alpha_2)*u2(i1,k,iCell) + (alpha_1 +  &
-                   alpha_2 - 2.0_RKIND)*w2(i1,k,iCell))*Uz
-                 uwtend3(k,iCell) = 0.5_RKIND*(alpha_1 - alpha_2)*    &
-                   uv(i1,k,iCell)*Vz
-                 uwtend4(k,iCell) = (1-C_b)*grav*(alphaT(k,iCell)*   &
-                   ut(i1,k,iCell) - betaS(k,iCell)*us(i1,k,iCell))
-                 uwtend5(k,iCell) = -tauVel(k,iCell)*uw(i1,k,iCell) + &
-                   kappa_FL*(uw(i1,k-1,iCell) - uw(i1,k+1,iCell)) / &
-                   (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND
 
+!      CALCULATE UW TENDENCY TERMS
+!      The uw tendency is the sum of the following terms (which are saved individually)
+!                   (1) turbulent transport of uw [ -d(uww)/dz ]
+!                   (2) parameterized pressure-strain terms (Rotta, rapid, buoyancy, Stokes)
+!                   (3) shear production of uw [-w2*dU/dz]
+!                   (4) buoyancy production of uw [ u*buoyancy]
+!                   (5) dissipation of uw [ -kappa_FL*[d(uw)/dz]^2 ]
+!      The tendency term is truncated if config_adc_truncate_tend flag it switched on
+                 uwtend1(k,iCell) = -(uw2(k-1,iCell) - uw2(k,iCell)) / dzmid
+
+                 uwtend2(k,iCell) = -tauVel(k,iCell)*uw(i1,k,iCell) + &
+                   0.5_RKIND*((alpha_0 - 4.0_RKIND*alpha_1/3.0_RKIND)*KE**2.0_RKIND +  &
+                   (alpha_1 - alpha_2)*u2(i1,k,iCell) + (alpha_1 +  &
+                   alpha_2)*w2(i1,k,iCell))*Uz + 0.5_RKIND*(alpha_1 - alpha_2)*    &
+                   uv(i1,k,iCell)*Vz - C_b*grav*(alphaT(k,iCell)*   &
+                   ut(i1,k,iCell) - betaS(k,iCell)*us(i1,k,iCell))
+
+                 uwtend3(k,iCell) = - w2(i1,k,iCell)*Uz
+
+                 uwtend4(k,iCell) = grav*(alphaT(k,iCell)*   &
+                   ut(i1,k,iCell) - betaS(k,iCell)*us(i1,k,iCell))
+
+                 uwtend5(k,iCell) = kappa_FL*(uw(i1,k-1,iCell) - uw(i1,k+1,iCell)) / &
+                   (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND
+!      Sum the above tendency terms to find the total uw tendency.
                  uwtend(i3_f,k,iCell) = uwtend1(k,iCell) + uwtend2(k,iCell) + &
                    uwtend3(k,iCell) + uwtend4(k,iCell) + uwtend5(k,iCell)
 
@@ -589,100 +688,206 @@ module ocn_adc_mixing_fused
                       + 0.5_RKIND)) / adcRound
                  endif
 
-                 vwtend(i3_f,k,iCell) = (-(vw2(k-1,iCell) - vw2(k,iCell)) / dzmid  &
-                   + 0.5_RKIND*((alpha_0 - 4.0_RKIND*alpha_1/3.0_RKIND)*KE**2.0_RKIND +  &
-                   (alpha_1 - alpha_2)*v2(i1,k,iCell) + (alpha_1 +   &
-                   alpha_2 - 2.0_RKIND)*w2(i1,k,iCell))*Vz + 0.5_RKIND*(alpha_1 &
-                   - alpha_2)*uv(i1,k,iCell)*Uz + (1-C_b)*grav*       &
-                   (alphaT(k,iCell)*vt(i1,k,iCell) - betaS(k,iCell)*vs(i1,k,iCell))) -            &
-                   tauVel(k,iCell)*vw(i1,k,iCell) + kappa_FL*(vw(i1,k-1,iCell) &
-                   - vw(i1,k+1,iCell)) / (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND
+
+!      CALCULATE VW TENDENCY TERMS
+!      The vw tendency is the sum of the following terms (which are saved individually)
+!                   (1) turbulent transport of vw [ -d(vww)/dz ]
+!                   (2) parameterized pressure-strain terms (Rotta, rapid, buoyancy, Stokes)
+!                   (3) shear production of vw [-w2*dV/dz]
+!                   (4) buoyancy production of vw [ v*buoyancy]
+!                   (5) dissipation of vw [ -kappa_FL*[d(vw)/dz]^2 ]
+!      The tendency term is truncated if config_adc_truncate_tend flag it switched on
+                 vwtend1(k,iCell) = -(vw2(k-1,iCell) - vw2(k,iCell)) / dzmid
+
+                 vwtend2(k,iCell) = -tauVel(k,iCell)*vw(i1,k,iCell) + &
+                   0.5_RKIND*((alpha_0 - 4.0_RKIND*alpha_1/3.0_RKIND)*KE**2.0_RKIND +  &
+                   (alpha_1 - alpha_2)*v2(i1,k,iCell) + (alpha_1 +  &
+                   alpha_2)*w2(i1,k,iCell))*Vz + 0.5_RKIND*(alpha_1 - alpha_2)*    &
+                   uv(i1,k,iCell)*Uz - C_b*grav*(alphaT(k,iCell)*   &
+                   vt(i1,k,iCell) - betaS(k,iCell)*vs(i1,k,iCell))
+
+                 vwtend3(k,iCell) = - w2(i1,k,iCell)*Vz
+
+                 vwtend4(k,iCell) = grav*(alphaT(k,iCell)*   &
+                   vt(i1,k,iCell) - betaS(k,iCell)*vs(i1,k,iCell))
+
+                 vwtend5(k,iCell) = kappa_FL*(vw(i1,k-1,iCell) - vw(i1,k+1,iCell)) / &
+                   (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND
+!      Sum the above tendency terms to find the total vw tendency.
+                 vwtend(i3_f,k,iCell) = vwtend1(k,iCell) + vwtend2(k,iCell) + &
+                   vwtend3(k,iCell) + vwtend4(k,iCell) + vwtend5(k,iCell)
 
                  if (config_adc_truncate_tend) then
                     vwtend(i3_f,k,iCell) = FLOAT (INT(vwtend(i3_f,k,iCell) * adcRound &
                       + 0.5_RKIND)) / adcRound
                  endif
 
-                 uvtend(i3_f,k,iCell) = (-(uvw(k-1,iCell) - uvw(k,iCell)) / dz - &
-                   (1.0_RKIND - 0.5_RKIND*(alpha_1+alpha_2))*(uw(i1,k,iCell)*Vz &
-                   + vw(i1,k,iCell)*Uz)) - tauVel(k,iCell)*uv(i1,k,iCell) +           &
-                   kappa_VAR*(uv(i1,k-1,iCell) - uv(i1,k+1,iCell)) /       &
-                   (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND
 
+!      CALCULATE UV TENDENCY TERMS (these are not saved individually)
+!      The uv tendency is the sum of
+!                   (1) turbulent transport of vw [ -d(vww)/dz ]
+!                   (2) parameterized pressure-strain terms (Rotta, rapid, Stokes)
+!                   (3) shear production of uv [uw*dV/dz + vw*dU/dz]
+!                   (4) dissipation of uv [ -kappa_FL*[d(uv)/dz]^2 ]
+!      The tendency term is truncated if config_adc_truncate_tend flag it switched on
+                uvtend(i3_f,k,iCell) = -(uvw(k-1,iCell) - uvw(k,iCell)) / dzmid & ! transport
+                   - tauVel(k,iCell)*uv(i1,k,iCell)  & ! Rotta
+                   - 0.5_RKIND*(alpha_1+alpha_2)*(uw(i1,k,iCell)*Vz &
+                   + vw(i1,k,iCell)*Uz) + & ! rapid
+                   (uw(i1,k,iCell)*Vz + vw(i1,k,iCell)*Uz) + & ! shear production
+                   kappa_VAR*(uv(i1,k-1,iCell) - uv(i1,k+1,iCell)) / &
+                   (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND ! dissipation
+
+!      Truncate the uv tendency term if the truncation flag is switched on
                  if (config_adc_truncate_tend) then
                     uvtend(i3_f,k,iCell) = FLOAT (INT(uvtend(i3_f,k,iCell) * adcRound &
                       + 0.5_RKIND)) / adcRound
                  endif
 
-                 u2tend1(k,iCell) = -(u2w(k-1,iCell) - u2w(k,iCell)) / dzmid
-                 u2tend2(k,iCell) = (1.0_RKIND/3.0_RKIND*alpha_1 + alpha_2 &
-                   -2.0_RKIND)*uw(i1,k,iCell)*Uz
-                 u2tend3(k,iCell) = - 2.0_RKIND/3.0_RKIND*alpha_1*vw(i1,k,iCell)*Vz
-                 u2tend4(k,iCell) = 2.0_RKIND/3.0_RKIND*C_b*B
-                 u2tend5(k,iCell) = -2.0_RKIND/3.0_RKIND*eps(i1,k,iCell) + &
-                   tauVel(k,iCell)*(v2(i1,k,iCell) + areaFraction(k,iCell)* &
-                   (1.0_RKIND - areaFraction(k,iCell))*wumd(k,iCell)**2)/3.0_RKIND
 
+!      CALCULATE U2 TENDENCY TERMS
+!      The u2 tendency is the sum of the following terms (which are saved individually)
+!                   (1) turbulent transport of u2 [ -d(uuw)/dz ]
+!                   (2) parameterized pressure-strain terms (Rotta, rapid, buoyancy, Stokes)
+!                   (3) shear production of u2 [-2*uw*dU/dz]
+!                   (4) dummy variable (should be zero)
+!                   (5) dissipation of u2 [-(2/3)*dissipation]
+!                   (6) splatting (calculated earlier)
+!      The tendency term is truncated if config_adc_truncate_tend flag it switched on
+                 u2tend1(k,iCell) = -(u2w(k-1,iCell) - u2w(k,iCell)) / dzmid
+
+                 u2tend2(k,iCell) = tauVel(k,iCell)*(v2(i1,k,iCell) - 2.0_RKIND* &
+                   u2(i1,k,iCell) + areaFraction(k,iCell)*(1.0_RKIND - &
+                   areaFraction(k,iCell))*wumd(k,iCell)**2)/3.0_RKIND + &
+                   (1.0_RKIND/3.0_RKIND*alpha_1 + alpha_2) &
+                   *uw(i1,k,iCell)*Uz - 2.0_RKIND/3.0_RKIND*alpha_1*vw(i1,k,iCell)*Vz &
+                   + 2.0_RKIND/3.0_RKIND*C_b*B
+
+                 u2tend3(k,iCell) = -2.0_RKIND*uw(i1,k,iCell)*Uz
+
+                 u2tend4(k,iCell) = 0.0_RKIND
+
+                 u2tend5(k,iCell) = -2.0_RKIND/3.0_RKIND*eps(i1,k,iCell)
+!      Sum the above tendency terms to find the total u2 tendency.
+!      Note, the u2 slow pressure term (within u2tend3) is removed here as it is
+!      included implicitly in the timestepping
                  u2tend(i3_f,k,iCell) = u2tend1(k,iCell) + u2tend2(k,iCell) + &
-                   u2tend3(k,iCell) + u2tend4(k,iCell) + u2tend5(k,iCell) + u2tend6(k,iCell)
+                   u2tend3(k,iCell) + u2tend4(k,iCell) + u2tend5(k,iCell) + &
+                   u2tend6(k,iCell) + 2.0_RKIND*tauvVel(k,iCell)*u2(i1,k,iCell)/3.0_RKIND
 
                  if (config_adc_truncate_tend) then
                     u2tend(i3_f,k,iCell) = FLOAT (INT(u2tend(i3_f,k,iCell) * adcRound &
                       + 0.5_RKIND)) / adcRound
                  endif
-                
-                 v2tend1(k,iCell) = -(v2w(k-1,iCell) - v2w(k,iCell)) / dzmid
-                 v2tend2(k,iCell) = (1.0_RKIND/3.0_RKIND*alpha_1 + alpha_2 &
-                   - 2.0_RKIND)*vw(i1,k,iCell)*Vz
-                 v2tend3(k,iCell) = - 2.0_RKIND/3.0_RKIND*alpha_1*uw(i1,k,iCell)*Uz
-                 v2tend4(k,iCell) = 2.0_RKIND/3.0_RKIND*C_b*B
-                 v2tend5(k,iCell) = -2.0_RKIND/3.0_RKIND*eps(i1,k,iCell) + &
-                   tauVel(k,iCell)*(u2(i1,k,iCell) + areaFraction(k,iCell)* &
-                   (1.0_RKIND - areaFraction(k,iCell))*wumd(k,iCell)**2)/3.0_RKIND
 
+
+!      CALCULATE V2 TENDENCY TERMS
+!      The v2 tendency is the sum of the following terms (which are saved individually)
+!                   (1) turbulent transport of v2 [ -d(vvw)/dz ]
+!                   (2) parameterized pressure-strain terms (Rotta, rapid, buoyancy, Stokes)
+!                   (3) shear production of v2 [-2*vw*dV/dz]
+!                   (4) dummy variable (should be zero)
+!                   (5) dissipation of v2 [-(2/3)*dissipation]
+!                   (6) splatting (calculated earlier)
+!      The tendency term is truncated if config_adc_truncate_tend flag it switched on
+                 v2tend1(k,iCell) = -(v2w(k-1,iCell) - v2w(k,iCell)) / dzmid
+
+                 v2tend2(k,iCell) = tauVel(k,iCell)*(u2(i1,k,iCell) - 2.0_RKIND* &
+                   v2(i1,k,iCell) + areaFraction(k,iCell)*(1.0_RKIND - &
+                   areaFraction(k,iCell))*wumd(k,iCell)**2)/3.0_RKIND + &
+                   (1.0_RKIND/3.0_RKIND*alpha_1 + alpha_2) &
+                   *vw(i1,k,iCell)*Vz - 2.0_RKIND/3.0_RKIND*alpha_1*uw(i1,k,iCell)*Uz &
+                   + 2.0_RKIND/3.0_RKIND*C_b*B
+
+                 v2tend3(k,iCell) = -2.0_RKIND*vw(i1,k,iCell)*Vz
+
+                 v2tend4(k,iCell) = 0.0_RKIND
+
+                 v2tend5(k,iCell) = -2.0_RKIND/3.0_RKIND*eps(i1,k,iCell)
+!      Sum the above tendency terms to find the total v2 tendency.
+!      Note, the v2 slow pressure term (within v2tend3) is removed here as it is
+!      included implicitly in the timestepping
                  v2tend(i3_f,k,iCell) = v2tend1(k,iCell) + v2tend2(k,iCell) + &
-                   v2tend3(k,iCell) + v2tend4(k,iCell) + v2tend5(k,iCell) + v2tend6(k,iCell)
+                   v2tend3(k,iCell) + v2tend4(k,iCell) + v2tend5(k,iCell) + &
+                   v2tend6(k,iCell) + 2.0_RKIND*tauvVel(k,iCell)*v2(i1,k,iCell)/3.0_RKIND
 
                  if (config_adc_truncate_tend) then
                     v2tend(i3_f,k,iCell) = FLOAT (INT(v2tend(i3_f,k,iCell) * adcRound &
                       + 0.5_RKIND)) / adcRound
                  endif
+                
 
-                 uttend(i3_f,k,iCell) = (-(uwt(k-1,iCell) - uwt(k,iCell))/dz -  &
-                   uw(i1,k,iCell)*Tz - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 +  &
-                   alpha_tracer2))*wt(i1,k,iCell)*Uz) - ut(i1,k,iCell)*tau_tracer(k,iCell)
+!      CALCULATE UT TENDENCY TERMS (these are not saved individually)
+!      The ut tendency is the sum of
+!                   (1) turbulent transport of ut [ -d(uwt)/dz ]
+!                   (2) parameterized pressure-strain terms (Rotta, rapid, Stokes)
+!                   (3) gradient production of ut [uw*dT/dz]
+!      The tendency term is truncated if config_adc_truncate_tend flag it switched on
+                 uttend(i3_f,k,iCell) = (-(uwt(k-1,iCell) - uwt(k,iCell))/dz  & ! Transport
+                   - ut(i1,k,iCell)*tau_tracer(k,iCell) & ! Rotta
+                   - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 &
+                   + alpha_tracer2))*wt(i1,k,iCell)*Uz) & ! Rapid
+                   - uw(i1,k,iCell)*Tz ! Gradient production
 
                  if (config_adc_truncate_tend) then
                     uttend(i3_f,k,iCell) = FLOAT (INT(uttend(i3_f,k,iCell) * adcRound &
                       + 0.5_RKIND)) / adcRound
                  endif
 
-                 vttend(i3_f,k,iCell) = (-(vwt(k-1,iCell) - vwt(k,iCell))/dz -  &
-                   vw(i1,k,iCell)*Tz - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 +  &
-                   alpha_tracer2))*wt(i1,k,iCell)*Vz) - vt(i1,k,iCell)*tau_tracer(k,iCell)
+
+!      CALCULATE VT TENDENCY TERMS (these are not saved individually)
+!      The vt tendency is the sum of
+!                   (1) turbulent transport of vt [ -d(vwt)/dz ]
+!                   (2) parameterized pressure-strain terms (Rotta, rapid, Stokes)
+!                   (3) gradient production of vt [vw*dT/dz]
+!      The tendency term is truncated if config_adc_truncate_tend flag it switched on
+                 vttend(i3_f,k,iCell) = (-(vwt(k-1,iCell) - vwt(k,iCell))/dz  & ! Transport
+                   - vt(i1,k,iCell)*tau_tracer(k,iCell) & ! Rotta
+                   - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 &
+                   + alpha_tracer2))*wt(i1,k,iCell)*Vz) & ! Rapid
+                   - vw(i1,k,iCell)*Tz ! Gradient production
 
                  if (config_adc_truncate_tend) then
                     vttend(i3_f,k,iCell) = FLOAT (INT(vttend(i3_f,k,iCell) * adcRound &
                       + 0.5_RKIND)) / adcRound
                  endif
 
-                 ustend(i3_f,k,iCell) = (-(uws(k-1,iCell) - uws(k,iCell))/dz -  &
-                   uw(i1,k,iCell)*Sz - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 +  &
-                   alpha_tracer2))*ws(i1,k,iCell)*Uz) - us(i1,k,iCell)*tau_tracer(k,ICell)
-                 
+!      CALCULATE US TENDENCY TERMS (these are not saved individually)
+!      The us tendency is the sum of
+!                   (1) turbulent transport of ut [ -d(uws)/dz ]
+!                   (2) parameterized pressure-strain terms (Rotta, rapid, Stokes)
+!                   (3) gradient production of ut [uw*dS/dz]
+!      The tendency term is truncated if config_adc_truncate_tend flag it switched on
+                 ustend(i3_f,k,iCell) = (-(uws(k-1,iCell) - uws(k,iCell))/dz  & ! Transport
+                   - us(i1,k,iCell)*tau_tracer(k,iCell) & ! Rotta
+                   - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 &
+                   + alpha_tracer2))*ws(i1,k,iCell)*Uz) & ! Rapid
+                   - uw(i1,k,iCell)*Sz ! Gradient production
+
                  if (config_adc_truncate_tend) then
                     ustend(i3_f,k,iCell) = FLOAT (INT(ustend(i3_f,k,iCell) * adcRound &
                       + 0.5_RKIND)) / adcRound
                  endif
 
-                 vstend(i3_f,k,iCell) = (-(vws(k-1,iCell) - vws(k,iCell))/dz -  &
-                   vw(i1,k,iCell)*Sz - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 +  &
-                   alpha_tracer2))*ws(i1,k,iCell)*Vz) - vs(i1,k,iCell)*tau_tracer(k,iCell)
+
+!      CALCULATE VT TENDENCY TERMS
+!      The vs tendency is the sum of the following terms (which are NOT saved individually)
+!                   (1) turbulent transport of vs [ -d(vws)/dz ]
+!                   (2) parameterized pressure-strain terms (Rotta, rapid, Stokes)
+!                   (3) gradient production of vs [vw*dS/dz]
+!      The tendency term is truncated if config_adc_truncate_tend flag it switched on
+                 vstend(i3_f,k,iCell) = (-(vws(k-1,iCell) - vws(k,iCell))/dz  & ! Transport
+                   - vs(i1,k,iCell)*tau_tracer(k,iCell) & ! Rotta
+                   - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 &
+                   + alpha_tracer2))*ws(i1,k,iCell)*Vz) & ! Rapid
+                   - vw(i1,k,iCell)*Sz ! Gradient production
 
                  if (config_adc_truncate_tend) then
                     vstend(i3_f,k,iCell) = FLOAT (INT(vstend(i3_f,k,iCell) * adcRound &
                       + 0.5_RKIND)) / adcRound
                  endif
+
+
 
                  t2(i2,k,iCell) = tumd(k,iCell)**2.0_RKIND*areaFraction(k,iCell)*&
                    (1.0_RKIND-areaFraction(k,iCell))

@@ -17,7 +17,7 @@
 !!  \date   14 Jan 2020
 !!  \details
 !!  This module creates and maintains a primary ocean mesh structure
-!!  for the ADC mixing scheme.  Eventually it will send arrays over to GPU 
+!!  for the ADC mixing scheme.  Eventually it will send arrays over to GPU
 !!  but for now just loads on to cpu
 !
 !-------------------------------------------------------------------------------
@@ -54,7 +54,7 @@ module ocn_turbulence
                        Detrainment, tumd, sumd, wumd, Mc
 
    real(kind=RKIND), dimension(:,:), pointer :: w2tend1, w2tend2,     &
-                       w2tend3, w2tend4, w2tend5, wttend1, wttend2,   &
+                       w2tend3, w2tend4, w2tend5, w2tend6, wttend1, wttend2,   &
                        wttend3, wttend4, wttend5, w3tend1, w3tend2,   &
                        w3tend3, w3tend5, w3tend4, wstend1, wstend2,   &
                        wstend3, wstend4, wstend5, uwtend1, uwtend2,   &
@@ -104,7 +104,8 @@ module ocn_turbulence
                        DetrainmentTmp, tumdTmp, sumdTmp, wumdTmp, McTmp
 
    real(kind=RKIND), dimension(:,:), pointer :: w2tend1Tmp, w2tend2Tmp,     &
-                       w2tend3Tmp, w2tend4Tmp, w2tend5Tmp, wttend1Tmp, wttend2Tmp,   &
+                       w2tend3Tmp, w2tend4Tmp, w2tend5Tmp, w2tend6Tmp, &
+                       wttend1Tmp, wttend2Tmp,   &
                        wttend3Tmp, wttend4Tmp, wttend5Tmp, w3tend1Tmp, w3tend2Tmp,   &
                        w3tend3Tmp, w3tend5Tmp, w3tend4Tmp, wstend1Tmp, wstend2Tmp,   &
                        wstend3Tmp, wstend4Tmp, wstend5Tmp, uwtend1Tmp, uwtend2Tmp,   &
@@ -231,6 +232,7 @@ module ocn_turbulence
       call mpas_pool_get_array(adcTendPool, 'w2tend3', w2tend3Tmp)
       call mpas_pool_get_array(adcTendPool, 'w2tend4', w2tend4Tmp)
       call mpas_pool_get_array(adcTendPool, 'w2tend5', w2tend5Tmp)
+      call mpas_pool_get_array(adcTendPool, 'w2tend6', w2tend6Tmp)
       call mpas_pool_get_array(adcTendPool, 'w3tend1', w3tend1Tmp)
       call mpas_pool_get_array(adcTendPool, 'w3tend2', w3tend2Tmp)
       call mpas_pool_get_array(adcTendPool, 'w3tend3', w3tend3Tmp)
@@ -275,6 +277,7 @@ module ocn_turbulence
       adcMixing%w2tend3 = w2tend3Tmp
       adcMixing%w2tend4 = w2tend4Tmp
       adcMixing%w2tend5 = w2tend5Tmp
+      adcMixing%w2tend6 = w2tend6Tmp
       adcMixing%w3tend1 = w3tend1Tmp
       adcMixing%w3tend2 = w3tend2Tmp
       adcMixing%w3tend3 = w3tend3Tmp
