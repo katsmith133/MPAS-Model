@@ -275,7 +275,7 @@
 </var_struct>
 <var_struct name="adcTendArrays" time_levs="1" packages="adcMixingPKG">
   <var name="w2tend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="entrainment term -- similar to dissipation"
+       description="entrainment/detrainment term -- similar to dissipation"
        />
   <var name="w2tend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
        description="turbulent transport of w2 [ -d(www)/dz ]"
@@ -293,7 +293,7 @@
        description="conversion of w2 to u2/v2 due to splat effects"
        />
   <var name="w3tend1" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
-       description="entrainment and detrainment between plumes"
+       description="entrainment/detrainment term -- similar to dissipation"
        />
   <var name="w3tend2" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
        description="turbulent transport of w3 [ -d(w^4)/dz ]"
@@ -310,40 +310,40 @@
   <var name="w3tend6" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
        description="destruction due to splat effects"
        />
-  <var name="wttend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="entrainment term -- similar to dissipation"
+  <var name="wttend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s^2"
+       description="entrainment/detrainment term -- similar to dissipation"
        />
-  <var name="wttend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+  <var name="wttend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s^2"
        description="turbulent transport of wt [ -d(wtw)/dz ]"
        />
-  <var name="wttend3" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+  <var name="wttend3" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s^2"
        description="parameterized pressure-scalar terms (Rotta, rapid, buoyancy, Stokes)"
        />
-  <var name="wttend4" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+  <var name="wttend4" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s^2"
        description="gradient and buoyancy production term [ -w2*dT/dz + t*buoyancy]"
        />
-  <var name="wttend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+  <var name="wttend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s^2"
        description="dissipation of wt [ -kappa_FL*[d(wt)/dz]^2 ]"
        />
-  <var name="wttend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+  <var name="wttend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s^2"
        description="subplume scale production term"
        />
-  <var name="wstend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="entrainment term -- similar to dissipation"
+  <var name="wstend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s^2"
+       description="entrainment/detrainment term -- similar to dissipation"
        />
-  <var name="wstend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+  <var name="wstend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s^2"
        description="turbulent transport of ws [ -d(wsw)/dz ]"
        />
-  <var name="wstend3" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+  <var name="wstend3" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s^2"
        description="parameterized pressure-scalar terms (Rotta, rapid, buoyancy, Stokes)"
        />
-  <var name="wstend4" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+  <var name="wstend4" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s^2"
        description="gradient and buoyancy production term [ -w2*dS/dz + s*buoyancy]"
        />
-  <var name="wstend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+  <var name="wstend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s^2"
        description="dissipation of ws [ -kappa_FL*[d(ws)/dz]^2 ]"
        />
-  <var name="wstend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+  <var name="wstend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s^2"
        description="subplume scale production term"
        />
   <var name="uwtend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
