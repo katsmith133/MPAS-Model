@@ -299,7 +299,7 @@
        description="turbulent transport of w3 [ -d(w^4)/dz ]"
        />
   <var name="w3tend3" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
-       description="gradient production of w3 [ (3/2)*w2*d(w2)/dz ]"
+       description="gradient production of w3 [ (3/2)*d( [w2]^2 )/dz ]"
        />
   <var name="w3tend4" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
        description="parameterized pressure terms (Rotta, buoyancy)"

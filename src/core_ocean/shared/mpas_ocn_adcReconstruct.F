@@ -431,7 +431,7 @@ module ocn_adc_mixing_fused
 !      The w3 tendency is the sum of the following terms (saved individually)
 !                   (1) entrainment and detrainment between plumes
 !                   (2) turbulent transport of w3 [ -d(w^4)/dz ] where w^4 is estimated using ADC
-!                   (3) gradient production of w3 [ (3/2)*w2*d(w2)/dz ]
+!                   (3) gradient production of w3 [ (3/2)*d( [w2]^2 )/dz ]
 !                   (4) parameterized pressure terms (Rotta, buoyancy)
 !                   (5) buoyancy production and sub-plume scale effects
 !                   (6) splatting (calculated earlier)
