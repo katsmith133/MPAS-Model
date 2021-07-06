@@ -228,10 +228,29 @@ module ocn_adc_mixing_fused
               enddo
            enddo
 
-!     compute the splat effect, adds w3tend and w2tend
            if(config_adc_use_splat_parameterization) then
-!     do k=1 separately for performance reasons, for k=1 we use one sided derivatives
-!     note that the splat_factor forces the term to be smaller than factor * dt
+
+!   COMPUTE SPLATTING EFFECT ON W2, U2, V2 AND W3
+!   This splatting effect was adopted from the CLUBB code.
+!   It computes the (negative) tendencies of w2 and w3 due to "splatting" of eddies as
+!   their vertical motion is inhibited, e.g., near the surface or mixed layer base.
+!   Near these 'splatting layers', wtend6 removes w2 and redistributes it evenly
+!   between u2 and v2 [via u2tend6 and v2tend6].
+!   The functional forms of splatting terms (w2tend6 and w2tend6) are
+!
+!   w2tend6 \propto - w'2 * (turbulent time scale) * ( d/dz( sqrt(w'2) ) )^2
+!
+!   The functional form of wp3_splat is
+!
+!   wp3_splat \propto - w'3 * (turbulent time scale) * ( d/dz( sqrt(w'2) ) )^2
+!
+!   If the coefficient on wp3_splat is at least 1.5 times greater than the
+!   coefficient on wp2_splat, then skewness will be damped, promoting
+!   more stratiform layers.
+!
+!   The calculation for k=1 is separate for performance reasons (one-sided derivatives)
+!   Note that the splat_factor forces the term to be smaller than factor * dt
+
               k=1
               do iCell=1,nCells
                  d_sqrt_wp2_dz = (sqrt(w2(i1,1,iCell)) - sqrt(0.5_RKIND*(w2(i1,1,iCell)+ &
@@ -989,7 +1008,28 @@ module ocn_adc_mixing_fused
 !     In this step we update second moments except w3 which needs updated w2
            do iCell = 1,nCells
               do k=2,nVertLevels
-!     update second order moment tendency here
+
+!      STEP THE SECOND-MOMENTS FORWARD IN TIME
+!      The tendency terms [w2tend etc.] are used to step the moments forward.
+!      These tendencies are calculated for each moment (arbitrarily XY) using,
+!
+!      XYtend = d(XY)/dt \approx Sources and Sinks of XY
+!
+!      Then, XY_future = XY_past + f(XYtend at different times in past, timestep)
+!
+!      Most of the sources and sinks are included explicitly using the above method.
+!      For the variances (w2, u2, v2) and vertical tracer fluxes (wt, ws), the
+!      'return-to-isotropy' mechanism of pressure terms is included implicitly
+!      instead. This term is parameterized as a sink of XY with
+!               tendency \propto - A* XY/(turbulence timescale)
+!      where A is a constant that can vary between each moment [Rotta, 1951].
+!      The implicit inclusion moves this term from the right- to left-hand side of the
+!      above equation. This results in a modified step-forward,
+!
+!      XY_future = XY_past + f(XYtendencies, timestep)/(1+A*timestep/turbulence_timescale)
+!
+!      Note that the tauvVel, tauVel, tau_tracer terms below are INVERSE timescales.
+
                  w2(i2,k,iCell) = (w2(i1,k,iCell) + dt_small*(Cw3 * w2tend(i3_f,k,iCell)  &
                    + Cw2 * w2tend(i2_f,k,iCell) + Cw1 * w2tend(i1_f,k,iCell))) /           &
                    (1.0_RKIND + dt_small*tauvVel(k,iCell)*2.0_RKIND/3.0_RKIND)
