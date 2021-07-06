@@ -521,6 +521,8 @@ module ocn_adc_mixing_fused
                  KE = sqrt(0.5_RKIND*(u2(i1,k,iCell) + v2(i1,k,iCell) + areaFraction(k,iCell)* &
                    (1.0_RKIND - areaFraction(k,iCell))*wumd(k,iCell)**2.0_RKIND))
 
+!      Define turbulence timescales/rates for return-to-isotropy tendency terms (Rotta, 1951)
+!      Note that tau_tracer, tauVel and tauvVel are INVERSE timescales (i.e. rates)
                  tau_tracer(k,iCell) = c_slow_tracer*KE / (1.0E-15_RKIND + length(k,iCell))
                  tauVel(k,iCell) = C_slow*KE / (1.0E-15_RKIND + length(k,iCell))
                  tauvVel(k,iCell) = slow_w_factor*C_slow*KE / (1.0E-15_RKIND + length(k,iCell))
