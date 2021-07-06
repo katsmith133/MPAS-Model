@@ -639,12 +639,11 @@ module ocn_adc_mixing_fused
                    areaFraction(k+1,iCell))*wumd(k+1,iCell)*sumd(k+1,iCell)*Mc(k+1,iCell)) &
                    / (ze(k-1,iCell) - ze(k+1,iCell))
 
-                 wstend3(k,iCell) = - tau_tracer(k,iCell)*ws(i1,k,iCell) + &
+                 wstend3(k,iCell) = - tau_tracer(k,iCell)*ws(i1,k,iCell) - &
                    C_b_tracer*grav*areaFraction(k,iCell)* &
                    (1.0_RKIND - areaFraction(k,iCell))*(alphaT(k,iCell) &
                    *tumd(k,iCell)*sumd(k,iCell) - betaS(k,iCell)*sumd(k,iCell)*sumd(k,iCell)) + &
-                   0.5_RKIND*(alpha_tracer1 - alpha_tracer2)*(us(i1,k,iCell)*Uz + &
-                   vs(i1,k,iCell)*Vz)
+                   0.5_RKIND*(alpha_tracer1 - alpha_tracer2)*(us(i1,k,iCell)*Uz + vs(i1,k,iCell)*Vz)
 
                  wstend4(k,iCell) = - Mc(k,iCell)*wumd(k,iCell)*Sz + &
                     grav*areaFraction(k,iCell)* &
