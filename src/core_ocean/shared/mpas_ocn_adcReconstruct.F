@@ -752,10 +752,10 @@ module ocn_adc_mixing_fused
 !      The tendency term is truncated if config_adc_truncate_tend flag it switched on
                 uvtend(i3_f,k,iCell) = -(uvw(k-1,iCell) - uvw(k,iCell)) / dz & ! transport
                    - tauVel(k,iCell)*uv(i1,k,iCell)  & ! Rotta
-                   - 0.5_RKIND*(alpha_1+alpha_2)*(uw(i1,k,iCell)*Vz &
-                   + vw(i1,k,iCell)*Uz) + & ! rapid
-                   (uw(i1,k,iCell)*Vz + vw(i1,k,iCell)*Uz) + & ! shear production
-                   kappa_VAR*(uv(i1,k-1,iCell) - uv(i1,k+1,iCell)) / &
+                   + 0.5_RKIND*(alpha_1+alpha_2)* &
+                   (uw(i1,k,iCell)*Vz + vw(i1,k,iCell)*Uz) & ! rapid
+                   - (uw(i1,k,iCell)*Vz + vw(i1,k,iCell)*Uz) & ! shear production
+                   + kappa_VAR*(uv(i1,k-1,iCell) - uv(i1,k+1,iCell)) / &
                    (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND ! dissipation
 
 !      Truncate the uv tendency term if the truncation flag is switched on
