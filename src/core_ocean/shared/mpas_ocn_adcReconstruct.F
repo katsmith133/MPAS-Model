@@ -750,7 +750,7 @@ module ocn_adc_mixing_fused
 !                   (3) shear production of uv [uw*dV/dz + vw*dU/dz]
 !                   (4) dissipation of uv [ -kappa_FL*[d(uv)/dz]^2 ]
 !      The tendency term is truncated if config_adc_truncate_tend flag it switched on
-                uvtend(i3_f,k,iCell) = -(uvw(k-1,iCell) - uvw(k,iCell)) / dzmid & ! transport
+                uvtend(i3_f,k,iCell) = -(uvw(k-1,iCell) - uvw(k,iCell)) / dz & ! transport
                    - tauVel(k,iCell)*uv(i1,k,iCell)  & ! Rotta
                    - 0.5_RKIND*(alpha_1+alpha_2)*(uw(i1,k,iCell)*Vz &
                    + vw(i1,k,iCell)*Uz) + & ! rapid
@@ -841,12 +841,13 @@ module ocn_adc_mixing_fused
 !      The ut tendency is the sum of
 !                   (1) turbulent transport of ut [ -d(uwt)/dz ]
 !                   (2) parameterized pressure-strain terms (Rotta, rapid, Stokes)
-!                   (3) gradient production of ut [uw*dT/dz]
+!                   (3) shear production of ut [-wt*dU/dz]
+!                   (4) gradient production of ut [-uw*dT/dz]
 !      The tendency term is truncated if config_adc_truncate_tend flag it switched on
-                 uttend(i3_f,k,iCell) = (-(uwt(k-1,iCell) - uwt(k,iCell))/dz  & ! Transport
+                 uttend(i3_f,k,iCell) = -(uwt(k-1,iCell) - uwt(k,iCell))/dz  & ! Transport
                    - ut(i1,k,iCell)*tau_tracer(k,iCell) & ! Rotta
-                   - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 &
-                   + alpha_tracer2))*wt(i1,k,iCell)*Uz) & ! Rapid
+                   + 0.5_RKIND*(alpha_tracer1 + alpha_tracer2)*wt(i1,k,iCell)*Uz & ! Rapid
+                   - wt(i1,k,iCell)*Uz & ! Rapid
                    - uw(i1,k,iCell)*Tz ! Gradient production
 
                  if (config_adc_truncate_tend) then
@@ -859,12 +860,13 @@ module ocn_adc_mixing_fused
 !      The vt tendency is the sum of
 !                   (1) turbulent transport of vt [ -d(vwt)/dz ]
 !                   (2) parameterized pressure-strain terms (Rotta, rapid, Stokes)
-!                   (3) gradient production of vt [vw*dT/dz]
+!                   (3) shear production of vt [-wt*dV/dz]
+!                   (4) gradient production of vt [-vw*dT/dz]
 !      The tendency term is truncated if config_adc_truncate_tend flag it switched on
-                 vttend(i3_f,k,iCell) = (-(vwt(k-1,iCell) - vwt(k,iCell))/dz  & ! Transport
+                 vttend(i3_f,k,iCell) = -(vwt(k-1,iCell) - vwt(k,iCell))/dz  & ! Transport
                    - vt(i1,k,iCell)*tau_tracer(k,iCell) & ! Rotta
-                   - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 &
-                   + alpha_tracer2))*wt(i1,k,iCell)*Vz) & ! Rapid
+                   + 0.5_RKIND*(alpha_tracer1 + alpha_tracer2)*wt(i1,k,iCell)*Vz & ! Rapid
+                   - wt(i1,k,iCell)*Vz & ! Rapid
                    - vw(i1,k,iCell)*Tz ! Gradient production
 
                  if (config_adc_truncate_tend) then
@@ -874,14 +876,15 @@ module ocn_adc_mixing_fused
 
 !      CALCULATE US TENDENCY TERMS (these are not saved individually)
 !      The us tendency is the sum of
-!                   (1) turbulent transport of ut [ -d(uws)/dz ]
+!                   (1) turbulent transport of us [ -d(uws)/dz ]
 !                   (2) parameterized pressure-strain terms (Rotta, rapid, Stokes)
-!                   (3) gradient production of ut [uw*dS/dz]
+!                   (3) shear production of us [-ws*dU/dz]
+!                   (4) gradient production of us [-uw*dS/dz]
 !      The tendency term is truncated if config_adc_truncate_tend flag it switched on
-                 ustend(i3_f,k,iCell) = (-(uws(k-1,iCell) - uws(k,iCell))/dz  & ! Transport
+                 ustend(i3_f,k,iCell) = -(uws(k-1,iCell) - uws(k,iCell))/dz  & ! Transport
                    - us(i1,k,iCell)*tau_tracer(k,iCell) & ! Rotta
-                   - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 &
-                   + alpha_tracer2))*ws(i1,k,iCell)*Uz) & ! Rapid
+                   + 0.5_RKIND*(alpha_tracer1 + alpha_tracer2)*ws(i1,k,iCell)*Uz & ! Rapid
+                   - ws(i1,k,iCell)*Uz & ! Shear production
                    - uw(i1,k,iCell)*Sz ! Gradient production
 
                  if (config_adc_truncate_tend) then
@@ -890,16 +893,17 @@ module ocn_adc_mixing_fused
                  endif
 
 
-!      CALCULATE VT TENDENCY TERMS
+!      CALCULATE VS TENDENCY TERMS
 !      The vs tendency is the sum of the following terms (which are NOT saved individually)
 !                   (1) turbulent transport of vs [ -d(vws)/dz ]
 !                   (2) parameterized pressure-strain terms (Rotta, rapid, Stokes)
-!                   (3) gradient production of vs [vw*dS/dz]
+!                   (3) shear production of vs [-ws*dV/dz]
+!                   (4) gradient production of vs [-vw*dS/dz]
 !      The tendency term is truncated if config_adc_truncate_tend flag it switched on
-                 vstend(i3_f,k,iCell) = (-(vws(k-1,iCell) - vws(k,iCell))/dz  & ! Transport
+                 vstend(i3_f,k,iCell) = -(vws(k-1,iCell) - vws(k,iCell))/dz  & ! Transport
                    - vs(i1,k,iCell)*tau_tracer(k,iCell) & ! Rotta
-                   - (1.0_RKIND - 0.5_RKIND*(alpha_tracer1 &
-                   + alpha_tracer2))*ws(i1,k,iCell)*Vz) & ! Rapid
+                   + 0.5_RKIND*(alpha_tracer1 + alpha_tracer2)*ws(i1,k,iCell)*Vz & ! Rapid
+                   - ws(i1,k,iCell)*Vz & ! Rapid
                    - vw(i1,k,iCell)*Sz ! Gradient production
 
                  if (config_adc_truncate_tend) then
