@@ -275,142 +275,142 @@
 </var_struct>
 <var_struct name="adcTendArrays" time_levs="1" packages="adcMixingPKG">
   <var name="w2tend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="entrainment production term -- similar to dissipation"
+       description="entrainment/detrainment term -- similar to dissipation"
        />
   <var name="w2tend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="third order moment term (d / dz w^3)"
+       description="turbulent transport of w2 [ -d(www)/dz ]"
        />
   <var name="w2tend3" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="return to isotropy term"
+       description="parameterized pressure-strain terms (Rotta, rapid, buoyancy, Stokes)"
        />
   <var name="w2tend4" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
        description="buoyancy production term"
        />
   <var name="w2tend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="shear production term"
+       description="sub-plume scale tendency term for w2"
        />
   <var name="w2tend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="conversion of w2 due to splat effects"
+       description="conversion of w2 to u2/v2 due to splat effects"
        />
   <var name="w3tend1" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
-       description="entrainment production term -- similar to dissipation"
+       description="entrainment/detrainment term -- similar to dissipation"
        />
   <var name="w3tend2" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
-       description="fourth order moment term (d / dz w^4)"
+       description="turbulent transport of w3 [ -d(w^4)/dz ]"
        />
   <var name="w3tend3" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
-       description="w2 d/dz w2"
+       description="gradient production of w3 [ (3/2)*d( [w2]^2 )/dz ]"
        />
   <var name="w3tend4" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
-       description="subplume terms + return to isotropy, latter dominates"
+       description="parameterized pressure terms (Rotta, buoyancy)"
        />
   <var name="w3tend5" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
-       description="third order moment of buoyancy, turb transport of buoyancy fluxes"
+       description="buoyancy production and sub-plume scale effects"
        />
   <var name="w3tend6" type="real" dimensions="nVertLevels nCells Time" units="m^2/s^3"
        description="destruction due to splat effects"
        />
-  <var name="wttend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="divergence of turbulent transport of flux"
+  <var name="wttend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s^2"
+       description="entrainment/detrainment term -- similar to dissipation"
        />
-  <var name="wttend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="gradient production w^2 dTdz"
+  <var name="wttend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s^2"
+       description="turbulent transport of wt [ -d(wtw)/dz ]"
        />
-  <var name="wttend3" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="buoyancy term"
+  <var name="wttend3" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s^2"
+       description="parameterized pressure-scalar terms (Rotta, rapid, buoyancy, Stokes)"
        />
-  <var name="wttend4" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="return to isotropy"
+  <var name="wttend4" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s^2"
+       description="gradient and buoyancy production term [ -w2*dT/dz + t*buoyancy]"
        />
-  <var name="wttend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="shear production term"
+  <var name="wttend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s^2"
+       description="dissipation of wt [ -kappa_FL*[d(wt)/dz]^2 ]"
        />
-  <var name="wttend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+  <var name="wttend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m C/s^2"
        description="subplume scale production term"
        />
-  <var name="wstend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="divergence of turbulent transport of flux"
+  <var name="wstend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s^2"
+       description="entrainment/detrainment term -- similar to dissipation"
        />
-  <var name="wstend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="gradient production w^2 dTdz"
+  <var name="wstend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s^2"
+       description="turbulent transport of ws [ -d(wsw)/dz ]"
        />
-  <var name="wstend3" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="buoyancy term"
+  <var name="wstend3" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s^2"
+       description="parameterized pressure-scalar terms (Rotta, rapid, buoyancy, Stokes)"
        />
-  <var name="wstend4" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="return to isotropy"
+  <var name="wstend4" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s^2"
+       description="gradient and buoyancy production term [ -w2*dS/dz + s*buoyancy]"
        />
-  <var name="wstend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="shear production term"
+  <var name="wstend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s^2"
+       description="dissipation of ws [ -kappa_FL*[d(ws)/dz]^2 ]"
        />
-  <var name="wstend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
+  <var name="wstend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m PSU/s^2"
        description="subplume scale production term"
        />
   <var name="uwtend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="divergence of turbulent transport of flux"
+       description="turbulent transport of uw [ -d(uww)/dz ]"
        />
   <var name="uwtend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="gradient production "
+       description="parameterized pressure-strain terms (Rotta, rapid, buoyancy, Stokes)"
        />
   <var name="uwtend3" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="uv covariance"
+       description="shear production of uw [-w2*dU/dz]"
        />
   <var name="uwtend4" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="horizontal buoyancy flux term"
+       description="buoyancy production of uw (u*buoyancy)"
        />
   <var name="uwtend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="return to isotropy"
+       description="dissipation of uw [-kappa_FL*[d(uw)/dz]^2] "
        />
   <var name="vwtend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="divergence of turbulent transport of flux"
+       description="turbulent transport of vw [ -d(vww)/dz ]"
        />
   <var name="vwtend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="gradient production "
+       description="parameterized pressure-strain terms (Rotta, rapid, buoyancy, Stokes)"
        />
   <var name="vwtend3" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="uv covariance"
+       description="shear production of vw [-w2*dV/dz]"
        />
   <var name="vwtend4" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="horizontal buoyancy flux term"
+       description="buoyancy production of vw (v*buoyancy)"
        />
   <var name="vwtend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="return to isotropy"
+       description="dissipation of uw [-kappa_FL*[d(uw)/dz]^2]"
        />
   <var name="u2tend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="divergence of turbulent transport of flux"
+       description="turbulent transport of u2 [ -d(uuw)/dz ]"
        />
   <var name="u2tend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="gradient production proportional to dUdz"
+       description="parameterized pressure-strain terms (Rotta, rapid, buoyancy, Stokes)"
        />
   <var name="u2tend3" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="gradient production proportional to dVdz"
+       description="shear production of u2 [-2*uw*dU/dz]"
        />
   <var name="u2tend4" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="buoyancy production"
+       description="dummy variable (should be zero)"
        />
   <var name="u2tend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="return to isotropy"
+       description="dissipation of u2 [-(2/3)*dissipation]"
        />
   <var name="u2tend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="production due to splatting of w'2"
+       description="production due to splatting of w2"
        />
   <var name="v2tend1" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="divergence of turbulent transport of flux"
+       description="turbulent transport of v2 [ -d(vvw)/dz ]"
        />
   <var name="v2tend2" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="gradient production proportional to dUdz"
+       description="parameterized pressure-strain terms (Rotta, rapid, buoyancy, Stokes)"
        />
   <var name="v2tend3" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="gradient production proportional to dVdz"
+       description="shear production of v2 [-2*vw*dV/dz]"
        />
   <var name="v2tend4" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="buoyancy production"
+       description="dummy variable (should be zero)"
        />
   <var name="v2tend5" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="return to isotropy"
+       description="dissipation of v2 [-(2/3)*dissipation]"
        />
   <var name="v2tend6" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
-       description="production due to splatting of w'2"
+       description="production due to splatting of w2"
        />
   <var name="u2cliptend" type="real" dimensions="nVertLevelsP1 nCells Time" units="m^2/s^3"
        description="if less than zero, it is reset to zero, this stores when that is active"
@@ -585,6 +585,7 @@
     <var name="w2tend3"/>
     <var name="w2tend4"/>
     <var name="w2tend5"/>
+    <var name="w2tend6"/>
     <var name="u2tend1"/>
     <var name="u2tend2"/>
     <var name="u2tend3"/>
