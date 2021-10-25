@@ -1067,8 +1067,8 @@ module ocn_adc_mixing_fused
                  if (config_use_grad_diff_horiz_mom_flux) then
                     Uz = (uvel(k-1,iCell) - uvel(k,iCell)) / dzmid
                     Vz = (vvel(k-1,iCell) - vvel(k,iCell)) / dzmid
-                    uw(i2,k,iCell) = C_mom_flux*sqrt(0.5_RKIND*(u2(i1,k,iCell) + v2(i1,k,iCell) + w2(i1,k,iCell)))*length(k,iCell)*Uz
-                    vw(i2,k,iCell) = C_mom_flux*sqrt(0.5_RKIND*(u2(i1,k,iCell) + v2(i1,k,iCell) + w2(i1,k,iCell)))*length(k,iCell)*Vz
+                    uw(i2,k,iCell) = -C_mom_flux*sqrt(0.5_RKIND*(u2(i1,k,iCell) + v2(i1,k,iCell) + w2(i1,k,iCell)))*length(k,iCell)*Uz
+                    vw(i2,k,iCell) = -C_mom_flux*sqrt(0.5_RKIND*(u2(i1,k,iCell) + v2(i1,k,iCell) + w2(i1,k,iCell)))*length(k,iCell)*Vz
                  else
                     uw(i2,k,iCell) = uw(i1,k,iCell) + dt_small*(Cw3 * uwtend(i3_f,k,iCell) + &
                       Cw2 * uwtend(i2_f,k,iCell) + Cw1 * uwtend(i1_f,k,iCell))
