@@ -11,6 +11,10 @@
 	      description="flag to use buoyancy length scale from previous closure, temporary"
 	      possible_values=".true. or .false."
 	      />
+  <nml_option name="config_use_grad_diff_horiz_mom_flux" type="logical" default_value=".false." units="unitless"
+	      description="flag to use down gradient diffusion closure for horizontal momentum fluxes"
+	      possible_values=".true. or .false."
+	      />
   <nml_option name="config_adc_truncate_tend" type="logical" default_value=".false." units="unitless"
 	      description="flag to truncate tendency terms"
 	      possible_values=".true. or .false."
@@ -66,13 +70,17 @@
   <nml_option name="config_adc_alpha_tracer1" type="real" default_value="0.6" units="unitless"
 	      description="alpha_scalar1 first rapid pressure coefficient in tracer flux budgets (Mironov 2001)"
 	      possible_values="suggested values: 0.6 (Canuto 2001) or equal to alpha_scalar2, >0, <1 (Harcourt 2013)"
-  />
+              />
   <nml_option name="config_adc_alpha_tracer2" type="real" default_value="1.0" units="unitless"
 	      description="alpha_scalar2 rapid pressure coefficient in tracer flux budgets (Mironov 2001)"
 	      possible_values="suggested values: 1.0 (Canuto 2001) or equal to alpha_scalar2, >0, <1 (Harcourt 2013)"
-  />
+              />
   <nml_option name="config_adc_c11" type="real" default_value="0.1" units="unitless"
 	      description="c_11 is the buoyancy contribution in the pressure correlation in w3 eqn"
+	      possible_values="values near 0.1"
+	      />
+  <nml_option name="config_adc_Cmom_flux" type="real" default_value="0.1" units="unitless"
+	      description="horizontal momentum flux down gradient coefficient"
 	      possible_values="values near 0.1"
 	      />
   <nml_option name="config_adc_Cmom" type="real" default_value="0.0" units="unitless"
