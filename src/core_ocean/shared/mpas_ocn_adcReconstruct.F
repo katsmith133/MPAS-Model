@@ -488,11 +488,13 @@ module ocn_adc_mixing_fused
                  lenav = 0.5_RKIND*(length(k,iCell) + length(k+1,iCell))
                  diff = C_mom * sqrt(0.5_RKIND*(KE + KEp1)) * lenav
                  dz = ze(k,iCell) - ze(k+1,iCell)
-                 uw2(k,iCell) = -diff*(uw(i1,k,iCell) - uw(i1,k+1,iCell)) / dz
-                 vw2(k,iCell) = -diff*(vw(i1,k,iCell) - vw(i1,k+1,iCell)) / dz
                  u2w(k,iCell) = -diff*(u2(i1,k,iCell) - u2(i1,k+1,iCell)) / dz
                  v2w(k,iCell) = -diff*(v2(i1,k,iCell) - v2(i1,k+1,iCell)) / dz
-                 uvw(k,iCell) = -diff*(uv(i1,k,iCell) - uv(i1,k+1,iCell)) / dz
+                 if (.not. config_use_grad_diff_horiz_mom_flux) then
+                    uw2(k,iCell) = -diff*(uw(i1,k,iCell) - uw(i1,k+1,iCell)) / dz
+                    vw2(k,iCell) = -diff*(vw(i1,k,iCell) - vw(i1,k+1,iCell)) / dz
+                    uvw(k,iCell) = -diff*(uv(i1,k,iCell) - uv(i1,k+1,iCell)) / dz
+                 endif
 
                  diff = C_therm*sqrt(0.5_RKIND*(KE + KEp1)) * lenav
                  uwt(k,iCell) = -diff*(ut(i1,k,iCell) - ut(i1,k+1,iCell)) / dz
@@ -675,6 +677,7 @@ module ocn_adc_mixing_fused
                  endif
 
 
+                 if (.not. config_use_grad_diff_horiz_mom_flux) then
 !      CALCULATE UW TENDENCY TERMS
 !      The uw tendency is the sum of the following terms (which are saved individually)
 !                   (1) turbulent transport of uw [ -d(uww)/dz ]
@@ -683,30 +686,30 @@ module ocn_adc_mixing_fused
 !                   (4) buoyancy production of uw [ u*buoyancy]
 !                   (5) dissipation of uw [ -kappa_FL*[d(uw)/dz]^2 ]
 !      The tendency term is truncated if config_adc_truncate_tend flag it switched on
-                 uwtend1(k,iCell) = -(uw2(k-1,iCell) - uw2(k,iCell)) / dzmid
+                    uwtend1(k,iCell) = -(uw2(k-1,iCell) - uw2(k,iCell)) / dzmid
 
-                 uwtend2(k,iCell) = -tauVel(k,iCell)*uw(i1,k,iCell) + &
-                   0.5_RKIND*((alpha_0 - 4.0_RKIND*alpha_1/3.0_RKIND)*KE**2.0_RKIND +  &
-                   (alpha_1 - alpha_2)*u2(i1,k,iCell) + (alpha_1 +  &
-                   alpha_2)*w2(i1,k,iCell))*Uz + 0.5_RKIND*(alpha_1 - alpha_2)*    &
-                   uv(i1,k,iCell)*Vz - C_b*grav*(alphaT(k,iCell)*   &
-                   ut(i1,k,iCell) - betaS(k,iCell)*us(i1,k,iCell))
+                    uwtend2(k,iCell) = -tauVel(k,iCell)*uw(i1,k,iCell) &
+                      + 0.5_RKIND*((alpha_0 - 4.0_RKIND*alpha_1/3.0_RKIND)*KE**2.0_RKIND +  &
+                      (alpha_1 - alpha_2)*u2(i1,k,iCell) + (alpha_1 +  &
+                      alpha_2)*w2(i1,k,iCell))*Uz + 0.5_RKIND*(alpha_1 - alpha_2)*    &
+                      uv(i1,k,iCell)*Vz - C_b*grav*(alphaT(k,iCell)*   &
+                      ut(i1,k,iCell) - betaS(k,iCell)*us(i1,k,iCell))
 
-                 uwtend3(k,iCell) = - w2(i1,k,iCell)*Uz
+                      uwtend3(k,iCell) = - w2(i1,k,iCell)*Uz
 
-                 uwtend4(k,iCell) = grav*(alphaT(k,iCell)*   &
-                   ut(i1,k,iCell) - betaS(k,iCell)*us(i1,k,iCell))
+                      uwtend4(k,iCell) = grav*(alphaT(k,iCell)*   &
+                        ut(i1,k,iCell) - betaS(k,iCell)*us(i1,k,iCell))
 
-                 uwtend5(k,iCell) = kappa_FL*(uw(i1,k-1,iCell) - uw(i1,k+1,iCell)) / &
-                   (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND
+                      uwtend5(k,iCell) = kappa_FL*(uw(i1,k-1,iCell) - uw(i1,k+1,iCell)) / &
+                        (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND
 !      Sum the above tendency terms to find the total uw tendency.
-                 uwtend(i3_f,k,iCell) = uwtend1(k,iCell) + uwtend2(k,iCell) + &
-                   uwtend3(k,iCell) + uwtend4(k,iCell) + uwtend5(k,iCell)
+                      uwtend(i3_f,k,iCell) = uwtend1(k,iCell) + uwtend2(k,iCell) + &
+                        uwtend3(k,iCell) + uwtend4(k,iCell) + uwtend5(k,iCell)
 
-                 if (config_adc_truncate_tend) then
-                    uwtend(i3_f,k,iCell) = FLOAT (INT(uwtend(i3_f,k,iCell) * adcRound &
-                      + 0.5_RKIND)) / adcRound
-                 endif
+                      if (config_adc_truncate_tend) then
+                         uwtend(i3_f,k,iCell) = FLOAT (INT(uwtend(i3_f,k,iCell) * adcRound &
+                           + 0.5_RKIND)) / adcRound
+                      endif
 
 
 !      CALCULATE VW TENDENCY TERMS
@@ -717,30 +720,30 @@ module ocn_adc_mixing_fused
 !                   (4) buoyancy production of vw [ v*buoyancy]
 !                   (5) dissipation of vw [ -kappa_FL*[d(vw)/dz]^2 ]
 !      The tendency term is truncated if config_adc_truncate_tend flag it switched on
-                 vwtend1(k,iCell) = -(vw2(k-1,iCell) - vw2(k,iCell)) / dzmid
+                      vwtend1(k,iCell) = -(vw2(k-1,iCell) - vw2(k,iCell)) / dzmid
 
-                 vwtend2(k,iCell) = -tauVel(k,iCell)*vw(i1,k,iCell) + &
-                   0.5_RKIND*((alpha_0 - 4.0_RKIND*alpha_1/3.0_RKIND)*KE**2.0_RKIND +  &
-                   (alpha_1 - alpha_2)*v2(i1,k,iCell) + (alpha_1 +  &
-                   alpha_2)*w2(i1,k,iCell))*Vz + 0.5_RKIND*(alpha_1 - alpha_2)*    &
-                   uv(i1,k,iCell)*Uz - C_b*grav*(alphaT(k,iCell)*   &
-                   vt(i1,k,iCell) - betaS(k,iCell)*vs(i1,k,iCell))
+                      vwtend2(k,iCell) = -tauVel(k,iCell)*vw(i1,k,iCell)  &
+                        + 0.5_RKIND*((alpha_0 - 4.0_RKIND*alpha_1/3.0_RKIND)*KE**2.0_RKIND +  &
+                        (alpha_1 - alpha_2)*v2(i1,k,iCell) + (alpha_1 +  &
+                        alpha_2)*w2(i1,k,iCell))*Vz + 0.5_RKIND*(alpha_1 - alpha_2)*    &
+                        uv(i1,k,iCell)*Uz - C_b*grav*(alphaT(k,iCell)*   &
+                        vt(i1,k,iCell) - betaS(k,iCell)*vs(i1,k,iCell))
 
-                 vwtend3(k,iCell) = - w2(i1,k,iCell)*Vz
+                      vwtend3(k,iCell) = - w2(i1,k,iCell)*Vz
 
-                 vwtend4(k,iCell) = grav*(alphaT(k,iCell)*   &
-                   vt(i1,k,iCell) - betaS(k,iCell)*vs(i1,k,iCell))
+                      vwtend4(k,iCell) = grav*(alphaT(k,iCell)*   &
+                        vt(i1,k,iCell) - betaS(k,iCell)*vs(i1,k,iCell))
 
-                 vwtend5(k,iCell) = kappa_FL*(vw(i1,k-1,iCell) - vw(i1,k+1,iCell)) / &
-                   (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND
+                      vwtend5(k,iCell) = kappa_FL*(vw(i1,k-1,iCell) - vw(i1,k+1,iCell)) / &
+                        (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND
 !      Sum the above tendency terms to find the total vw tendency.
-                 vwtend(i3_f,k,iCell) = vwtend1(k,iCell) + vwtend2(k,iCell) + &
-                   vwtend3(k,iCell) + vwtend4(k,iCell) + vwtend5(k,iCell)
+                      vwtend(i3_f,k,iCell) = vwtend1(k,iCell) + vwtend2(k,iCell) + &
+                        vwtend3(k,iCell) + vwtend4(k,iCell) + vwtend5(k,iCell)
 
-                 if (config_adc_truncate_tend) then
-                    vwtend(i3_f,k,iCell) = FLOAT (INT(vwtend(i3_f,k,iCell) * adcRound &
-                      + 0.5_RKIND)) / adcRound
-                 endif
+                      if (config_adc_truncate_tend) then
+                         vwtend(i3_f,k,iCell) = FLOAT (INT(vwtend(i3_f,k,iCell) * adcRound &
+                           + 0.5_RKIND)) / adcRound
+                      endif
 
 
 !      CALCULATE UV TENDENCY TERMS (these are not saved individually)
@@ -750,20 +753,20 @@ module ocn_adc_mixing_fused
 !                   (3) shear production of uv [uw*dV/dz + vw*dU/dz]
 !                   (4) dissipation of uv [ -kappa_FL*[d(uv)/dz]^2 ]
 !      The tendency term is truncated if config_adc_truncate_tend flag it switched on
-                uvtend(i3_f,k,iCell) = -(uvw(k-1,iCell) - uvw(k,iCell)) / dz & ! transport
-                   - tauVel(k,iCell)*uv(i1,k,iCell)  & ! Rotta
-                   + 0.5_RKIND*(alpha_1+alpha_2)* &
-                   (uw(i1,k,iCell)*Vz + vw(i1,k,iCell)*Uz) & ! rapid
-                   - (uw(i1,k,iCell)*Vz + vw(i1,k,iCell)*Uz) & ! shear production
-                   + kappa_VAR*(uv(i1,k-1,iCell) - uv(i1,k+1,iCell)) / &
-                   (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND ! dissipation
+                      uvtend(i3_f,k,iCell) = -(uvw(k-1,iCell) - uvw(k,iCell)) / dz & ! transport
+                        - tauVel(k,iCell)*uv(i1,k,iCell)  & ! Rotta
+                        + 0.5_RKIND*(alpha_1+alpha_2)* &
+                        (uw(i1,k,iCell)*Vz + vw(i1,k,iCell)*Uz) & ! rapid
+                        - (uw(i1,k,iCell)*Vz + vw(i1,k,iCell)*Uz) & ! shear production
+                        + kappa_VAR*(uv(i1,k-1,iCell) - uv(i1,k+1,iCell)) / &
+                        (ze(k-1,iCell) - ze(k+1,iCell))**2.0_RKIND ! dissipation
 
 !      Truncate the uv tendency term if the truncation flag is switched on
-                 if (config_adc_truncate_tend) then
-                    uvtend(i3_f,k,iCell) = FLOAT (INT(uvtend(i3_f,k,iCell) * adcRound &
-                      + 0.5_RKIND)) / adcRound
-                 endif
-
+                      if (config_adc_truncate_tend) then
+                         uvtend(i3_f,k,iCell) = FLOAT (INT(uvtend(i3_f,k,iCell) * adcRound &
+                           + 0.5_RKIND)) / adcRound
+                      endif
+                   endif
 
 !      CALCULATE U2 TENDENCY TERMS
 !      The u2 tendency is the sum of the following terms (which are saved individually)
@@ -1074,16 +1077,16 @@ module ocn_adc_mixing_fused
                       Cw2 * uwtend(i2_f,k,iCell) + Cw1 * uwtend(i1_f,k,iCell))
                     vw(i2,k,iCell) = vw(i1,k,iCell) + dt_small*(Cw3 * vwtend(i3_f,k,iCell) + &
                       Cw2 * vwtend(i2_f,k,iCell) + Cw1 * vwtend(i1_f,k,iCell))
-                 endif
-                 uv(i2,k,iCell) = uv(i1,k,iCell) + dt_small*(Cw3 * uvtend(i3_f,k,iCell) + &
-                   Cw2 * uvtend(i2_f,k,iCell) + Cw1 * uvtend(i1_f,k,iCell))
+                    uv(i2,k,iCell) = uv(i1,k,iCell) + dt_small*(Cw3 * uvtend(i3_f,k,iCell) + &
+                      Cw2 * uvtend(i2_f,k,iCell) + Cw1 * uvtend(i1_f,k,iCell))
+                 end if
                  ut(i2,k,iCell) = ut(i1,k,iCell) + dt_small*(Cw3 * uttend(i3_f,k,iCell) + &
                    Cw2 * uttend(i2_f,k,iCell) + Cw1 * uttend(i1_f,k,iCell))
+                 vt(i2,k,iCell) = vt(i1,k,iCell) + dt_small*(Cw3 * vttend(i3_f,k,iCell) + &
+                   Cw2 * vttend(i2_f,k,iCell) + Cw1 * vttend(i1_f,k,iCell))
                  wt(i2,k,iCell) = (wt(i1,k,iCell) + dt_small*(Cw3 * wttend(i3_f,k,iCell) + &
                    Cw2 * wttend(i2_f,k,iCell) + Cw1 * wttend(i1_f,k,iCell))) /              &
                    (1.0_RKIND + dt_small*tau_tracer(k,iCell))
-                 vt(i2,k,iCell) = vt(i1,k,iCell) + dt_small*(Cw3 * vttend(i3_f,k,iCell) + &
-                   Cw2 * vttend(i2_f,k,iCell) + Cw1 * vttend(i1_f,k,iCell))
                  us(i2,k,iCell) = us(i1,k,iCell) + dt_small*(Cw3 * ustend(i3_f,k,iCell) + &
                    Cw2 * ustend(i2_f,k,iCell) + Cw1 * ustend(i1_f,k,iCell))
                  vs(i2,k,iCell) = vs(i1,k,iCell) + dt_small*(Cw3 * vstend(i3_f,k,iCell) + &
